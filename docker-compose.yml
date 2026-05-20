@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: finance_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-falves}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-__REDACTED_DB_PASSWORD__}
+      POSTGRES_DB: ${DB_NAME:-FinanceDb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-falves}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: finance_backend
+    ports:
+      - "8080:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__PostgresConnection=Host=db;Port=5432;Database=${DB_NAME:-FinanceDb};Username=${DB_USER:-falves};Password=${DB_PASSWORD:-__REDACTED_DB_PASSWORD__}
+      - Jwt__Key=${JWT_KEY:-chave-local-dev-minimo-32-caracteres!!}
+      - Jwt__Issuer=finance-api
+      - Jwt__Audience=finance-app
+      - Jwt__ExpiryDays=7
+      - AdminKey=${ADMIN_KEY:-admin-key-local}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: finance_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PROXY_TARGET=http://backend:5000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
