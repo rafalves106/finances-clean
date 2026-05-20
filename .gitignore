@@ -1,2 +1,7 @@
 .env
 .DS_Store
+
+# Arquivos temporários (logs de auditorias, etc.)
+*.tmp
+.tmp-*
+*.log
