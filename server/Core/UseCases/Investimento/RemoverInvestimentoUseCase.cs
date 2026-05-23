@@ -1,11 +1,13 @@
 using Finance.Core.Domain;
 using Finance.Core.Repositories;
+using Finance.Core.Services;
 
 namespace Finance.Core.UseCases;
 
 public class RemoverInvestimentoUseCase(
     IInvestimentoRepository _investimentoRepository,
-    IMovimentacaoRepository _movimentacaoRepository)
+    IMovimentacaoRepository _movimentacaoRepository,
+    ITransactionManager _transactionManager)
 {
     public void Executar(Guid usuarioId, Guid id)
     {
@@ -16,27 +18,30 @@ public class RemoverInvestimentoUseCase(
             throw new Exception("Investimento não encontrado.");
         }
 
-        if (investimento.SaldoAtual > 0)
+        _transactionManager.Execute(() =>
         {
-            var tituloEstorno = $"Estorno: {investimento.Nome}";
-            var descricaoEstorno = $"Valor retornado devido à exclusão do investimento {investimento.Nome} da instituição {investimento.Instituicao}.";
+            if (investimento.SaldoAtual > 0)
+            {
+                var tituloEstorno = $"Estorno: {investimento.Nome}";
+                var descricaoEstorno = $"Valor retornado devido à exclusão do investimento {investimento.Nome} da instituição {investimento.Instituicao}.";
 
-            var estorno = new Entrada(
-                tituloEstorno,
-                descricaoEstorno,
-                investimento.SaldoAtual,
-                DateTime.Now,
-                usuarioId,
-                false,
-                0,
+                var estorno = new Entrada(
+                    tituloEstorno,
+                    descricaoEstorno,
+                    investimento.SaldoAtual,
+                    DateTime.UtcNow,
+                    usuarioId,
+                    false,
+                    0,
                     TipoRecorrencia.Mensal,
-                null,
-                investimento.Id
-            );
+                    null,
+                    investimento.Id
+                );
 
-            _movimentacaoRepository.Adicionar(estorno);
-        }
+                _movimentacaoRepository.Adicionar(estorno);
+            }
 
-        _investimentoRepository.Remover(investimento);
+            _investimentoRepository.Remover(investimento);
+        });
     }
 }

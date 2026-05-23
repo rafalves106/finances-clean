@@ -67,6 +67,7 @@ builder.Services.AddScoped<AtualizarUltimoKmAlertaUseCase>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<ITransactionManager, TransactionManager>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<LoginUseCase>();

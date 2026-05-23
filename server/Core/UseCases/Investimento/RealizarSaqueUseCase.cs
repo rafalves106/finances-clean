@@ -1,12 +1,14 @@
 using Finance.Core.Application.DTOs;
 using Finance.Core.Domain;
 using Finance.Core.Repositories;
+using Finance.Core.Services;
 
 namespace Finance.Core.UseCases;
 
 public class RealizarSaqueUseCase(
     IInvestimentoRepository _investimentoRepository,
-    IMovimentacaoRepository _movimentacaoRepository)
+    IMovimentacaoRepository _movimentacaoRepository,
+    ITransactionManager _transactionManager)
 {
     public void Executar(Guid usuarioId, Guid investimentoId, OperacaoInvestimentoDTO dto)
     {
@@ -21,7 +23,10 @@ public class RealizarSaqueUseCase(
         var tituloMovimentacao = $"Resgate: {investimento.Nome}";
         var entrada = new Entrada(tituloMovimentacao, $"Valor resgatado da instituição {investimento.Instituicao}", dto.Valor, dto.Data, usuarioId, false, 0, TipoRecorrencia.Mensal, null, investimento.Id);
 
-        _investimentoRepository.Atualizar(investimento);
-        _movimentacaoRepository.Adicionar(entrada);
+        _transactionManager.Execute(() =>
+        {
+            _investimentoRepository.Atualizar(investimento);
+            _movimentacaoRepository.Adicionar(entrada);
+        });
     }
 }
