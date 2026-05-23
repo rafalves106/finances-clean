@@ -5,3 +5,13 @@
 *.tmp
 .tmp-*
 *.log
+
+# Runtime secrets / local config
+server/API/appsettings.json
+server/API/appsettings.Development.json
+
+# Build outputs
+server/**/bin/
+server/**/obj/
+client/node_modules/
+client/dist/

@@ -17,10 +17,10 @@ Status: CONCLUIDO (sem pendencias operacionais)
 Base de validacao: refs reescritas publicaveis (`refs/heads/*`) no mirror v2.
 
 ```bash
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Yg#MLQ<}[#mjy30?ayS^eNPgCbug>G^7' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '#pUz]pA$[x0=MyxeNwCpy_qf>CTH^yF*' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Password=falvesadm' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Financas@2025!' -- Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_JWT_KEY_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_ADMIN_KEY_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Password=<REDACTED_DB_PASSWORD_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_SEED_PASSWORD_OLD>' -- Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs --oneline
 ```
 
 Resultado obtido: PASS (sem saida em todos os comandos).
@@ -65,10 +65,10 @@ foi executado corte para repositorios novos e privados:
 Validacao final executada em clones `--mirror` desses repositorios novos:
 
 ```bash
-git log --all -S 'Yg#MLQ<}[#mjy30?ayS^eNPgCbug>G^7' --oneline
-git log --all -S '#pUz]pA$[x0=MyxeNwCpy_qf>CTH^yF*' --oneline
-git log --all -S 'Password=falvesadm' --oneline
-git log --all -S 'Financas@2025!' --oneline
+git log --all -S '<REDACTED_JWT_KEY_OLD>' --oneline
+git log --all -S '<REDACTED_ADMIN_KEY_OLD>' --oneline
+git log --all -S 'Password=<REDACTED_DB_PASSWORD_OLD>' --oneline
+git log --all -S '<REDACTED_SEED_PASSWORD_OLD>' --oneline
 ```
 
 Resultado: PASS (sem ocorrencias).
