@@ -32,6 +32,7 @@ services:
       - Jwt__Audience=finance-app
       - Jwt__ExpiryDays=7
       - AdminKey=${ADMIN_KEY:-admin-key-local}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     depends_on:
       db:
         condition: service_healthy
