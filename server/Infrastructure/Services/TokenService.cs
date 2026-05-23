@@ -24,13 +24,18 @@ public class TokenService(IConfiguration _configuration) : ITokenService
           new Claim(ClaimTypes.Name, usuario.Nome),
       };
 
-    var expiryDays = int.Parse(_configuration["Jwt:ExpiryDays"] ?? "7");
+    var expiryMinutesRaw = _configuration["Jwt:ExpiryMinutes"] ?? "60";
+
+    if (!int.TryParse(expiryMinutesRaw, out var expiryMinutes) || expiryMinutes <= 0 || expiryMinutes > 60)
+    {
+      throw new InvalidOperationException("Jwt:ExpiryMinutes deve ser um inteiro entre 1 e 60.");
+    }
 
     var token = new JwtSecurityToken(
         issuer: _configuration["Jwt:Issuer"],
         audience: _configuration["Jwt:Audience"],
         claims: claims,
-        expires: DateTime.UtcNow.AddDays(expiryDays),
+        expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
         signingCredentials: credentials);
 
     return new JwtSecurityTokenHandler().WriteToken(token);
