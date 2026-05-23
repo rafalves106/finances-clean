@@ -20,9 +20,9 @@ IConfiguration configuration) : ControllerBase
       var result = loginUseCase.Executar(dto);
       return Ok(result);
     }
-    catch (UnauthorizedAccessException ex)
+    catch (UnauthorizedAccessException)
     {
-      return Unauthorized(ex.Message);
+      return Unauthorized("Email ou senha inválidos.");
     }
   }
 

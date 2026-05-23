@@ -21,7 +21,7 @@ AlternarConclusaoMetaUseCase alternarConclusaoMetaUseCase) : AuthenticatedContro
       var id = criarMetaUseCase.Executar(UsuarioId, dto);
       return CreatedAtAction(nameof(Listar), new { id }, new { Id = id });
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Dados de meta inválidos."); }
   }
 
   [HttpGet]
@@ -39,7 +39,7 @@ AlternarConclusaoMetaUseCase alternarConclusaoMetaUseCase) : AuthenticatedContro
       atualizarMetaUseCase.Executar(id, dto);
       return NoContent();
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Dados de meta inválidos."); }
   }
 
   [HttpPatch("{id}/conclusao")]
@@ -50,7 +50,7 @@ AlternarConclusaoMetaUseCase alternarConclusaoMetaUseCase) : AuthenticatedContro
       alternarConclusaoMetaUseCase.Executar(id);
       return NoContent();
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Operação de meta inválida."); }
   }
 
   [HttpDelete("{id}")]
@@ -61,6 +61,6 @@ AlternarConclusaoMetaUseCase alternarConclusaoMetaUseCase) : AuthenticatedContro
       removerMetaUseCase.Executar(id);
       return NoContent();
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Operação de meta inválida."); }
   }
 }

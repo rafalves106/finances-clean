@@ -22,7 +22,7 @@ public class VeiculosController(
       var id = criarVeiculoUseCase.Executar(UsuarioId, dto);
       return CreatedAtAction(nameof(BuscarPorId), new { id }, new { Id = id });
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Dados de veículo inválidos."); }
   }
 
   [HttpGet]
@@ -33,7 +33,7 @@ public class VeiculosController(
       var veiculos = listarVeiculosUseCase.Executar();
       return Ok(veiculos);
     }
-    catch (Exception ex) { return StatusCode(500, ex.Message); }
+    catch (Exception) { return StatusCode(500, "Erro ao listar veículos."); }
   }
 
   [HttpGet("{id}")]
@@ -47,7 +47,7 @@ public class VeiculosController(
 
       return Ok(veiculo);
     }
-    catch (Exception ex) { return StatusCode(500, ex.Message); }
+    catch (Exception) { return StatusCode(500, "Erro ao buscar veículo."); }
   }
 
   [HttpPut("{id}")]
@@ -58,8 +58,8 @@ public class VeiculosController(
       atualizarVeiculoUseCase.Executar(id, dto);
       return NoContent();
     }
-    catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (KeyNotFoundException) { return NotFound("Veículo não encontrado."); }
+    catch (ArgumentException) { return BadRequest("Dados de veículo inválidos."); }
   }
 
   [HttpDelete("{id}")]
@@ -70,7 +70,7 @@ public class VeiculosController(
       removerVeiculoUseCase.Executar(id);
       return NoContent();
     }
-    catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+    catch (KeyNotFoundException) { return NotFound("Veículo não encontrado."); }
   }
 
   [HttpPatch("{id}/alerta-km")]
@@ -81,8 +81,8 @@ public class VeiculosController(
       atualizarUltimoKmAlertaUseCase.Executar(id, request.Km);
       return NoContent();
     }
-    catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (KeyNotFoundException) { return NotFound("Veículo não encontrado."); }
+    catch (ArgumentException) { return BadRequest("Dados de alerta de km inválidos."); }
   }
 }
 

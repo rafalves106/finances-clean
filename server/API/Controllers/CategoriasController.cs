@@ -20,7 +20,7 @@ RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
       var id = criarCategoriaUseCase.Executar(UsuarioId, dto);
       return CreatedAtAction(nameof(Listar), new { id }, new { Id = id });
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Dados de categoria inválidos."); }
   }
 
   [HttpGet]
@@ -38,7 +38,7 @@ RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
       atualizarCategoriaUseCase.Executar(id, dto);
       return NoContent();
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Dados de categoria inválidos."); }
   }
 
   [HttpDelete("{id}")]
@@ -49,6 +49,6 @@ RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
       removerCategoriaUseCase.Executar(id);
       return NoContent();
     }
-    catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    catch (ArgumentException) { return BadRequest("Operação de categoria inválida."); }
   }
 }

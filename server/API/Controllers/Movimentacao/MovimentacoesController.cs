@@ -50,9 +50,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
 
             return CreatedAtAction(nameof(CriarMovimentacao), new { id = movimentacao.Id }, movimentacao);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Dados de movimentação inválidos.");
         }
     }
 
@@ -64,9 +64,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             var movimentacoes = listarMovimentacoesUseCase.Executar(mes, ano);
             return Ok(movimentacoes);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao listar movimentações: {ex.Message}");
+            return StatusCode(500, "Erro ao listar movimentações.");
         }
     }
 
@@ -77,9 +77,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         {
             return Ok(obterResumoMensalUseCase.Executar(mes, ano));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao obter resumo mensal: {ex.Message}");
+            return StatusCode(500, "Erro ao obter resumo mensal.");
         }
     }
 
@@ -95,9 +95,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             }
             return Ok(movimentacao);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao buscar movimentação: {ex.Message}");
+            return StatusCode(500, "Erro ao buscar movimentação.");
         }
     }
 
@@ -108,9 +108,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         {
             return Ok(buscarEntradaUseCase.Executar());
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao buscar entradas: {ex.Message}");
+            return StatusCode(500, "Erro ao buscar entradas.");
         }
     }
 
@@ -122,9 +122,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         {
             return Ok(buscarSaidaUseCase.Executar());
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao buscar saídas: {ex.Message}");
+            return StatusCode(500, "Erro ao buscar saídas.");
         }
     }
 
@@ -145,9 +145,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
 
             return Ok(movimentacoes);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao buscar movimentações: {ex.Message}");
+            return StatusCode(500, "Erro ao buscar movimentações.");
         }
     }
 
@@ -159,9 +159,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             atualizarMovimentacaoUseCase.Executar(id, movimentacaoDTO);
             return NoContent();
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Dados de movimentação inválidos.");
         }
     }
 
@@ -174,9 +174,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             removerMovimentacaoUseCase.Executar(id);
             return NoContent();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao remover movimentação: {ex.Message}");
+            return StatusCode(500, "Erro ao remover movimentação.");
         }
     }
 
@@ -190,9 +190,9 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             var saldo = movimentacaoRepository.ObterSaldoAcumulado(mes, ano);
             return Ok(new { saldo });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao calcular saldo acumulado: {ex.Message}");
+            return StatusCode(500, "Erro ao calcular saldo acumulado.");
         }
     }
 }

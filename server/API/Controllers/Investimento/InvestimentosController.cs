@@ -23,9 +23,9 @@ public class InvestimentosController(
             var id = criarInvestimentoUseCase.Executar(UsuarioId, dto);
             return CreatedAtAction(nameof(BuscarInvestimento), new { id = id }, new { Id = id });
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Dados de investimento inválidos.");
         }
     }
 
@@ -37,9 +37,9 @@ public class InvestimentosController(
             var investimentos = listarInvestimentosUseCase.Executar(mostrarInativos);
             return Ok(investimentos);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao listar investimentos: {ex.Message}");
+            return StatusCode(500, "Erro ao listar investimentos.");
         }
     }
 
@@ -53,9 +53,9 @@ public class InvestimentosController(
 
             return Ok(investimento);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Erro ao buscar investimento: {ex.Message}");
+            return StatusCode(500, "Erro ao buscar investimento.");
         }
     }
 
@@ -69,7 +69,7 @@ public class InvestimentosController(
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Operação de aporte inválida.");
         }
     }
 
@@ -83,7 +83,7 @@ public class InvestimentosController(
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Operação de saque inválida.");
         }
     }
 
@@ -97,7 +97,7 @@ public class InvestimentosController(
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Dados de saldo inválidos.");
         }
     }
 
@@ -109,9 +109,9 @@ public class InvestimentosController(
             removerInvestimentoUseCase.Executar(UsuarioId, id);
             return NoContent();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Não foi possível remover o investimento.");
         }
     }
 }
