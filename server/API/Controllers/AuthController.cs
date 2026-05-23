@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Finance.Core.UseCases;
 using Finance.Core.Application.DTOs;
 using Finance.Core.Repositories;
@@ -13,6 +14,7 @@ IUsuarioRepository usuarioRepository,
 IConfiguration configuration) : ControllerBase
 {
   [HttpPost("login")]
+  [AllowAnonymous]
   public IActionResult Login([FromBody] LoginDTO dto)
   {
     try
@@ -27,6 +29,7 @@ IConfiguration configuration) : ControllerBase
   }
 
   [HttpPost("registro")]
+  [AllowAnonymous]
   public IActionResult Registro(
       [FromBody] RegistroDTO dto,
       [FromHeader(Name = "X-Admin-Key")] string? adminKey)
