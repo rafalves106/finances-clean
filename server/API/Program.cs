@@ -9,6 +9,7 @@ using Finance.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -96,6 +97,54 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
   });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = (context, cancellationToken) =>
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("AuthRateLimiter");
+
+        var remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var path = context.HttpContext.Request.Path.Value ?? "unknown";
+        var method = context.HttpContext.Request.Method ?? "unknown";
+        var traceId = context.HttpContext.TraceIdentifier;
+        var userAgent = context.HttpContext.Request.Headers.UserAgent.ToString();
+
+        logger.LogWarning(
+            "Rate limit excedido para endpoint de auth. TraceId={TraceId} Method={Method} Path={Path} RemoteIp={RemoteIp} UserAgent={UserAgent}",
+            traceId,
+            method,
+            path,
+            remoteIp,
+            string.IsNullOrWhiteSpace(userAgent) ? "unknown" : userAgent);
+
+        return ValueTask.CompletedTask;
+    };
+
+    options.AddPolicy("AuthPublicPolicy", httpContext =>
+    {
+        var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var endpoint = httpContext.Request.Path.Value?.ToLowerInvariant() ?? "unknown";
+        var partitionKey = $"{remoteIp}:{endpoint}";
+        var permitLimit = endpoint.EndsWith("/registro", StringComparison.OrdinalIgnoreCase)
+            ? 3
+            : 5;
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+});
 
 var allowedOrigins = builder.Configuration
   .GetSection("AllowedOrigins")
@@ -218,6 +267,7 @@ app.MapGet("/ready", async (FinanceDbContext dbContext, CancellationToken cancel
 });
 
 app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

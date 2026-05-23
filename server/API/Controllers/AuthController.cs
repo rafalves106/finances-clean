@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Finance.Core.UseCases;
 using Finance.Core.Application.DTOs;
 using Finance.Core.Repositories;
@@ -15,6 +16,7 @@ IConfiguration configuration) : ControllerBase
 {
   [HttpPost("login")]
   [AllowAnonymous]
+  [EnableRateLimiting("AuthPublicPolicy")]
   public IActionResult Login([FromBody] LoginDTO dto)
   {
     try
@@ -30,6 +32,7 @@ IConfiguration configuration) : ControllerBase
 
   [HttpPost("registro")]
   [AllowAnonymous]
+  [EnableRateLimiting("AuthPublicPolicy")]
   public IActionResult Registro(
       [FromBody] RegistroDTO dto,
       [FromHeader(Name = "X-Admin-Key")] string? adminKey)
