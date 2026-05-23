@@ -141,6 +141,32 @@ if (app.Environment.IsDevelopment())
 appReady = true;
 
 app.MapOpenApi();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+
+        // Swagger/OpenAPI UI relies on scripts/styles; keep strict CSP on API responses.
+        if (!context.Request.Path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase) &&
+            !context.Request.Path.StartsWithSegments("/openapi", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Headers["Content-Security-Policy"] =
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+        }
+
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
+
 app.UseHttpsRedirection();
 app.UseSwaggerUI(options =>
 {
