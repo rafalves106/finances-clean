@@ -1,0 +1,16 @@
+using System.Text.Json.Serialization;
+
+namespace Finance.Core.Domain;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum TipoInvestimento
+{
+    TesouroDireto,
+    CDB,
+    LCI,
+    LCA,
+    FII,
+    Acoes,
+    Criptomoedas,
+    Outros
+}

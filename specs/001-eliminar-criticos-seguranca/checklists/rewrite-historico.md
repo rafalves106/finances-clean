@@ -32,8 +32,8 @@ Regras utilizadas (replace-text):
 
 - JWT comprometido
 - AdminKey comprometida
-- Connection string com `Password=falvesadm`
-- Senha hardcoded `Financas@2025!`
+- Connection string com `Password=<REDACTED_DB_PASSWORD_OLD>`
+- Senha hardcoded `<REDACTED_SEED_PASSWORD_OLD>`
 
 Comando de dry-run em mirror:
 
@@ -47,10 +47,10 @@ Comando de dry-run em mirror:
 Validacao local das refs publicaveis reescritas:
 
 ```bash
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Yg#MLQ<}[#mjy30?ayS^eNPgCbug>G^7' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '#pUz]pA$[x0=MyxeNwCpy_qf>CTH^yF*' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Password=falvesadm' -- API/appsettings.json --oneline
-git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Financas@2025!' -- Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_JWT_KEY_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_ADMIN_KEY_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S 'Password=<REDACTED_DB_PASSWORD_OLD>' -- API/appsettings.json --oneline
+git --git-dir=/tmp/sec004-20260523-150807/server-rewrite-mirror-v2.git log --all -S '<REDACTED_SEED_PASSWORD_OLD>' -- Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs --oneline
 ```
 
 Resultado obtido: PASS (sem saida).

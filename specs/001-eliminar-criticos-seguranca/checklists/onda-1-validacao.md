@@ -34,7 +34,7 @@ Resultado obtido: PASS (somente placeholders).
 3. Confirmar ausencia de senha hardcoded da auditoria:
 
 ```bash
-grep -RIn 'Financas@2025!' server/Infrastructure/Migrations
+grep -RIn '<REDACTED_SEED_PASSWORD_OLD>' server/Infrastructure/Migrations
 ```
 
 Resultado esperado: sem saida.
@@ -62,7 +62,7 @@ Resultado obtido: PASS (build concluido com sucesso; 4 warnings pre-existentes f
 
 - `server/API/appsettings.json` com placeholders e sem segredo real no HEAD local.
 - `server/.gitignore` com `API/appsettings.json` para impedir novo versionamento.
-- `server/Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs` sem `Financas@2025!` e sem `HashPassword("...")`.
+- `server/Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs` sem `<REDACTED_SEED_PASSWORD_OLD>` e sem `HashPassword("...")`.
 - `server/API/Controllers/AuthController.cs` com endpoint `POST /api/v1/auth/bootstrap-admin` protegido por `X-Bootstrap-Key`.
 - `server/Core/UseCases/Auth/BootstrapAdminUseCase.cs` para bootstrap de admin sem seed de senha.
 - `docs/runbooks/migrations-prod.md` com procedimento de bootstrap e rotacao imediata da senha temporaria.
@@ -73,7 +73,7 @@ Data de reexecucao: 2026-05-23
 
 - `CMD1` `git -C server ls-files | grep -E '^API/appsettings\.json$'`: PASS (sem saida).
 - `CMD2` `grep -nE 'PostgresConnection|"Key"|AdminKey' server/API/appsettings.Example.json`: PASS (somente placeholders).
-- `CMD3` `grep -RIn 'Financas@2025!' server/Infrastructure/Migrations`: PASS (sem saida).
+- `CMD3` `grep -RIn '<REDACTED_SEED_PASSWORD_OLD>' server/Infrastructure/Migrations`: PASS (sem saida).
 - `CMD4` `grep -RInE 'HashPassword\("' server/Infrastructure/Migrations/20260422214104_AddAuth_UsuarioId.cs`: PASS (sem saida).
 - `dotnet build server/Finance.slnx`: PASS (build concluido com 1 warning pre-existente fora do escopo de seguranca).
 

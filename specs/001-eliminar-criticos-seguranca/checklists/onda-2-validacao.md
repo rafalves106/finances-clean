@@ -53,7 +53,7 @@ Comando executado:
 ```bash
 ASPNETCORE_ENVIRONMENT=Production \
 ASPNETCORE_URLS=http://127.0.0.1:5098 \
-ConnectionStrings__PostgresConnection='Host=localhost;Port=5432;Database=FinanceDb;Username=falves;Password=falvesadm' \
+ConnectionStrings__PostgresConnection='Host=localhost;Port=5432;Database=FinanceDb;Username=falves;Password=<REDACTED_DB_PASSWORD_OLD>' \
 Jwt__Key='chave-local-dev-minimo-32-caracteres!!' \
 Jwt__Issuer='finance-api' \
 Jwt__Audience='finance-app' \
