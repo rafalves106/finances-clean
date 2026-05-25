@@ -32,7 +32,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                 ),
                 TipoMovimentacao.Saida => new Saida(
                     movimentacaoDTO.Titulo,
-                    movimentacaoDTO.Descricao,
+                    movimentacaoDTO.Descricao ?? string.Empty,
                     movimentacaoDTO.Valor,
                     movimentacaoDTO.Data,
                     UsuarioId,

@@ -12,6 +12,21 @@ const allowedHosts = (
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    globals: true,
+    environment: "jsdom",
+    include: ["src/**/*.test.{js,jsx}"],
+    coverage: {
+      provider: "v8",
+      include: ["src/util/**", "src/services/**"],
+      thresholds: {
+        statements: 100,
+        lines: 100,
+        functions: 100,
+        branches: 80,
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173,

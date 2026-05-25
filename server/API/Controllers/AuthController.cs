@@ -7,6 +7,8 @@ using Finance.Core.Repositories;
 
 namespace Finance.API.Controllers;
 
+public sealed record LoginResponseDTO(string Nome, string Email);
+
 [ApiController]
 [Route("api/v1/auth")]
 public class AuthController(
@@ -22,12 +24,45 @@ IConfiguration configuration) : ControllerBase
     try
     {
       var result = loginUseCase.Executar(dto);
-      return Ok(result);
+      var expiryMinutesRaw = configuration["Jwt:ExpiryMinutes"] ?? "60";
+
+      if (!int.TryParse(expiryMinutesRaw, out var expiryMinutes) || expiryMinutes <= 0 || expiryMinutes > 60)
+      {
+        throw new InvalidOperationException("Jwt:ExpiryMinutes deve ser um inteiro entre 1 e 60.");
+      }
+
+      Response.Cookies.Append("finance_auth_token", result.Token, new CookieOptions
+      {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.None,
+        Path = "/",
+        Expires = DateTimeOffset.UtcNow.AddMinutes(expiryMinutes)
+      });
+
+      return Ok(new LoginResponseDTO(result.Nome, result.Email));
     }
     catch (UnauthorizedAccessException)
     {
       return Unauthorized("Email ou senha inválidos.");
     }
+  }
+
+  [HttpPost("logout")]
+  [AllowAnonymous]
+  [EnableRateLimiting("AuthPublicPolicy")]
+  public IActionResult Logout()
+  {
+    Response.Cookies.Append("finance_auth_token", string.Empty, new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = true,
+      SameSite = SameSiteMode.None,
+      Path = "/",
+      Expires = DateTimeOffset.UtcNow.AddDays(-1)
+    });
+
+    return NoContent();
   }
 
   [HttpPost("registro")]

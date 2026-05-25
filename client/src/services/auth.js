@@ -1,14 +1,36 @@
-const TOKEN_KEY = "finance_token";
+import { API_AUTH_URL } from "./api";
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
+let isLoggedIn = false;
 
-export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
+const clearSessionFlag = () => {
+  isLoggedIn = false;
+};
 
-export const removeToken = () => localStorage.removeItem(TOKEN_KEY);
+export const getToken = () => null;
+
+export const setToken = () => {
+  isLoggedIn = true;
+};
+
+export const logout = async () => {
+  clearSessionFlag();
+
+  try {
+    await fetch(`${API_AUTH_URL}/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Erro ao limpar sessao:", err);
+  }
+};
+
+export const removeToken = () => {
+  void logout();
+};
 
 export const getAuthHeaders = () => ({
   "Content-Type": "application/json",
-  Authorization: `Bearer ${getToken()}`,
 });
 
-export const isAuthenticated = () => !!getToken();
+export const isAuthenticated = () => isLoggedIn;

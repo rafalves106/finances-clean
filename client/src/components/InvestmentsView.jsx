@@ -29,8 +29,10 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
   const months = years * 12;
   const rateDecimal = rate / 100;
   const futureValue =
-    initialVal * Math.pow(1 + rateDecimal, months) +
-    (monthlyVal * (Math.pow(1 + rateDecimal, months) - 1)) / rateDecimal;
+    rateDecimal === 0
+      ? Number(initialVal) + Number(monthlyVal) * months
+      : initialVal * Math.pow(1 + rateDecimal, months) +
+        (monthlyVal * (Math.pow(1 + rateDecimal, months) - 1)) / rateDecimal;
   const totalInvested = Number(initialVal) + Number(monthlyVal) * months;
   const totalInterest = futureValue - totalInvested;
 

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.CookiePolicy;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -83,6 +84,20 @@ var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
   .AddJwtBearer(options =>
   {
+      options.Events = new JwtBearerEvents
+      {
+          OnMessageReceived = context =>
+          {
+              if (string.IsNullOrWhiteSpace(context.Token) &&
+                  context.Request.Cookies.TryGetValue("finance_auth_token", out var cookieToken))
+              {
+                  context.Token = cookieToken;
+              }
+
+              return Task.CompletedTask;
+          }
+      };
+
       options.TokenValidationParameters = new TokenValidationParameters
       {
           ValidateIssuer = true,
@@ -95,6 +110,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
               Encoding.UTF8.GetBytes(jwtKey))
       };
   });
+
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = SameSiteMode.None;
+    options.Secure = CookieSecurePolicy.Always;
+});
 
 builder.Services.AddAuthorization();
 
@@ -172,6 +193,7 @@ builder.Services.AddCors(options =>
         }
 
         policy.WithOrigins(normalizedAllowedOrigins)
+              .AllowCredentials()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -217,6 +239,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
+app.UseCookiePolicy();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/openapi/v1.json", "Finance API V1");
@@ -267,11 +290,50 @@ app.MapGet("/ready", async (FinanceDbContext dbContext, CancellationToken cancel
 });
 
 app.UseCors("FrontendPolicy");
+app.Use(async (context, next) =>
+{
+    if (IsMutableHttpMethod(context.Request.Method) &&
+        !IsAllowedBrowserOrigin(context.Request, normalizedAllowedOrigins))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsync("Origem da requisicao nao permitida.");
+        return;
+    }
+
+    await next();
+});
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+static bool IsMutableHttpMethod(string method)
+{
+    return HttpMethods.IsPost(method) ||
+           HttpMethods.IsPut(method) ||
+           HttpMethods.IsDelete(method) ||
+           HttpMethods.IsPatch(method);
+}
+
+static bool IsAllowedBrowserOrigin(HttpRequest request, string[] allowedOrigins)
+{
+    var originHeader = request.Headers.Origin.ToString();
+    if (!string.IsNullOrWhiteSpace(originHeader))
+    {
+        return allowedOrigins.Contains(originHeader.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    var refererHeader = request.Headers.Referer.ToString();
+    if (!string.IsNullOrWhiteSpace(refererHeader) &&
+        Uri.TryCreate(refererHeader, UriKind.Absolute, out var refererUri))
+    {
+        var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+        return allowedOrigins.Contains(refererOrigin, StringComparer.OrdinalIgnoreCase);
+    }
+
+    return false;
+}
 
 static async Task ApplyMigrationsWithRetryAsync(WebApplication app)
 {
