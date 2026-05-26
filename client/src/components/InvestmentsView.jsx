@@ -164,10 +164,14 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">
+            <label
+              htmlFor="investment-simulator-initial"
+              className="text-xs font-bold text-slate-500 uppercase"
+            >
               Aporte Inicial
             </label>
             <input
+              id="investment-simulator-initial"
               type="number"
               value={initialVal}
               onChange={(e) => setInitialVal(Number(e.target.value))}
@@ -175,10 +179,14 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">
+            <label
+              htmlFor="investment-simulator-monthly"
+              className="text-xs font-bold text-slate-500 uppercase"
+            >
               Aporte Mensal
             </label>
             <input
+              id="investment-simulator-monthly"
               type="number"
               value={monthlyVal}
               onChange={(e) => setMonthlyVal(Number(e.target.value))}
@@ -186,10 +194,14 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">
+            <label
+              htmlFor="investment-simulator-rate"
+              className="text-xs font-bold text-slate-500 uppercase"
+            >
               Taxa de Juros (% ao mês)
             </label>
             <input
+              id="investment-simulator-rate"
               type="number"
               step="0.01"
               value={rate}
@@ -198,10 +210,14 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">
+            <label
+              htmlFor="investment-simulator-years"
+              className="text-xs font-bold text-slate-500 uppercase"
+            >
               Período (Anos)
             </label>
             <input
+              id="investment-simulator-years"
               type="range"
               min="1"
               max="30"
@@ -256,7 +272,11 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <label htmlFor="new-investment-name" className="sr-only">
+            Nome do ativo
+          </label>
           <input
+            id="new-investment-name"
             type="text"
             placeholder="Nome do Ativo (ex: MXRF11, CDB)"
             value={newNome}
@@ -264,7 +284,11 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             className="p-2 border rounded-lg"
             required
           />
+          <label htmlFor="new-investment-institution" className="sr-only">
+            Corretora ou banco
+          </label>
           <input
+            id="new-investment-institution"
             type="text"
             placeholder="Corretora / Banco"
             value={newInstituicao}
@@ -288,7 +312,11 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             <option value="Outros">Outros</option>
           </select>
 
+          <label htmlFor="new-investment-value" className="sr-only">
+            Valor aplicado
+          </label>
           <input
+            id="new-investment-value"
             type="number"
             placeholder="Valor Aplicado"
             value={newValor}
@@ -299,7 +327,11 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
             step="0.01"
           />
 
+          <label htmlFor="new-investment-date" className="sr-only">
+            Data inicial do investimento
+          </label>
           <input
+            id="new-investment-date"
             type="date"
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
@@ -364,6 +396,7 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
                   </div>
                   <button
                     onClick={() => handleDelete(inv.id)}
+                    aria-label={`Remover investimento ${inv.nome}`}
                     className="text-slate-300 hover:text-red-500 transition-colors p-1"
                     title="Remover"
                   >
@@ -403,7 +436,16 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
                 {/* Botões de Ação */}
                 {activeAction.id === inv.id ? (
                   <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex gap-2 items-center animate-fade-in mt-auto">
+                    <label
+                      htmlFor={`investment-action-${inv.id}`}
+                      className="sr-only"
+                    >
+                      {activeAction.type === "saldo"
+                        ? "Novo saldo total"
+                        : "Valor da operação"}
+                    </label>
                     <input
+                      id={`investment-action-${inv.id}`}
                       type="number"
                       placeholder={
                         activeAction.type === "saldo"
@@ -423,6 +465,7 @@ const InvestmentsView = ({ investmentAmount, investments, fetchData }) => {
                     </button>
                     <button
                       onClick={() => setActiveAction({ id: null, type: null })}
+                      aria-label="Cancelar edição de ação"
                       className="text-slate-400 hover:text-slate-600 p-2"
                     >
                       <X size={16} />

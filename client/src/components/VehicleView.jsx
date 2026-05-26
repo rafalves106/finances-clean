@@ -244,7 +244,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             onSubmit={handleSubmit}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
+            <label htmlFor="vehicle-empty-nome" className="sr-only">
+              Nome do veículo
+            </label>
             <input
+              id="vehicle-empty-nome"
               className="p-2 border rounded-lg"
               placeholder="Nome"
               value={formVeiculo.nome}
@@ -252,7 +256,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 setFormVeiculo({ ...formVeiculo, nome: e.target.value })
               }
             />
+            <label htmlFor="vehicle-empty-marca" className="sr-only">
+              Marca do veículo
+            </label>
             <input
+              id="vehicle-empty-marca"
               className="p-2 border rounded-lg"
               placeholder="Marca"
               value={formVeiculo.marca}
@@ -260,7 +268,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 setFormVeiculo({ ...formVeiculo, marca: e.target.value })
               }
             />
+            <label htmlFor="vehicle-empty-modelo" className="sr-only">
+              Modelo do veículo
+            </label>
             <input
+              id="vehicle-empty-modelo"
               className="p-2 border rounded-lg"
               placeholder="Modelo"
               value={formVeiculo.modelo}
@@ -268,7 +280,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 setFormVeiculo({ ...formVeiculo, modelo: e.target.value })
               }
             />
+            <label htmlFor="vehicle-empty-ano" className="sr-only">
+              Ano do veículo
+            </label>
             <input
+              id="vehicle-empty-ano"
               className="p-2 border rounded-lg"
               type="number"
               placeholder="Ano"
@@ -277,7 +293,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 setFormVeiculo({ ...formVeiculo, ano: e.target.value })
               }
             />
+            <label htmlFor="vehicle-empty-placa" className="sr-only">
+              Placa do veículo
+            </label>
             <input
+              id="vehicle-empty-placa"
               className="p-2 border rounded-lg"
               placeholder="Placa"
               value={formVeiculo.placa}
@@ -285,7 +305,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 setFormVeiculo({ ...formVeiculo, placa: e.target.value })
               }
             />
+            <label htmlFor="vehicle-empty-alerta-km" className="sr-only">
+              Alerta de quilometragem
+            </label>
             <input
+              id="vehicle-empty-alerta-km"
               className="p-2 border rounded-lg"
               type="number"
               placeholder="Alerta Km"
@@ -429,7 +453,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                   </h3>
                 </div>
                 <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                  <label htmlFor="vehicle-main-nome" className="sr-only">
+                    Nome do veículo
+                  </label>
                   <input
+                    id="vehicle-main-nome"
                     className="w-full p-2 border rounded-lg"
                     placeholder="Nome"
                     value={formVeiculo.nome}
@@ -438,7 +466,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     }
                   />
                   <div className="grid grid-cols-2 gap-2">
+                    <label htmlFor="vehicle-main-marca" className="sr-only">
+                      Marca do veículo
+                    </label>
                     <input
+                      id="vehicle-main-marca"
                       className="w-full p-2 border rounded-lg"
                       placeholder="Marca"
                       value={formVeiculo.marca}
@@ -449,7 +481,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         })
                       }
                     />
+                    <label htmlFor="vehicle-main-modelo" className="sr-only">
+                      Modelo do veículo
+                    </label>
                     <input
+                      id="vehicle-main-modelo"
                       className="w-full p-2 border rounded-lg"
                       placeholder="Modelo"
                       value={formVeiculo.modelo}
@@ -462,7 +498,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
+                    <label htmlFor="vehicle-main-ano" className="sr-only">
+                      Ano do veículo
+                    </label>
                     <input
+                      id="vehicle-main-ano"
                       className="w-full p-2 border rounded-lg"
                       type="number"
                       placeholder="Ano"
@@ -471,7 +511,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         setFormVeiculo({ ...formVeiculo, ano: e.target.value })
                       }
                     />
+                    <label htmlFor="vehicle-main-placa" className="sr-only">
+                      Placa do veículo
+                    </label>
                     <input
+                      id="vehicle-main-placa"
                       className="w-full p-2 border rounded-lg"
                       placeholder="Placa"
                       value={formVeiculo.placa}
@@ -483,7 +527,11 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                       }
                     />
                   </div>
+                  <label htmlFor="vehicle-main-alerta-km" className="sr-only">
+                    Alerta de quilometragem
+                  </label>
                   <input
+                    id="vehicle-main-alerta-km"
                     className="w-full p-2 border rounded-lg"
                     type="number"
                     placeholder="Alerta Km"
@@ -634,6 +682,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         <button
                           type="button"
                           onClick={() => editarVeiculo(veiculo)}
+                          aria-label={`Editar veículo ${veiculo.nome}`}
                           className="p-2 rounded-lg hover:bg-slate-50 text-slate-500 hover:text-orange-600"
                         >
                           <Edit3 size={16} />
@@ -641,6 +690,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         <button
                           type="button"
                           onClick={() => deletarVeiculo(veiculo.id)}
+                          aria-label={`Excluir veículo ${veiculo.nome}`}
                           className="p-2 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-600"
                         >
                           <Trash2 size={16} />

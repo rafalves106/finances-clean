@@ -91,7 +91,11 @@ const WishListView = ({
           <div>
             <div className="flex items-center gap-2">
               <p className="text-indigo-200 text-sm">Horas trabalhadas/mês</p>
+              <label htmlFor="wish-hours-per-month" className="sr-only">
+                Horas trabalhadas por mês
+              </label>
               <input
+                id="wish-hours-per-month"
                 type="number"
                 className="w-16 text-black text-sm p-1 rounded"
                 value={workHoursPerMonth}
@@ -118,14 +122,22 @@ const WishListView = ({
         <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
           <h3 className="font-bold mb-4">Adicionar Meta</h3>
           <form onSubmit={addWish} className="space-y-4">
+            <label htmlFor="wish-name" className="sr-only">
+              Nome da meta
+            </label>
             <input
+              id="wish-name"
               type="text"
               placeholder="Ex: Viagem"
               className="w-full p-2 border rounded-lg"
               value={wishName}
               onChange={(e) => setWishName(e.target.value)}
             />
+            <label htmlFor="wish-price" className="sr-only">
+              Preço da meta
+            </label>
             <input
+              id="wish-price"
               type="number"
               placeholder="Preço (R$)"
               className="w-full p-2 border rounded-lg"
@@ -170,6 +182,7 @@ const WishListView = ({
                   </div>
                   <button
                     onClick={() => deleteWish(wish.id)}
+                    aria-label={`Excluir meta ${wish.name}`}
                     className="text-slate-300 hover:text-red-500"
                   >
                     <Trash2 />

@@ -606,6 +606,7 @@ const DashboardView = ({
               <button
                 type="button"
                 onClick={onOpenCategoryManager}
+                aria-label="Gerenciar categorias"
                 title="Gerenciar categorias"
                 className="p-1 rounded-md hover:bg-slate-50"
               >
@@ -730,6 +731,7 @@ const DashboardView = ({
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveSimulation(i.id)}
+                                    aria-label="Remover transação simulada"
                                     className="p-1 rounded-full hover:bg-amber-100 text-amber-700 transition-colors"
                                     title="Remover simulação"
                                   >
@@ -752,6 +754,7 @@ const DashboardView = ({
                                     onClick={() =>
                                       handleEditClick(i, "Entrada")
                                     }
+                                    aria-label={`Editar entrada ${i.name || i.titulo}`}
                                     className="p-1 hover:bg-amber-50 rounded-full transition-colors"
                                     title="Editar"
                                   >
@@ -763,6 +766,7 @@ const DashboardView = ({
 
                                   <button
                                     onClick={() => handleRemove(i.id)}
+                                    aria-label={`Excluir entrada ${i.name || i.titulo}`}
                                     className="p-1 hover:bg-red-50 rounded-full transition-colors"
                                     title="Excluir"
                                   >
@@ -858,6 +862,7 @@ const DashboardView = ({
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveSimulation(i.id)}
+                                    aria-label="Remover transação simulada"
                                     className="p-1 rounded-full hover:bg-amber-100 text-amber-700 transition-colors"
                                     title="Remover simulação"
                                   >
@@ -878,6 +883,7 @@ const DashboardView = ({
                                 <>
                                   <button
                                     onClick={() => handleEditClick(i, "Saida")}
+                                    aria-label={`Editar saída ${i.name || i.titulo}`}
                                     className="p-1 hover:bg-amber-50 rounded-full transition-colors"
                                     title="Editar"
                                   >
@@ -889,6 +895,7 @@ const DashboardView = ({
 
                                   <button
                                     onClick={() => handleRemove(i.id)}
+                                    aria-label={`Excluir saída ${i.name || i.titulo}`}
                                     className="p-1 hover:bg-red-50 rounded-full transition-colors"
                                     title="Excluir"
                                   >
@@ -914,6 +921,7 @@ const DashboardView = ({
 
       <button
         className="fixed bottom-6 right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Adicionar nova transação"
         onClick={() => {
           setEditingItem(null);
           setIsModalOpen(true);
@@ -925,6 +933,7 @@ const DashboardView = ({
       <button
         type="button"
         className="fixed bottom-6 right-24 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Simular transação"
         onClick={() => {
           setIsSimulationModalOpen(true);
         }}

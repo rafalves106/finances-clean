@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil, Trash2, X } from "lucide-react";
 
 import { API_CATEGORIAS_URL } from "../services/api";
@@ -14,6 +14,7 @@ const CategoryManagerModal = ({
   const [formNome, setFormNome] = useState("");
   const [formIcone, setFormIcone] = useState("");
   const [formCor, setFormCor] = useState("#94a3b8");
+  const dialogRef = useRef(null);
 
   const clearForm = () => {
     setEditingCat(null);
@@ -27,6 +28,57 @@ const CategoryManagerModal = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     clearForm();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+
+    const focusable = dialogRef.current.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+
+    if (focusable.length > 0) {
+      focusable[0].focus();
+      return;
+    }
+
+    dialogRef.current.focus();
+  }, [isOpen]);
+
+  const handleDialogKeyDown = (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (e.key !== "Tab" || !dialogRef.current) return;
+
+    const focusable = Array.from(
+      dialogRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    if (focusable.length === 0) {
+      e.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const current = document.activeElement;
+
+    if (e.shiftKey && current === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!e.shiftKey && current === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -94,11 +146,25 @@ const CategoryManagerModal = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50">
-      <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl overflow-y-auto">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-modal-title"
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
+        className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl overflow-y-auto"
+      >
         <div className="flex items-center justify-between p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-bold text-slate-800">Categorias</h2>
+          <h2
+            id="category-modal-title"
+            className="text-lg font-bold text-slate-800"
+          >
+            Categorias
+          </h2>
           <button
             onClick={onClose}
+            aria-label="Fechar modal de categorias"
             className="text-slate-400 hover:text-slate-600"
           >
             <X size={20} />
@@ -127,6 +193,7 @@ const CategoryManagerModal = ({
                   <button
                     type="button"
                     onClick={() => handleEdit(category)}
+                    aria-label={`Editar categoria ${category.nome}`}
                     className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
                     title="Editar"
                   >
@@ -135,6 +202,7 @@ const CategoryManagerModal = ({
                   <button
                     type="button"
                     onClick={() => handleDelete(category.id)}
+                    aria-label={`Deletar categoria ${category.nome}`}
                     className="p-2 rounded-lg hover:bg-red-50 text-red-500"
                     title="Deletar"
                   >

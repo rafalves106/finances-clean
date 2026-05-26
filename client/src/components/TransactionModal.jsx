@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { API_URL } from "../services/api";
 import { formatDate } from "../util/formatDate";
@@ -30,6 +30,7 @@ const TransactionModal = ({
   onSimulate,
 }) => {
   const [form, setForm] = useState(INITIAL_FORM);
+  const dialogRef = useRef(null);
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -63,6 +64,57 @@ const TransactionModal = ({
       setForm(INITIAL_FORM);
     }
   }, [editingItem, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+
+    const focusable = dialogRef.current.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+
+    if (focusable.length > 0) {
+      focusable[0].focus();
+      return;
+    }
+
+    dialogRef.current.focus();
+  }, [isOpen]);
+
+  const handleDialogKeyDown = (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (e.key !== "Tab" || !dialogRef.current) return;
+
+    const focusable = Array.from(
+      dialogRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    if (focusable.length === 0) {
+      e.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const current = document.activeElement;
+
+    if (e.shiftKey && current === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!e.shiftKey && current === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,9 +214,20 @@ const TransactionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl max-w-lg w-full mx-4 p-6 shadow-xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transaction-modal-title"
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
+        className="bg-white rounded-2xl max-w-lg w-full mx-4 p-6 shadow-xl"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800">
+          <h2
+            id="transaction-modal-title"
+            className="text-xl font-bold text-slate-800"
+          >
             {isSimulation
               ? "Simular Transação"
               : editingItem
@@ -174,6 +237,7 @@ const TransactionModal = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fechar modal de transação"
             className="text-slate-400 hover:text-slate-600"
           >
             <X size={20} />
@@ -340,6 +404,7 @@ const TransactionModal = ({
               Cancelar
             </button>
             <button
+              aria-label="Cancelar ação"
               type="submit"
               className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 ${
                 isSimulation

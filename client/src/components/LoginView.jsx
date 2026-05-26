@@ -56,10 +56,14 @@ const LoginView = ({ onLoginSuccess }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
               Email
             </label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
@@ -69,10 +73,14 @@ const LoginView = ({ onLoginSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label
+              htmlFor="login-senha"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
               Senha
             </label>
             <input
+              id="login-senha"
               type="password"
               required
               value={senha}
