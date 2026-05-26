@@ -14,5 +14,6 @@ public record MovimentacaoDTO(
   Guid? CategoriaId = null,
   Guid? VeiculoId = null,
   int? Km = null,
-  TipoRecorrencia TipoRecorrencia = TipoRecorrencia.Mensal
+  TipoRecorrencia TipoRecorrencia = TipoRecorrencia.Mensal,
+  TipoMovimentacaoFixa TipoMovimentacaoFixa = TipoMovimentacaoFixa.RecorrenteFixa
 );

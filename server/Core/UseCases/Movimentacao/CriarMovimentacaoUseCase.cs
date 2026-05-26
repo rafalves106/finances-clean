@@ -9,6 +9,11 @@ public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepos
     {
         if (movimentacao.Fixa)
         {
+            if (movimentacao.Periodo <= 0)
+            {
+                throw new ArgumentException("O período deve ser maior que zero para movimentações fixas.");
+            }
+
             var grupoRecorrenciaId = Guid.NewGuid();
 
             for (int i = 0; i < movimentacao.Periodo; i++)
@@ -17,7 +22,11 @@ public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepos
                     ? movimentacao.Data.AddDays(7 * i)
                     : movimentacao.Data.AddMonths(i);
 
-                Movimentacao novaOcorrencia = movimentacao.ClonarComNovaData(dataDaParcela, grupoRecorrenciaId);
+                var tituloOcorrencia = movimentacao.TipoMovimentacaoFixa == TipoMovimentacaoFixa.Parcelada
+                    ? $"{movimentacao.Titulo} {i + 1}/{movimentacao.Periodo}"
+                    : movimentacao.Titulo;
+
+                Movimentacao novaOcorrencia = movimentacao.ClonarComNovaData(dataDaParcela, grupoRecorrenciaId, tituloOcorrencia);
 
                 _movimentacaoRepository.Adicionar(novaOcorrencia);
             }

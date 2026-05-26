@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, IMovimentacaoRepository movimentacaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, IMovimentacaoRepository movimentacaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -28,7 +28,8 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.TipoRecorrencia,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
-                    km: movimentacaoDTO.Km
+                    km: movimentacaoDTO.Km,
+                    tipoMovimentacaoFixa: movimentacaoDTO.TipoMovimentacaoFixa
                 ),
                 TipoMovimentacao.Saida => new Saida(
                     movimentacaoDTO.Titulo,
@@ -41,7 +42,8 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.TipoRecorrencia,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
-                    km: movimentacaoDTO.Km
+                    km: movimentacaoDTO.Km,
+                    tipoMovimentacaoFixa: movimentacaoDTO.TipoMovimentacaoFixa
                 ),
                 _ => throw new ArgumentException("Tipo de movimentação inválido.")
             };
@@ -193,6 +195,24 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (Exception)
         {
             return StatusCode(500, "Erro ao calcular saldo acumulado.");
+        }
+    }
+
+    [HttpPost("grupos/{grupoRecorrenciaId:guid}/renumerar")]
+    public IActionResult RenumerarGrupoRecorrencia(Guid grupoRecorrenciaId)
+    {
+        try
+        {
+            var resultado = renumerarGrupoUseCase.Executar(grupoRecorrenciaId, UsuarioId);
+            return Ok(resultado);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("Grupo de recorrência não encontrado.");
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest("Dados inválidos para renumeração.");
         }
     }
 }

@@ -89,6 +89,22 @@ public class MovimentacaoRepository : IMovimentacaoRepository
             .ToList();
     }
 
+    public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
+    {
+        return _context.Movimentacoes
+            .Include(m => m.Categoria)
+            .Where(m => m.GrupoRecorrenciaId == grupoRecorrenciaId && m.UsuarioId == usuarioId)
+            .OrderBy(m => m.Data)
+            .ThenBy(m => m.Id)
+            .ToList();
+    }
+
+    public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes)
+    {
+        _context.Movimentacoes.UpdateRange(movimentacoes);
+        _context.SaveChanges();
+    }
+
     public decimal ObterSaldoAcumulado(int mes, int ano)
     {
         var baseQuery = _context.Movimentacoes

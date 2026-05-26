@@ -50,6 +50,9 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.Valor).HasPrecision(18, 2);
             entity.Property(e => e.UsuarioId).IsRequired();
             entity.Property(e => e.TipoRecorrencia).HasConversion<string>();
+            entity.Property(e => e.TipoMovimentacaoFixa)
+                .HasConversion<string>()
+                .HasDefaultValue(TipoMovimentacaoFixa.RecorrenteFixa);
 
             entity.HasOne<Investimento>()
                   .WithMany()

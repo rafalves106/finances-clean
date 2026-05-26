@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { API_URL } from "../services/api";
 import { formatDate } from "../util/formatDate";
-import { getAuthHeaders } from "../services/auth";
 
 const INITIAL_FORM = {
   editingId: null,
@@ -17,6 +16,7 @@ const INITIAL_FORM = {
   isFixed: false,
   period: "",
   tipoRecorrencia: "Mensal",
+  tipoMovimentacaoFixa: "RecorrenteFixa",
 };
 
 const TransactionModal = ({
@@ -58,6 +58,11 @@ const TransactionModal = ({
           editingItem.tipoRecorrencia === "Semanal"
             ? "Semanal"
             : "Mensal",
+        tipoMovimentacaoFixa:
+          editingItem.tipoMovimentacaoFixa === 1 ||
+          editingItem.tipoMovimentacaoFixa === "Parcelada"
+            ? "Parcelada"
+            : "RecorrenteFixa",
         date: dateStr,
       });
     } else {
@@ -131,6 +136,7 @@ const TransactionModal = ({
       veiculoId,
       km,
       tipoRecorrencia,
+      tipoMovimentacaoFixa,
     } = form;
 
     if (!name || !value || !tipo || !date) return;
@@ -145,6 +151,7 @@ const TransactionModal = ({
       fixa: isFixed,
       periodo: isFixed ? parseInt(period) : 0,
       tipoRecorrencia: isFixed ? tipoRecorrencia : "Mensal",
+      tipoMovimentacaoFixa: isFixed ? tipoMovimentacaoFixa : "RecorrenteFixa",
       categoriaId: categoryId || null,
       veiculoId: veiculoId || null,
       km: km ? parseInt(km) : null,
@@ -163,6 +170,7 @@ const TransactionModal = ({
         isFixed,
         period,
         tipoRecorrencia,
+        tipoMovimentacaoFixa,
       });
       return;
     }
@@ -171,12 +179,14 @@ const TransactionModal = ({
       const response = editingId
         ? await fetch(`${API_URL}/${editingId}`, {
             method: "PUT",
-            headers: getAuthHeaders(),
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify(payload),
           })
         : await fetch(API_URL, {
             method: "POST",
-            headers: getAuthHeaders(),
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify(payload),
           });
 
@@ -204,6 +214,7 @@ const TransactionModal = ({
     isFixed,
     period,
     tipoRecorrencia,
+    tipoMovimentacaoFixa,
   } = form;
 
   const categoriaTransporte = categorias.find(
@@ -279,6 +290,38 @@ const TransactionModal = ({
               {editingId && "(Bloqueado na edição)"}
             </label>
           </div>
+
+          {isFixed && editingId === null && (
+            <div className="flex flex-wrap items-center gap-4 px-1">
+              <span className="text-sm font-medium text-slate-600">
+                Tipo da movimentação fixa:
+              </span>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="tipoMovimentacaoFixa"
+                  value="RecorrenteFixa"
+                  checked={tipoMovimentacaoFixa === "RecorrenteFixa"}
+                  onChange={(e) =>
+                    setField("tipoMovimentacaoFixa", e.target.value)
+                  }
+                />
+                Recorrente Fixa
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="tipoMovimentacaoFixa"
+                  value="Parcelada"
+                  checked={tipoMovimentacaoFixa === "Parcelada"}
+                  onChange={(e) =>
+                    setField("tipoMovimentacaoFixa", e.target.value)
+                  }
+                />
+                Parcelada
+              </label>
+            </div>
+          )}
 
           {isFixed && editingId === null && (
             <div className="flex flex-wrap items-center gap-4 px-1">

@@ -13,5 +13,7 @@ public interface IMovimentacaoRepository
     IEnumerable<Entrada> ListarEntradas();
     IEnumerable<Saida> ListarSaidas();
     IEnumerable<Movimentacao> ListarPorPeriodo(DateTime dataInicio, DateTime dataFim);
+    IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId);
+    void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes);
     decimal ObterSaldoAcumulado(int mes, int ano);
 }

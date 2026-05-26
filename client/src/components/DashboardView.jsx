@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { API_URL } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
-import { getAuthHeaders } from "../services/auth";
 
 import {
   Trash2,
@@ -18,6 +17,7 @@ import {
   PieChart,
   Settings,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 
 import {
@@ -61,6 +61,7 @@ const DashboardView = ({
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
+  const [renumberingGroupId, setRenumberingGroupId] = useState(null);
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -319,7 +320,10 @@ const DashboardView = ({
       for (const item of simulatedTransactions) {
         const response = await fetch(API_URL, {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
           body: JSON.stringify({
             titulo: item.name,
             descricao: item.description,
@@ -351,12 +355,47 @@ const DashboardView = ({
     try {
       await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        credentials: "include",
       });
       fetchData();
     } catch (err) {
       console.error("Erro ao deletar item:", err);
       alert("Erro ao deletar. Verifique o console.");
+    }
+  };
+
+  const handleRenumberGroup = async (groupId) => {
+    if (!groupId) return;
+
+    const confirmed = window.confirm(
+      "Deseja renumerar este grupo recorrente? Os títulos serão normalizados para 1/N...N/N.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setRenumberingGroupId(groupId);
+
+      const response = await fetch(`${API_URL}/grupos/${groupId}/renumerar`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Grupo não encontrado ou sem permissão.");
+        }
+
+        throw new Error("Não foi possível renumerar o grupo.");
+      }
+
+      await fetchData();
+      alert("Grupo renumerado com sucesso.");
+    } catch (err) {
+      console.error("Erro ao renumerar grupo:", err);
+      alert(err.message || "Erro ao renumerar grupo.");
+    } finally {
+      setRenumberingGroupId(null);
     }
   };
 
@@ -750,6 +789,32 @@ const DashboardView = ({
                                 </div>
                               ) : (
                                 <>
+                                  {(i.grupoRecorrenciaId ||
+                                    i.grupoRecorrenciaID) && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleRenumberGroup(
+                                          i.grupoRecorrenciaId ||
+                                            i.grupoRecorrenciaID,
+                                        )
+                                      }
+                                      disabled={
+                                        renumberingGroupId ===
+                                        (i.grupoRecorrenciaId ||
+                                          i.grupoRecorrenciaID)
+                                      }
+                                      aria-label={`Renumerar grupo da entrada ${i.name || i.titulo}`}
+                                      className="p-1 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                                      title="Renumerar grupo"
+                                    >
+                                      <RotateCcw
+                                        size={14}
+                                        className="text-slate-300 hover:text-blue-500"
+                                      />
+                                    </button>
+                                  )}
+
                                   <button
                                     onClick={() =>
                                       handleEditClick(i, "Entrada")
@@ -881,6 +946,32 @@ const DashboardView = ({
                                 </div>
                               ) : (
                                 <>
+                                  {(i.grupoRecorrenciaId ||
+                                    i.grupoRecorrenciaID) && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleRenumberGroup(
+                                          i.grupoRecorrenciaId ||
+                                            i.grupoRecorrenciaID,
+                                        )
+                                      }
+                                      disabled={
+                                        renumberingGroupId ===
+                                        (i.grupoRecorrenciaId ||
+                                          i.grupoRecorrenciaID)
+                                      }
+                                      aria-label={`Renumerar grupo da saída ${i.name || i.titulo}`}
+                                      className="p-1 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                                      title="Renumerar grupo"
+                                    >
+                                      <RotateCcw
+                                        size={14}
+                                        className="text-slate-300 hover:text-blue-500"
+                                      />
+                                    </button>
+                                  )}
+
                                   <button
                                     onClick={() => handleEditClick(i, "Saida")}
                                     aria-label={`Editar saída ${i.name || i.titulo}`}
