@@ -9,6 +9,7 @@ COPY Finance.slnx .
 COPY API/API.csproj API/
 COPY Core/Core.csproj Core/
 COPY Infrastructure/Infrastructure.csproj Infrastructure/
+COPY Tests/API.IntegrationTests/API.IntegrationTests.csproj Tests/API.IntegrationTests/
 
 # 3. Restaurar dependências da solution inteira
 RUN dotnet restore Finance.slnx
