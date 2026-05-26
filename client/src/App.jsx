@@ -14,6 +14,7 @@ import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
+import ReleaseNotesModal from "./components/ReleaseNotesModal";
 
 import {
   API_URL,
@@ -22,6 +23,13 @@ import {
   API_VEICULOS_URL,
 } from "./services/api";
 import { getAuthHeaders, isAuthenticated, removeToken } from "./services/auth";
+import changelogRaw from "../../CHANGELOG.md?raw";
+import {
+  extractReleaseNotesForVersion,
+  getLastSeenVersion,
+} from "./util/releaseNotes";
+
+const APP_VERSION = __APP_VERSION__;
 
 const mapApiToFrontend = (item) => ({
   id: item.id,
@@ -55,6 +63,8 @@ const App = () => {
   const [veiculos, setVeiculos] = useState([]);
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
+  const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
+  const [releaseNotesContent, setReleaseNotesContent] = useState("");
 
   const INVESTMENT_GOAL_PERCENT = 10;
 
@@ -234,6 +244,33 @@ const App = () => {
     if (isLoggedIn) fetchVeiculos();
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setReleaseNotesOpen(false);
+      setReleaseNotesContent("");
+      return;
+    }
+
+    const lastSeenVersion = getLastSeenVersion();
+
+    if (lastSeenVersion === APP_VERSION) {
+      setReleaseNotesOpen(false);
+      setReleaseNotesContent("");
+      return;
+    }
+
+    const notes = extractReleaseNotesForVersion(changelogRaw, APP_VERSION);
+
+    if (!notes) {
+      setReleaseNotesOpen(false);
+      setReleaseNotesContent("");
+      return;
+    }
+
+    setReleaseNotesContent(notes);
+    setReleaseNotesOpen(true);
+  }, [isLoggedIn]);
+
   if (!isLoggedIn) {
     return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
   }
@@ -286,6 +323,10 @@ const App = () => {
         </nav>
 
         <div className="p-6 border-t border-slate-800 hidden md:block space-y-3">
+          <div className="text-xs text-slate-500 text-center">
+            v{APP_VERSION}
+          </div>
+
           <button
             onClick={() => {
               removeToken();
@@ -359,6 +400,13 @@ const App = () => {
           />
         </div>
       </main>
+
+      <ReleaseNotesModal
+        isOpen={releaseNotesOpen}
+        version={APP_VERSION}
+        releaseNotes={releaseNotesContent}
+        onClose={() => setReleaseNotesOpen(false)}
+      />
     </div>
   );
 };

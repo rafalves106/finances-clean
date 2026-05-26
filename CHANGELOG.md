@@ -10,7 +10,25 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 
 - Estrutura inicial de changelog orientada ao PO para acompanhamento de entregas e riscos.
 
-## [Ciclo 1 - Seguranca e Governanca Minima] - 2026-05-25
+## [0.4.0] - 2026-05-26
+
+### Adicionado
+
+- Modal de release notes com exibicao unica por versao para usuarios autenticados.
+- Rodape com versao da aplicacao visivel no sidebar.
+
+### Tecnico
+
+- Versao do app injetada no build via Vite usando define com base no package.json.
+- Parser local para extrair a secao da versao atual do CHANGELOG com fallback seguro.
+
+## [0.3.0] - 2026-05-25
+
+### Entrega
+
+- Consolidacao do ciclo 3 com melhorias funcionais e ajustes de estabilidade do frontend.
+
+## [0.1.0] - 2026-05-25
 
 ### Seguranca
 

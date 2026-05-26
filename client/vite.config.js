@@ -1,6 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import process from "node:process";
+import packageJson from "./package.json" with { type: "json" };
+
+const { version } = packageJson;
 
 const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:8080";
 const allowedHosts = (
@@ -12,6 +15,9 @@ const allowedHosts = (
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   test: {
     globals: true,
     environment: "jsdom",
