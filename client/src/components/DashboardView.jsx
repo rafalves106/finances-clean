@@ -61,6 +61,75 @@ const getMonthDateRange = (month, year) => {
   };
 };
 
+const getTrendMeta = ({ current, previous, favorableDirection }) => {
+  const delta = current - previous;
+
+  if (current === 0 && previous === 0) {
+    return {
+      label: "Sem variação (7d)",
+      toneClass: "text-slate-500 bg-slate-100",
+    };
+  }
+
+  if (previous === 0) {
+    return {
+      label: "Nova movimentação (7d)",
+      toneClass: "text-blue-700 bg-blue-100",
+    };
+  }
+
+  const deltaPercent = Math.abs((delta / previous) * 100);
+  const isImprovement = favorableDirection === "up" ? delta > 0 : delta < 0;
+  const isNeutral = delta === 0;
+
+  if (isNeutral) {
+    return {
+      label: "0% vs 7d anterior",
+      toneClass: "text-slate-500 bg-slate-100",
+    };
+  }
+
+  return {
+    label: `${delta > 0 ? "+" : "-"}${deltaPercent.toFixed(0)}% vs 7d anterior`,
+    toneClass: isImprovement
+      ? "text-emerald-700 bg-emerald-100"
+      : "text-rose-700 bg-rose-100",
+  };
+};
+
+const ProgressMeter = ({
+  label,
+  valueLabel,
+  percentage,
+  tone = "slate",
+  barColor,
+}) => {
+  const toneClassByType = {
+    emerald: "bg-emerald-500",
+    rose: "bg-rose-500",
+    amber: "bg-amber-500",
+    blue: "bg-blue-500",
+    slate: "bg-slate-400",
+  };
+
+  const width = `${Math.min(Math.max(percentage || 0, 0), 100)}%`;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-slate-500">
+        <span>{label}</span>
+        <span>{valueLabel}</span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor ? "" : toneClassByType[tone] || toneClassByType.slate}`}
+          style={barColor ? { width, backgroundColor: barColor } : { width }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const DashboardView = ({
   totalInvestmentsBalance,
   fetchData,
@@ -440,6 +509,120 @@ const DashboardView = ({
   const displayedFinalBalance = hasSimulation
     ? saldoAnterior + displayedIncomeTotal - displayedExpenseTotal
     : saldoAnterior + baseIncomeTotal - baseExpenseTotal;
+
+  const executiveMetrics = useMemo(() => {
+    const incomeCoveragePercent =
+      displayedIncomeTotal > 0
+        ? (displayedFinalBalance / displayedIncomeTotal) * 100
+        : displayedFinalBalance >= 0
+          ? 100
+          : 0;
+
+    const expensePressurePercent =
+      displayedIncomeTotal > 0
+        ? (displayedExpenseTotal / displayedIncomeTotal) * 100
+        : displayedExpenseTotal > 0
+          ? 100
+          : 0;
+
+    let monthHealth = "Atenção";
+    let monthHealthTone = "amber";
+
+    if (displayedFinalBalance > 0 && expensePressurePercent <= 85) {
+      monthHealth = "Saudável";
+      monthHealthTone = "emerald";
+    }
+
+    if (displayedFinalBalance < 0 || expensePressurePercent > 100) {
+      monthHealth = "Pressionado";
+      monthHealthTone = "rose";
+    }
+
+    return {
+      incomeCoveragePercent,
+      expensePressurePercent,
+      monthHealth,
+      monthHealthTone,
+    };
+  }, [displayedFinalBalance, displayedIncomeTotal, displayedExpenseTotal]);
+
+  const microTrends = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(selectedAno, selectedMes - 1, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(selectedAno, selectedMes, 0, 23, 59, 59, 999);
+    const isCurrentPeriod =
+      selectedMes === now.getMonth() + 1 && selectedAno === now.getFullYear();
+
+    const referenceDate = isCurrentPeriod
+      ? new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
+      : monthEnd;
+
+    const currentStart = new Date(referenceDate);
+    currentStart.setDate(referenceDate.getDate() - 6);
+
+    if (currentStart < monthStart) {
+      currentStart.setTime(monthStart.getTime());
+    }
+
+    const previousEnd = new Date(currentStart);
+    previousEnd.setDate(currentStart.getDate() - 1);
+
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousEnd.getDate() - 6);
+
+    if (previousStart < monthStart) {
+      previousStart.setTime(monthStart.getTime());
+    }
+
+    const sumByType = (kind, startDate, endDate) => {
+      if (endDate < startDate) return 0;
+
+      return [...effectiveIncomes, ...effectiveExpenses]
+        .filter((item) => {
+          const itemType = (item.type || item.tipo || "").toLowerCase();
+          if (itemType !== kind) return false;
+
+          const itemDate = new Date(item.date || item.data);
+          return itemDate >= startDate && itemDate <= endDate;
+        })
+        .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0);
+    };
+
+    const currentIncome = sumByType("entrada", currentStart, referenceDate);
+    const previousIncome = sumByType("entrada", previousStart, previousEnd);
+
+    const currentExpense = sumByType("saida", currentStart, referenceDate);
+    const previousExpense = sumByType("saida", previousStart, previousEnd);
+
+    const currentBalance = currentIncome - currentExpense;
+    const previousBalance = previousIncome - previousExpense;
+
+    return {
+      income: getTrendMeta({
+        current: currentIncome,
+        previous: previousIncome,
+        favorableDirection: "up",
+      }),
+      expense: getTrendMeta({
+        current: currentExpense,
+        previous: previousExpense,
+        favorableDirection: "down",
+      }),
+      balance: getTrendMeta({
+        current: currentBalance,
+        previous: previousBalance,
+        favorableDirection: "up",
+      }),
+    };
+  }, [effectiveExpenses, effectiveIncomes, selectedAno, selectedMes]);
 
   const expensesByCategory = useMemo(() => {
     const grouped = effectiveExpenses
@@ -903,6 +1086,86 @@ const DashboardView = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+                Resumo executivo
+              </p>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 capitalize">
+                {currentMonthLabel}
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full ${
+                  executiveMetrics.monthHealthTone === "emerald"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : executiveMetrics.monthHealthTone === "rose"
+                      ? "bg-rose-100 text-rose-700"
+                      : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                Mês {executiveMetrics.monthHealth}
+              </span>
+              <span className="text-xs text-slate-500">
+                Saldo livre de {formatCurrency(displayedFinalBalance)} no
+                período
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingItem(null);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
+            >
+              <Plus size={16} /> Nova movimentação
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSimulationModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
+            >
+              <Sparkles size={15} /> Simular
+            </button>
+            <button
+              type="button"
+              onClick={(e) => onOpenCategoryManager(e.currentTarget)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <Settings size={15} /> Categorias
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <ProgressMeter
+            label="Saldo sobre entradas"
+            valueLabel={`${Math.max(0, executiveMetrics.incomeCoveragePercent).toFixed(0)}%`}
+            percentage={executiveMetrics.incomeCoveragePercent}
+            tone={executiveMetrics.monthHealthTone}
+          />
+          <ProgressMeter
+            label="Pressão das saídas"
+            valueLabel={`${Math.max(0, executiveMetrics.expensePressurePercent).toFixed(0)}%`}
+            percentage={executiveMetrics.expensePressurePercent}
+            tone={
+              executiveMetrics.expensePressurePercent > 100
+                ? "rose"
+                : executiveMetrics.expensePressurePercent >= 85
+                  ? "amber"
+                  : "emerald"
+            }
+          />
+        </div>
+      </section>
+
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
         <div className="flex items-center justify-between gap-3 mb-6">
           <h3 className="text-slate-700 font-bold flex items-center gap-2">
@@ -1086,10 +1349,22 @@ const DashboardView = ({
                       + simulado
                     </span>
                   </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${microTrends.income.toneClass}`}
+                  >
+                    {microTrends.income.label}
+                  </span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold">
-                  {formatCurrency(baseIncomeTotal)}
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(baseIncomeTotal)}
+                  </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${microTrends.income.toneClass}`}
+                  >
+                    {microTrends.income.label}
+                  </span>
                 </div>
               )}
             </div>
@@ -1111,10 +1386,22 @@ const DashboardView = ({
                       + simulado
                     </span>
                   </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${microTrends.expense.toneClass}`}
+                  >
+                    {microTrends.expense.label}
+                  </span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold">
-                  {formatCurrency(baseExpenseTotal)}
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(baseExpenseTotal)}
+                  </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${microTrends.expense.toneClass}`}
+                  >
+                    {microTrends.expense.label}
+                  </span>
                 </div>
               )}
             </div>
@@ -1153,12 +1440,24 @@ const DashboardView = ({
                       + simulado
                     </span>
                   </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${microTrends.balance.toneClass}`}
+                  >
+                    {microTrends.balance.label}
+                  </span>
                 </div>
               ) : (
-                <div className="text-2xl font-bold">
-                  {formatCurrency(
-                    saldoAnterior + baseIncomeTotal - baseExpenseTotal,
-                  )}
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(
+                      saldoAnterior + baseIncomeTotal - baseExpenseTotal,
+                    )}
+                  </div>
+                  <span
+                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${microTrends.balance.toneClass}`}
+                  >
+                    {microTrends.balance.label}
+                  </span>
                 </div>
               )}
             </div>
@@ -1284,19 +1583,29 @@ const DashboardView = ({
                               : "Orçamento não definido"}
                           </span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.min(percentage, 100)}%`,
-                              backgroundColor: progressColor,
-                            }}
-                          />
-                        </div>
+                        <ProgressMeter
+                          label={
+                            hasBudgetLimit
+                              ? "Uso do orçamento"
+                              : "Participação nas despesas"
+                          }
+                          valueLabel={`${Math.min(percentage, 100).toFixed(0)}%`}
+                          percentage={percentage}
+                          tone={
+                            hasBudgetLimit
+                              ? budgetAlert.estadoAlerta === "Estourado"
+                                ? "rose"
+                                : budgetAlert.estadoAlerta === "Atencao"
+                                  ? "amber"
+                                  : "emerald"
+                              : "blue"
+                          }
+                          barColor={hasBudgetLimit ? undefined : progressColor}
+                        />
                         <div className="mt-1 text-[11px] text-slate-500">
                           {hasBudgetLimit
-                            ? "Uso do orçamento"
-                            : "Participação nas despesas do mês"}
+                            ? "Limite mensal definido"
+                            : "Sem limite mensal definido"}
                         </div>
                       </div>
                     );
