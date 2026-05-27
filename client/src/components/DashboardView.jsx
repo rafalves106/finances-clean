@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
@@ -40,6 +40,24 @@ const sortTransactions = (transactions) => {
   });
 };
 
+const formatDateInputValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getMonthDateRange = (month, year) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  return {
+    startDate: formatDateInputValue(startDate),
+    endDate: formatDateInputValue(endDate),
+  };
+};
+
 const DashboardView = ({
   totalIncome,
   totalExpenses,
@@ -62,6 +80,12 @@ const DashboardView = ({
   const [editingItem, setEditingItem] = useState(null);
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [renumberingGroupId, setRenumberingGroupId] = useState(null);
+  const initialRange = getMonthDateRange(selectedMes, selectedAno);
+  const [exportStartDate, setExportStartDate] = useState(
+    initialRange.startDate,
+  );
+  const [exportEndDate, setExportEndDate] = useState(initialRange.endDate);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -77,6 +101,12 @@ const DashboardView = ({
     const nextDate = new Date(selectedAno, selectedMes, 1);
     onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
   };
+
+  useEffect(() => {
+    const range = getMonthDateRange(selectedMes, selectedAno);
+    setExportStartDate(range.startDate);
+    setExportEndDate(range.endDate);
+  }, [selectedMes, selectedAno]);
 
   const simulatedIncomes = useMemo(
     () =>
@@ -399,6 +429,56 @@ const DashboardView = ({
     }
   };
 
+  const handleExportCsv = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      alert("Informe data de início e data de fim para exportar o CSV.");
+      return;
+    }
+
+    try {
+      setIsExportingCsv(true);
+
+      const query = new URLSearchParams({
+        dataInicio: exportStartDate,
+        dataFim: exportEndDate,
+      });
+
+      const response = await fetch(
+        `${API_URL}/exportar-csv?${query.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          errorText || "Não foi possível exportar movimentações.",
+        );
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition");
+      const filenameMatch = contentDisposition?.match(/filename="?([^"]+)"?/i);
+      const fileName = filenameMatch?.[1] || "movimentacoes.csv";
+
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Erro ao exportar CSV:", err);
+      alert(err.message || "Erro ao exportar CSV.");
+    } finally {
+      setIsExportingCsv(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400 animate-pulse">
@@ -432,6 +512,37 @@ const DashboardView = ({
             className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             ›
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+            Data início
+            <input
+              type="date"
+              value={exportStartDate}
+              onChange={(e) => setExportStartDate(e.target.value)}
+              className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+            Data fim
+            <input
+              type="date"
+              value={exportEndDate}
+              onChange={(e) => setExportEndDate(e.target.value)}
+              className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={isExportingCsv}
+            className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {isExportingCsv ? "Exportando..." : "Exportar CSV"}
           </button>
         </div>
 

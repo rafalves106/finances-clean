@@ -89,6 +89,16 @@ public class MovimentacaoRepository : IMovimentacaoRepository
             .ToList();
     }
 
+    public IEnumerable<Movimentacao> ListarPorPeriodoPorUsuario(DateTime dataInicio, DateTime dataFim, Guid usuarioId)
+    {
+        return _context.Movimentacoes
+            .Include(m => m.Categoria)
+            .Where(m => m.UsuarioId == usuarioId && m.Data >= dataInicio && m.Data <= dataFim)
+            .OrderBy(m => m.Data)
+            .ThenBy(m => m.Id)
+            .ToList();
+    }
+
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
     {
         return _context.Movimentacoes

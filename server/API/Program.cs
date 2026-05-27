@@ -41,6 +41,7 @@ builder.Services.AddScoped<BuscarEntradasPorPeriodoUseCase>();
 builder.Services.AddScoped<BuscarSaidasPorPeriodoUseCase>();
 builder.Services.AddScoped<ObterResumoMensalUseCase>();
 builder.Services.AddScoped<RenumerarGrupoUseCase>();
+builder.Services.AddScoped<ExportarMovimentacoesCsvUseCase>();
 
 builder.Services.AddScoped<CriarInvestimentoUseCase>();
 builder.Services.AddScoped<ListarInvestimentosUseCase>();
