@@ -14,6 +14,7 @@ const CategoryManagerModal = ({
   const [formNome, setFormNome] = useState("");
   const [formIcone, setFormIcone] = useState("");
   const [formCor, setFormCor] = useState("#94a3b8");
+  const [formOrcamentoMensal, setFormOrcamentoMensal] = useState("");
   const dialogRef = useRef(null);
 
   const clearForm = () => {
@@ -21,6 +22,7 @@ const CategoryManagerModal = ({
     setFormNome("");
     setFormIcone("");
     setFormCor("#94a3b8");
+    setFormOrcamentoMensal("");
   };
 
   useEffect(() => {
@@ -88,10 +90,14 @@ const CategoryManagerModal = ({
       nome: category.nome,
       icone: category.icone || "",
       cor: category.cor || "#94a3b8",
+      isGlobal: Boolean(category.isGlobal),
     });
     setFormNome(category.nome || "");
     setFormIcone(category.icone || "");
     setFormCor(category.cor || "#94a3b8");
+    setFormOrcamentoMensal(
+      category.orcamentoMensal ? String(category.orcamentoMensal) : "",
+    );
   };
 
   const handleDelete = async (id) => {
@@ -113,13 +119,28 @@ const CategoryManagerModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formNome.trim()) return;
-    if (formIcone && formIcone.length > 2) return;
+    const isEditingGlobal = Boolean(editingCat?.isGlobal);
+
+    if (!isEditingGlobal && !formNome.trim()) return;
+    if (!isEditingGlobal && formIcone && formIcone.length > 2) return;
+
+    const orcamentoNumerico =
+      formOrcamentoMensal.trim() === "" ? null : Number(formOrcamentoMensal);
+
+    if (
+      orcamentoNumerico !== null &&
+      (!Number.isFinite(orcamentoNumerico) || orcamentoNumerico <= 0)
+    ) {
+      return;
+    }
 
     const payload = {
-      nome: formNome.trim(),
-      icone: formIcone.trim() || null,
-      cor: formCor || "#94a3b8",
+      nome: isEditingGlobal ? editingCat.nome : formNome.trim(),
+      icone: isEditingGlobal
+        ? editingCat.icone || null
+        : formIcone.trim() || null,
+      cor: isEditingGlobal ? editingCat.cor : formCor || "#94a3b8",
+      orcamentoMensal: orcamentoNumerico,
     };
 
     try {
@@ -183,6 +204,11 @@ const CategoryManagerModal = ({
                   <span className="font-medium text-slate-700 truncate">
                     {category.nome}
                   </span>
+                  {category.isGlobal && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold uppercase tracking-wide">
+                      Global
+                    </span>
+                  )}
                   <span
                     className="w-3 h-3 rounded-full shrink-0 border border-slate-200"
                     style={{ backgroundColor: category.cor || "#94a3b8" }}
@@ -203,8 +229,9 @@ const CategoryManagerModal = ({
                     type="button"
                     onClick={() => handleDelete(category.id)}
                     aria-label={`Deletar categoria ${category.nome}`}
-                    className="p-2 rounded-lg hover:bg-red-50 text-red-500"
+                    className={`p-2 rounded-lg ${category.isGlobal ? "text-slate-300 cursor-not-allowed" : "hover:bg-red-50 text-red-500"}`}
                     title="Deletar"
+                    disabled={Boolean(category.isGlobal)}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -215,42 +242,81 @@ const CategoryManagerModal = ({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="category-name"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Nome
               </label>
               <input
+                id="category-name"
                 type="text"
                 required
                 className="w-full p-2 border rounded-lg"
                 value={formNome}
                 onChange={(e) => setFormNome(e.target.value)}
+                disabled={Boolean(editingCat?.isGlobal)}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="category-icon"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Ícone
               </label>
               <input
+                id="category-icon"
                 type="text"
                 maxLength={2}
                 placeholder="Emoji"
                 className="w-full p-2 border rounded-lg"
                 value={formIcone}
                 onChange={(e) => setFormIcone(e.target.value)}
+                disabled={Boolean(editingCat?.isGlobal)}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="category-color"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Cor
               </label>
               <input
+                id="category-color"
                 type="color"
                 className="w-full h-11 p-1 border rounded-lg"
                 value={formCor}
                 onChange={(e) => setFormCor(e.target.value)}
+                disabled={Boolean(editingCat?.isGlobal)}
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="category-budget"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
+                Orçamento mensal
+              </label>
+              <input
+                id="category-budget"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Ex.: 500"
+                className="w-full p-2 border rounded-lg"
+                value={formOrcamentoMensal}
+                onChange={(e) => setFormOrcamentoMensal(e.target.value)}
+              />
+              {editingCat?.isGlobal && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Para categoria global, apenas o orçamento é personalizado para seu usuário.
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">

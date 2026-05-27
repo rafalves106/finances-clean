@@ -22,6 +22,7 @@ vi.mock("recharts", () => {
 
 import DashboardView from "./DashboardView";
 import { API_URL } from "../services/api";
+import { API_CATEGORIAS_ALERTAS_ORCAMENTO_URL } from "../services/api";
 
 describe("DashboardView renumeracao de grupo", () => {
   beforeEach(() => {
@@ -80,5 +81,106 @@ describe("DashboardView renumeracao de grupo", () => {
     );
 
     expect(fetchData).toHaveBeenCalled();
+  });
+
+  it("deve exibir badge de alertas quando totalCategoriasEmAlerta for maior que zero", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          totalCategoriasEmAlerta: 2,
+          categorias: [
+            {
+              categoriaId: "cat-1",
+              nome: "Mercado",
+              icone: "🛒",
+              cor: "#22c55e",
+              orcamentoMensal: 1000,
+              totalDespesasMesAtual: 850,
+              percentualConsumo: 85,
+              estadoAlerta: "Atencao",
+            },
+          ],
+        }),
+      });
+
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={100}
+        finalBalance={-100}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${API_CATEGORIAS_ALERTAS_ORCAMENTO_URL}?mes=1&ano=2026`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      ),
+    );
+
+    expect(screen.getByText("2 alertas")).toBeTruthy();
+  });
+
+  it("deve ocultar badge de alertas quando totalCategoriasEmAlerta for zero", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          totalCategoriasEmAlerta: 0,
+          categorias: [],
+        }),
+      });
+
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={100}
+        finalBalance={-100}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${API_CATEGORIAS_ALERTAS_ORCAMENTO_URL}?mes=1&ano=2026`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      ),
+    );
+
+    expect(screen.queryByText(/alerta/i)).toBeNull();
   });
 });

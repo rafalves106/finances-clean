@@ -10,6 +10,7 @@ public class CategoriasController(
 CriarCategoriaUseCase criarCategoriaUseCase,
 ListarCategoriasUseCase listarCategoriasUseCase,
 AtualizarCategoriaUseCase atualizarCategoriaUseCase,
+ObterAlertasOrcamentoCategoriasUseCase obterAlertasOrcamentoCategoriasUseCase,
 RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
 {
   [HttpPost]
@@ -26,8 +27,22 @@ RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
   [HttpGet]
   public IActionResult Listar()
   {
-    var categorias = listarCategoriasUseCase.Executar();
+    var categorias = listarCategoriasUseCase.Executar(UsuarioId);
     return Ok(categorias);
+  }
+
+  [HttpGet("alertas-orcamento")]
+  public IActionResult ObterAlertasOrcamento([FromQuery] int mes, [FromQuery] int ano)
+  {
+    try
+    {
+      var alertas = obterAlertasOrcamentoCategoriasUseCase.Executar(UsuarioId, mes, ano);
+      return Ok(alertas);
+    }
+    catch (ArgumentException)
+    {
+      return BadRequest("Período inválido para cálculo de alertas.");
+    }
   }
 
   [HttpPut("{id}")]
@@ -35,7 +50,7 @@ RemoverCategoriaUseCase removerCategoriaUseCase) : AuthenticatedController
   {
     try
     {
-      atualizarCategoriaUseCase.Executar(id, dto);
+      atualizarCategoriaUseCase.Executar(UsuarioId, id, dto);
       return NoContent();
     }
     catch (ArgumentException) { return BadRequest("Dados de categoria inválidos."); }

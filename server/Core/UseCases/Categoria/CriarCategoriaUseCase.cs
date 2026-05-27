@@ -8,7 +8,7 @@ public class CriarCategoriaUseCase(ICategoriaRepository _categoriaRepository)
 {
   public Guid Executar(Guid usuarioId, CategoriaDTO dto)
   {
-    var categoria = new Categoria(dto.Nome, usuarioId, dto.Icone, dto.Cor);
+    var categoria = new Categoria(dto.Nome, usuarioId, dto.Icone, dto.Cor, dto.OrcamentoMensal);
     return _categoriaRepository.Adicionar(categoria);
   }
 }

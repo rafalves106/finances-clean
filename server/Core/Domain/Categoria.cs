@@ -8,12 +8,13 @@ public class Categoria
   public string Nome { get; private set; } = null!;
   public string? Icone { get; private set; }
   public string? Cor { get; private set; }
+  public decimal? OrcamentoMensal { get; private set; }
 
   protected Categoria() { }
 
-  public Categoria(string nome, Guid usuarioId, string? icone = null, string? cor = null)
+  public Categoria(string nome, Guid usuarioId, string? icone = null, string? cor = null, decimal? orcamentoMensal = null)
   {
-    Validar(nome, icone, cor);
+    Validar(nome, icone, cor, orcamentoMensal);
 
     Id = Guid.NewGuid();
     UsuarioId = usuarioId;
@@ -21,11 +22,12 @@ public class Categoria
     Nome = nome;
     Icone = icone;
     Cor = cor;
+    OrcamentoMensal = orcamentoMensal;
   }
 
   public static Categoria CriarGlobal(string nome, string? icone = null, string? cor = null)
   {
-    Validar(nome, icone, cor);
+    Validar(nome, icone, cor, null);
 
     return new Categoria
     {
@@ -34,20 +36,27 @@ public class Categoria
       IsGlobal = true,
       Nome = nome,
       Icone = icone,
-      Cor = cor
+      Cor = cor,
+      OrcamentoMensal = null
     };
   }
 
   public void Atualizar(string nome, string? icone, string? cor)
   {
-    Validar(nome, icone, cor);
+    Validar(nome, icone, cor, OrcamentoMensal);
 
     Nome = nome;
     Icone = icone;
     Cor = cor;
   }
 
-  private static void Validar(string nome, string? icone, string? cor)
+  public void AtualizarOrcamentoMensal(decimal? orcamentoMensal)
+  {
+    ValidarOrcamento(orcamentoMensal);
+    OrcamentoMensal = orcamentoMensal;
+  }
+
+  private static void Validar(string nome, string? icone, string? cor, decimal? orcamentoMensal)
   {
     if (string.IsNullOrWhiteSpace(nome))
       throw new ArgumentException("Nome é obrigatório.", nameof(nome));
@@ -60,5 +69,13 @@ public class Categoria
 
     if (cor is not null && cor.Length > 7)
       throw new ArgumentException("A cor deve ter no máximo 7 caracteres.", nameof(cor));
+
+    ValidarOrcamento(orcamentoMensal);
+  }
+
+  private static void ValidarOrcamento(decimal? orcamentoMensal)
+  {
+    if (orcamentoMensal.HasValue && orcamentoMensal.Value <= 0)
+      throw new ArgumentException("O orçamento mensal deve ser maior que zero.", nameof(orcamentoMensal));
   }
 }

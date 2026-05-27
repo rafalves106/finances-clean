@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { API_URL } from "../services/api";
+import {
+  API_CATEGORIAS_ALERTAS_ORCAMENTO_URL,
+  API_URL,
+} from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
 
@@ -18,6 +21,7 @@ import {
   Settings,
   Sparkles,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -95,6 +99,10 @@ const DashboardView = ({
   const [selectedCategoryDrillDown, setSelectedCategoryDrillDown] =
     useState("");
   const [categoryTab, setCategoryTab] = useState("mes-atual");
+  const [budgetAlerts, setBudgetAlerts] = useState([]);
+  const [totalBudgetAlerts, setTotalBudgetAlerts] = useState(0);
+  const [isBudgetAlertsLoading, setIsBudgetAlertsLoading] = useState(false);
+  const [budgetAlertsError, setBudgetAlertsError] = useState("");
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -156,6 +164,42 @@ const DashboardView = ({
     fetchCategoryComparison();
     setSelectedCategoryDrillDown("");
   }, [selectedMes, selectedAno, categoryTab]);
+
+  useEffect(() => {
+    const fetchBudgetAlerts = async () => {
+      try {
+        setIsBudgetAlertsLoading(true);
+        setBudgetAlertsError("");
+
+        const response = await fetch(
+          `${API_CATEGORIAS_ALERTAS_ORCAMENTO_URL}?mes=${selectedMes}&ano=${selectedAno}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Não foi possível carregar os alertas de orçamento.");
+        }
+
+        const data = await response.json();
+        setBudgetAlerts(Array.isArray(data.categorias) ? data.categorias : []);
+        setTotalBudgetAlerts(Number(data.totalCategoriasEmAlerta || 0));
+      } catch (err) {
+        console.error("Erro ao buscar alertas de orçamento:", err);
+        setBudgetAlerts([]);
+        setTotalBudgetAlerts(0);
+        setBudgetAlertsError(
+          err.message || "Erro ao carregar alertas de orçamento.",
+        );
+      } finally {
+        setIsBudgetAlertsLoading(false);
+      }
+    };
+
+    fetchBudgetAlerts();
+  }, [selectedMes, selectedAno]);
 
   const simulatedIncomes = useMemo(
     () =>
@@ -867,6 +911,12 @@ const DashboardView = ({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-slate-700 flex items-center gap-2">
                 <PieChart size={18} className="text-slate-500" /> Categorias
+                {totalBudgetAlerts > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wide">
+                    <AlertTriangle size={12} />
+                    {totalBudgetAlerts} alerta{totalBudgetAlerts > 1 ? "s" : ""}
+                  </span>
+                )}
               </h3>
               <div className="flex items-center gap-2">
                 {categoryTab !== "mes-atual" && selectedCategoryDrillDown && (
@@ -942,11 +992,90 @@ const DashboardView = ({
 
             {categoryTab === "mes-atual" ? (
               expensesByCategory.length === 0 ? (
-                <div className="text-center text-sm text-slate-400 py-6">
-                  Nenhum gasto registrado neste mês
-                </div>
+                budgetAlerts.length === 0 ? (
+                  <div className="text-center text-sm text-slate-400 py-6">
+                    Nenhum gasto registrado neste mês
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Orçamento por categoria
+                    </div>
+                    {budgetAlerts.map((item) => {
+                      const progressColor =
+                        item.estadoAlerta === "Estourado"
+                          ? "#ef4444"
+                          : item.estadoAlerta === "Atencao"
+                            ? "#f59e0b"
+                            : "#10b981";
+
+                      return (
+                        <div key={item.categoriaId}>
+                          <div className="flex items-center justify-between text-sm mb-1">
+                            <span className="text-slate-700 font-medium">
+                              {item.icone} {item.nome}
+                            </span>
+                            <span className="text-slate-600 font-semibold">
+                              {formatCurrency(item.totalDespesasMesAtual)}
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(item.percentualConsumo, 100)}%`,
+                                backgroundColor: progressColor,
+                              }}
+                            />
+                          </div>
+                          <div className="mt-1 text-[11px] text-slate-500">
+                            {formatCurrency(item.orcamentoMensal)} • {Math.round(item.percentualConsumo)}%
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
+                  {budgetAlerts.length > 0 && (
+                    <div className="space-y-2 rounded-lg bg-slate-50 border border-slate-200 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Orçamento por categoria
+                      </div>
+                      {budgetAlerts.map((item) => {
+                        const progressColor =
+                          item.estadoAlerta === "Estourado"
+                            ? "#ef4444"
+                            : item.estadoAlerta === "Atencao"
+                              ? "#f59e0b"
+                              : "#10b981";
+
+                        return (
+                          <div key={item.categoriaId}>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="text-slate-700 font-medium">
+                                {item.icone} {item.nome}
+                              </span>
+                              <span className="text-slate-500">
+                                {formatCurrency(item.totalDespesasMesAtual)} / {formatCurrency(item.orcamentoMensal)}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white overflow-hidden border border-slate-100">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(item.percentualConsumo, 100)}%`,
+                                  backgroundColor: progressColor,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {expensesByCategory.map((item) => {
                     const percentage =
                       totalCategoryExpenses > 0
@@ -1066,6 +1195,16 @@ const DashboardView = ({
                   </ResponsiveContainer>
                 )}
               </>
+            )}
+
+            {categoryTab === "mes-atual" && isBudgetAlertsLoading && (
+              <div className="text-xs text-slate-400 mt-4">
+                Carregando alertas de orçamento...
+              </div>
+            )}
+
+            {categoryTab === "mes-atual" && budgetAlertsError && (
+              <div className="text-xs text-rose-600 mt-4">{budgetAlertsError}</div>
             )}
           </div>
         </div>

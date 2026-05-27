@@ -27,6 +27,7 @@ builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
 builder.Services.AddScoped<IInvestimentoRepository, InvestimentoRepository>();
 builder.Services.AddScoped<IMetaRepository, MetaRepository>();
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
+builder.Services.AddScoped<ICategoriaOrcamentoUsuarioRepository, CategoriaOrcamentoUsuarioRepository>();
 builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();
 
 builder.Services.AddScoped<CriarMovimentacaoUseCase>();
@@ -61,6 +62,7 @@ builder.Services.AddScoped<AlternarConclusaoMetaUseCase>();
 builder.Services.AddScoped<CriarCategoriaUseCase>();
 builder.Services.AddScoped<ListarCategoriasUseCase>();
 builder.Services.AddScoped<AtualizarCategoriaUseCase>();
+builder.Services.AddScoped<ObterAlertasOrcamentoCategoriasUseCase>();
 builder.Services.AddScoped<RemoverCategoriaUseCase>();
 
 builder.Services.AddScoped<CriarVeiculoUseCase>();

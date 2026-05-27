@@ -14,6 +14,7 @@ public class FinanceDbContext : DbContext
     public DbSet<TransacaoInvestimento> TransacoesInvestimento { get; set; }
     public DbSet<Meta> Metas { get; set; }
     public DbSet<Categoria> Categorias { get; set; }
+    public DbSet<CategoriaOrcamentoUsuario> CategoriasOrcamentosUsuarios { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<Veiculo> Veiculos { get; set; }
 
@@ -116,6 +117,7 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Icone).HasMaxLength(10);
             entity.Property(e => e.Cor).HasMaxLength(7);
+            entity.Property(e => e.OrcamentoMensal).HasPrecision(18, 2);
             entity.Property(e => e.UsuarioId).IsRequired();
             entity.Property(e => e.IsGlobal).HasDefaultValue(false);
 
@@ -124,6 +126,27 @@ public class FinanceDbContext : DbContext
                 _currentUserService == null ||
                 !_currentUserService.UsuarioId.HasValue ||
                 c.UsuarioId == _currentUserService.UsuarioId);
+        });
+
+        // --- CategoriaOrcamentoUsuario ---
+        modelBuilder.Entity<CategoriaOrcamentoUsuario>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CategoriaGlobalId).IsRequired();
+            entity.Property(e => e.UsuarioId).IsRequired();
+            entity.Property(e => e.OrcamentoMensal).HasPrecision(18, 2).IsRequired();
+
+            entity.HasOne<Categoria>()
+                .WithMany()
+                .HasForeignKey(e => e.CategoriaGlobalId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UsuarioId, e.CategoriaGlobalId }).IsUnique();
+
+            entity.HasQueryFilter(e =>
+                _currentUserService == null ||
+                !_currentUserService.UsuarioId.HasValue ||
+                e.UsuarioId == _currentUserService.UsuarioId);
         });
 
         // --- Veiculo ---
