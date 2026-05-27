@@ -77,6 +77,7 @@ const DashboardView = ({
   incomes = [],
   expenses = [],
   saldoAnterior = 0,
+  budgetRefreshKey = 0,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
@@ -196,7 +197,7 @@ const DashboardView = ({
     };
 
     fetchBudgetAlerts();
-  }, [selectedMes, selectedAno]);
+  }, [selectedMes, selectedAno, budgetRefreshKey]);
 
   const simulatedIncomes = useMemo(
     () =>

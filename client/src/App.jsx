@@ -57,6 +57,7 @@ const App = () => {
   const [expenses, setExpenses] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [budgetRefreshKey, setBudgetRefreshKey] = useState(0);
   const [workHoursPerMonth, setWorkHoursPerMonth] = useState(120);
   const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
@@ -367,6 +368,7 @@ const App = () => {
               veiculos={veiculos}
               onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
               saldoAnterior={saldoAnterior}
+              budgetRefreshKey={budgetRefreshKey}
             />
           )}
           {activeTab === "investments" && (
@@ -396,7 +398,7 @@ const App = () => {
             isOpen={isCategoryManagerOpen}
             onClose={() => setIsCategoryManagerOpen(false)}
             categorias={categorias}
-            onCategoriasChange={fetchCategorias}
+            onCategoriasChange={() => { fetchCategorias(); setBudgetRefreshKey((k) => k + 1); }}
           />
         </div>
       </main>
