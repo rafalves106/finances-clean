@@ -6,7 +6,7 @@ namespace Finance.Core.UseCases;
 
 public class ObterComparativoCategoriaMensalUseCase(IMovimentacaoRepository movimentacaoRepository)
 {
-  public IEnumerable<ComparativoCategoriaMensalDTO> Executar(Guid usuarioId, int mesReferencia, int anoReferencia)
+  public IEnumerable<ComparativoCategoriaMensalDTO> Executar(Guid usuarioId, int mesReferencia, int anoReferencia, int meses = 3)
   {
     if (mesReferencia < 1 || mesReferencia > 12)
     {
@@ -18,8 +18,13 @@ public class ObterComparativoCategoriaMensalUseCase(IMovimentacaoRepository movi
       throw new ArgumentException("O ano de referência é inválido.");
     }
 
+    if (meses != 3 && meses != 6 && meses != 12)
+    {
+      throw new ArgumentException("O número de meses deve ser 3, 6 ou 12.");
+    }
+
     var referencia = new DateTime(anoReferencia, mesReferencia, 1);
-    var inicioJanela = referencia.AddMonths(-2);
+    var inicioJanela = referencia.AddMonths(-(meses - 1));
     var fimJanela = referencia.AddMonths(1).AddTicks(-1);
 
     var movimentacoes = movimentacaoRepository

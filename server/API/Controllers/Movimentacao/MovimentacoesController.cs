@@ -86,11 +86,11 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     }
 
     [HttpGet("comparativo-categorias")]
-    public IActionResult ObterComparativoCategoriasMensal([FromQuery] int mes, [FromQuery] int ano)
+    public IActionResult ObterComparativoCategoriasMensal([FromQuery] int mes, [FromQuery] int ano, [FromQuery] int meses = 3)
     {
         try
         {
-            return Ok(obterComparativoCategoriaMensalUseCase.Executar(UsuarioId, mes, ano));
+            return Ok(obterComparativoCategoriaMensalUseCase.Executar(UsuarioId, mes, ano, meses));
         }
         catch (ArgumentException ex)
         {

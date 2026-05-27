@@ -123,8 +123,10 @@ const DashboardView = ({
         setIsCategoryComparisonLoading(true);
         setCategoryComparisonError("");
 
+        const meses = categoryTab === "6-meses" ? 6 : categoryTab === "12-meses" ? 12 : 3;
+
         const response = await fetch(
-          `${API_URL}/comparativo-categorias?mes=${selectedMes}&ano=${selectedAno}`,
+          `${API_URL}/comparativo-categorias?mes=${selectedMes}&ano=${selectedAno}&meses=${meses}`,
           {
             method: "GET",
             credentials: "include",
@@ -152,7 +154,7 @@ const DashboardView = ({
 
     fetchCategoryComparison();
     setSelectedCategoryDrillDown("");
-  }, [selectedMes, selectedAno]);
+  }, [selectedMes, selectedAno, categoryTab]);
 
   const simulatedIncomes = useMemo(
     () =>
@@ -866,7 +868,7 @@ const DashboardView = ({
                 <PieChart size={18} className="text-slate-500" /> Categorias
               </h3>
               <div className="flex items-center gap-2">
-                {categoryTab === "3-meses" && selectedCategoryDrillDown && (
+                {categoryTab !== "mes-atual" && selectedCategoryDrillDown && (
                   <button
                     type="button"
                     onClick={() => setSelectedCategoryDrillDown("")}
@@ -882,7 +884,10 @@ const DashboardView = ({
                   title="Gerenciar categorias"
                   className="p-1 rounded-md hover:bg-slate-50"
                 >
-                  <Settings size={16} className="text-slate-400 hover:text-slate-600" />
+                  <Settings
+                    size={16}
+                    className="text-slate-400 hover:text-slate-600"
+                  />
                 </button>
               </div>
             </div>
@@ -903,12 +908,34 @@ const DashboardView = ({
                 type="button"
                 onClick={() => setCategoryTab("3-meses")}
                 className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
-                  categoryTab === "3-meses"
+                  categoryTab !== "mes-atual"
                     ? "border-blue-600 text-blue-600"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
                 3 meses
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryTab("6-meses")}
+                className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
+                  categoryTab === "6-meses"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                6 meses
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryTab("12-meses")}
+                className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
+                  categoryTab === "12-meses"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                12 meses
               </button>
             </div>
 
@@ -954,12 +981,15 @@ const DashboardView = ({
                 {categoryComparisonOptions.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {categoryComparisonOptions.map((item) => {
-                      const isSelected = selectedCategoryDrillDown === item.category;
+                      const isSelected =
+                        selectedCategoryDrillDown === item.category;
                       return (
                         <button
                           key={item.category}
                           type="button"
-                          onClick={() => setSelectedCategoryDrillDown(item.category)}
+                          onClick={() =>
+                            setSelectedCategoryDrillDown(item.category)
+                          }
                           className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                             isSelected
                               ? "bg-blue-600 border-blue-600 text-white"
@@ -988,20 +1018,49 @@ const DashboardView = ({
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={categoryComparisonChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="periodo" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#cbd5e1" }} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#f1f5f9"
+                      />
+                      <XAxis
+                        dataKey="periodo"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#94a3b8" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#cbd5e1" }}
+                      />
                       <Tooltip
-                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "none",
+                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                        }}
                         formatter={(value, name) => {
                           const formattedValue = formatCurrency(value);
-                          if (name === "receita") return [formattedValue, "Receita"];
+                          if (name === "receita")
+                            return [formattedValue, "Receita"];
                           return [formattedValue, "Despesa"];
                         }}
                       />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-                      <Bar dataKey="receita" fill="#10b981" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="despesa" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                      <Legend
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                      />
+                      <Bar
+                        dataKey="receita"
+                        fill="#10b981"
+                        radius={[6, 6, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="despesa"
+                        fill="#f43f5e"
+                        radius={[6, 6, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
