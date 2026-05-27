@@ -15,7 +15,12 @@ const CategoryManagerModal = ({
   const [formIcone, setFormIcone] = useState("");
   const [formCor, setFormCor] = useState("#94a3b8");
   const [formOrcamentoMensal, setFormOrcamentoMensal] = useState("");
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
   const dialogRef = useRef(null);
+
+  const isBusy = isSubmitting || deletingCategoryId !== null;
 
   const clearForm = () => {
     setEditingCat(null);
@@ -25,10 +30,19 @@ const CategoryManagerModal = ({
     setFormOrcamentoMensal("");
   };
 
+  const setErrorFeedback = (message) => {
+    setFeedback({ type: "error", message });
+  };
+
+  const setSuccessFeedback = (message) => {
+    setFeedback({ type: "success", message });
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     clearForm();
+    setFeedback({ type: "", message: "" });
   }, [isOpen]);
 
   useEffect(() => {
@@ -98,31 +112,64 @@ const CategoryManagerModal = ({
     setFormOrcamentoMensal(
       category.orcamentoMensal ? String(category.orcamentoMensal) : "",
     );
+    setFeedback({ type: "", message: "" });
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (category) => {
+    if (isBusy) return;
+
+    const confirmed = window.confirm(
+      `Deseja realmente deletar a categoria "${category.nome}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCategoryId(category.id);
+    setFeedback({ type: "", message: "" });
+
     try {
-      const response = await fetch(`${API_CATEGORIAS_URL}/${id}`, {
+      const response = await fetch(`${API_CATEGORIAS_URL}/${category.id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
 
-      if (response.ok) {
-        clearForm();
-        onCategoriasChange();
+      if (!response.ok) {
+        throw new Error("Não foi possível deletar a categoria.");
       }
+
+      clearForm();
+      onCategoriasChange();
+      setSuccessFeedback(`Categoria "${category.nome}" deletada com sucesso.`);
     } catch (err) {
       console.error("Erro ao deletar categoria:", err);
+      setErrorFeedback(
+        err.message || "Erro ao deletar categoria. Tente novamente.",
+      );
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isBusy) return;
+
+    setFeedback({ type: "", message: "" });
+
     const isEditingGlobal = Boolean(editingCat?.isGlobal);
 
-    if (!isEditingGlobal && !formNome.trim()) return;
-    if (!isEditingGlobal && formIcone && formIcone.length > 2) return;
+    if (!isEditingGlobal && !formNome.trim()) {
+      setErrorFeedback("Informe um nome para a categoria.");
+      return;
+    }
+
+    if (!isEditingGlobal && formIcone && formIcone.length > 2) {
+      setErrorFeedback("Ícone inválido: use no máximo 2 caracteres.");
+      return;
+    }
 
     const orcamentoNumerico =
       formOrcamentoMensal.trim() === "" ? null : Number(formOrcamentoMensal);
@@ -131,6 +178,7 @@ const CategoryManagerModal = ({
       orcamentoNumerico !== null &&
       (!Number.isFinite(orcamentoNumerico) || orcamentoNumerico <= 0)
     ) {
+      setErrorFeedback("Orçamento inválido: informe um valor maior que zero.");
       return;
     }
 
@@ -144,6 +192,8 @@ const CategoryManagerModal = ({
     };
 
     try {
+      setIsSubmitting(true);
+
       const response = editingCat
         ? await fetch(`${API_CATEGORIAS_URL}/${editingCat.id}`, {
             method: "PUT",
@@ -156,12 +206,24 @@ const CategoryManagerModal = ({
             body: JSON.stringify(payload),
           });
 
-      if (response.ok) {
-        clearForm();
-        onCategoriasChange();
+      if (!response.ok) {
+        throw new Error("Não foi possível salvar a categoria.");
       }
+
+      clearForm();
+      onCategoriasChange();
+      setSuccessFeedback(
+        editingCat
+          ? "Categoria atualizada com sucesso."
+          : "Categoria criada com sucesso.",
+      );
     } catch (err) {
       console.error("Erro ao salvar categoria:", err);
+      setErrorFeedback(
+        err.message || "Erro ao salvar categoria. Tente novamente.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -186,13 +248,32 @@ const CategoryManagerModal = ({
           <button
             onClick={onClose}
             aria-label="Fechar modal de categorias"
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            disabled={isBusy}
           >
             <X size={20} />
           </button>
         </div>
 
         <div className="p-4 space-y-6">
+          <div aria-live="polite" aria-atomic="true" className="sr-only">
+            {feedback.message}
+          </div>
+
+          {feedback.message && (
+            <div
+              role={feedback.type === "error" ? "alert" : "status"}
+              aria-live={feedback.type === "error" ? "assertive" : "polite"}
+              className={`text-sm rounded-lg border px-3 py-2 ${
+                feedback.type === "error"
+                  ? "bg-rose-50 border-rose-200 text-rose-700"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
+              }`}
+            >
+              {feedback.message}
+            </div>
+          )}
+
           <div className="space-y-3">
             {categorias.map((category) => (
               <div
@@ -220,20 +301,33 @@ const CategoryManagerModal = ({
                     type="button"
                     onClick={() => handleEdit(category)}
                     aria-label={`Editar categoria ${category.nome}`}
-                    className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+                    className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     title="Editar"
+                    disabled={isBusy}
                   >
                     <Pencil size={14} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(category.id)}
-                    aria-label={`Deletar categoria ${category.nome}`}
-                    className={`p-2 rounded-lg ${category.isGlobal ? "text-slate-300 cursor-not-allowed" : "hover:bg-red-50 text-red-500"}`}
-                    title="Deletar"
-                    disabled={Boolean(category.isGlobal)}
+                    onClick={() => handleDelete(category)}
+                    aria-label={
+                      deletingCategoryId === category.id
+                        ? `Excluindo categoria ${category.nome}`
+                        : `Deletar categoria ${category.nome}`
+                    }
+                    className={`p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${category.isGlobal || isBusy ? "text-slate-300 cursor-not-allowed" : "hover:bg-red-50 text-red-500"}`}
+                    title={
+                      deletingCategoryId === category.id
+                        ? "Excluindo..."
+                        : "Deletar"
+                    }
+                    disabled={Boolean(category.isGlobal) || isBusy}
                   >
-                    <Trash2 size={14} />
+                    {deletingCategoryId === category.id ? (
+                      <span className="text-[10px] font-semibold">...</span>
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -252,10 +346,10 @@ const CategoryManagerModal = ({
                 id="category-name"
                 type="text"
                 required
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={formNome}
                 onChange={(e) => setFormNome(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal)}
+                disabled={Boolean(editingCat?.isGlobal) || isBusy}
               />
             </div>
 
@@ -271,10 +365,10 @@ const CategoryManagerModal = ({
                 type="text"
                 maxLength={2}
                 placeholder="Emoji"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={formIcone}
                 onChange={(e) => setFormIcone(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal)}
+                disabled={Boolean(editingCat?.isGlobal) || isBusy}
               />
             </div>
 
@@ -288,10 +382,10 @@ const CategoryManagerModal = ({
               <input
                 id="category-color"
                 type="color"
-                className="w-full h-11 p-1 border rounded-lg"
+                className="w-full h-11 p-1 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={formCor}
                 onChange={(e) => setFormCor(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal)}
+                disabled={Boolean(editingCat?.isGlobal) || isBusy}
               />
             </div>
 
@@ -305,13 +399,17 @@ const CategoryManagerModal = ({
               <input
                 id="category-budget"
                 type="number"
-                min="0"
+                min="0.01"
                 step="0.01"
                 placeholder="Ex.: 500"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={formOrcamentoMensal}
                 onChange={(e) => setFormOrcamentoMensal(e.target.value)}
+                disabled={isBusy}
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Opcional. Valor mensal em R$.
+              </p>
               {editingCat?.isGlobal && (
                 <p className="text-xs text-slate-500 mt-1">
                   Para categoria global, apenas o orçamento é personalizado para
@@ -325,16 +423,24 @@ const CategoryManagerModal = ({
                 <button
                   type="button"
                   onClick={clearForm}
-                  className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2"
+                  className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  disabled={isBusy}
                 >
                   Cancelar
                 </button>
               )}
               <button
                 type="submit"
-                className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 ${editingCat ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${editingCat ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                disabled={isBusy}
               >
-                {editingCat ? "Atualizar" : "Salvar"}
+                {isSubmitting
+                  ? editingCat
+                    ? "Atualizando..."
+                    : "Salvando..."
+                  : editingCat
+                    ? "Atualizar"
+                    : "Salvar"}
               </button>
             </div>
           </form>

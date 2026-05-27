@@ -994,10 +994,10 @@ const DashboardView = ({
                 )}
                 <button
                   type="button"
-                  onClick={onOpenCategoryManager}
+                  onClick={(e) => onOpenCategoryManager(e.currentTarget)}
                   aria-label="Gerenciar categorias"
                   title="Gerenciar categorias"
-                  className="p-1 rounded-md hover:bg-slate-50"
+                  className="p-1 rounded-md hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <Settings
                     size={16}

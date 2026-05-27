@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp,
   Wallet,
@@ -66,6 +66,7 @@ const App = () => {
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
+  const categoryManagerTriggerRef = useRef(null);
 
   const INVESTMENT_GOAL_PERCENT = 10;
 
@@ -91,6 +92,20 @@ const App = () => {
   const handleChangeMonth = (mes, ano) => {
     setSelectedMes(mes);
     setSelectedAno(ano);
+  };
+
+  const handleOpenCategoryManager = (triggerElement) => {
+    categoryManagerTriggerRef.current =
+      triggerElement || document.activeElement;
+    setIsCategoryManagerOpen(true);
+  };
+
+  const handleCloseCategoryManager = () => {
+    setIsCategoryManagerOpen(false);
+
+    if (categoryManagerTriggerRef.current?.focus) {
+      categoryManagerTriggerRef.current.focus();
+    }
   };
 
   const fetchCategorias = async () => {
@@ -366,7 +381,7 @@ const App = () => {
               onChangeMonth={handleChangeMonth}
               categorias={categorias}
               veiculos={veiculos}
-              onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
+              onOpenCategoryManager={handleOpenCategoryManager}
               saldoAnterior={saldoAnterior}
               budgetRefreshKey={budgetRefreshKey}
             />
@@ -396,9 +411,12 @@ const App = () => {
 
           <CategoryManagerModal
             isOpen={isCategoryManagerOpen}
-            onClose={() => setIsCategoryManagerOpen(false)}
+            onClose={handleCloseCategoryManager}
             categorias={categorias}
-            onCategoriasChange={() => { fetchCategorias(); setBudgetRefreshKey((k) => k + 1); }}
+            onCategoriasChange={() => {
+              fetchCategorias();
+              setBudgetRefreshKey((k) => k + 1);
+            }}
           />
         </div>
       </main>
