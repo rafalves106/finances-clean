@@ -18,7 +18,9 @@ const CategoryManagerModal = ({
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState(null);
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
   const dialogRef = useRef(null);
+  const nameInputRef = useRef(null);
 
   const isBusy = isSubmitting || deletingCategoryId !== null;
 
@@ -43,7 +45,16 @@ const CategoryManagerModal = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     clearForm();
     setFeedback({ type: "", message: "" });
+    setIsFormExpanded(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !isFormExpanded || !editingCat || !nameInputRef.current) {
+      return;
+    }
+
+    nameInputRef.current.focus();
+  }, [isOpen, isFormExpanded, editingCat]);
 
   useEffect(() => {
     if (!isOpen || !dialogRef.current) return;
@@ -113,6 +124,16 @@ const CategoryManagerModal = ({
       category.orcamentoMensal ? String(category.orcamentoMensal) : "",
     );
     setFeedback({ type: "", message: "" });
+    setIsFormExpanded(true);
+
+    if (dialogRef.current) {
+      dialogRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const toggleFormExpanded = () => {
+    if (isBusy) return;
+    setIsFormExpanded((current) => !current);
   };
 
   const handleDelete = async (category) => {
@@ -274,6 +295,137 @@ const CategoryManagerModal = ({
             </div>
           )}
 
+          <button
+            type="button"
+            onClick={toggleFormExpanded}
+            aria-expanded={isFormExpanded}
+            aria-controls="category-form-panel"
+            className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            disabled={isBusy}
+          >
+            {isFormExpanded
+              ? editingCat
+                ? "Recolher edição"
+                : "Recolher formulário"
+              : editingCat
+                ? "Expandir edição"
+                : "Nova categoria"}
+          </button>
+
+          <div id="category-form-panel" hidden={!isFormExpanded}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="category-name"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  Nome
+                </label>
+                <input
+                  ref={nameInputRef}
+                  id="category-name"
+                  type="text"
+                  required
+                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  value={formNome}
+                  onChange={(e) => setFormNome(e.target.value)}
+                  disabled={Boolean(editingCat?.isGlobal) || isBusy}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="category-icon"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  Ícone
+                </label>
+                <input
+                  id="category-icon"
+                  type="text"
+                  maxLength={2}
+                  placeholder="Emoji"
+                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  value={formIcone}
+                  onChange={(e) => setFormIcone(e.target.value)}
+                  disabled={Boolean(editingCat?.isGlobal) || isBusy}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="category-color"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  Cor
+                </label>
+                <input
+                  id="category-color"
+                  type="color"
+                  className="w-full h-11 p-1 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  value={formCor}
+                  onChange={(e) => setFormCor(e.target.value)}
+                  disabled={Boolean(editingCat?.isGlobal) || isBusy}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="category-budget"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  Orçamento mensal
+                </label>
+                <input
+                  id="category-budget"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="Ex.: 500"
+                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  value={formOrcamentoMensal}
+                  onChange={(e) => setFormOrcamentoMensal(e.target.value)}
+                  disabled={isBusy}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Opcional. Valor mensal em R$.
+                </p>
+                {editingCat?.isGlobal && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Para categoria global, apenas o orçamento é personalizado
+                    para seu usuário.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {editingCat && (
+                  <button
+                    type="button"
+                    onClick={clearForm}
+                    className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    disabled={isBusy}
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${editingCat ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                  disabled={isBusy}
+                >
+                  {isSubmitting
+                    ? editingCat
+                      ? "Atualizando..."
+                      : "Salvando..."
+                    : editingCat
+                      ? "Atualizar"
+                      : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
+
           <div className="space-y-3">
             {categorias.map((category) => (
               <div
@@ -333,117 +485,6 @@ const CategoryManagerModal = ({
               </div>
             ))}
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="category-name"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Nome
-              </label>
-              <input
-                id="category-name"
-                type="text"
-                required
-                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                value={formNome}
-                onChange={(e) => setFormNome(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal) || isBusy}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="category-icon"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Ícone
-              </label>
-              <input
-                id="category-icon"
-                type="text"
-                maxLength={2}
-                placeholder="Emoji"
-                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                value={formIcone}
-                onChange={(e) => setFormIcone(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal) || isBusy}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="category-color"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Cor
-              </label>
-              <input
-                id="category-color"
-                type="color"
-                className="w-full h-11 p-1 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                value={formCor}
-                onChange={(e) => setFormCor(e.target.value)}
-                disabled={Boolean(editingCat?.isGlobal) || isBusy}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="category-budget"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Orçamento mensal
-              </label>
-              <input
-                id="category-budget"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="Ex.: 500"
-                className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                value={formOrcamentoMensal}
-                onChange={(e) => setFormOrcamentoMensal(e.target.value)}
-                disabled={isBusy}
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                Opcional. Valor mensal em R$.
-              </p>
-              {editingCat?.isGlobal && (
-                <p className="text-xs text-slate-500 mt-1">
-                  Para categoria global, apenas o orçamento é personalizado para
-                  seu usuário.
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              {editingCat && (
-                <button
-                  type="button"
-                  onClick={clearForm}
-                  className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  disabled={isBusy}
-                >
-                  Cancelar
-                </button>
-              )}
-              <button
-                type="submit"
-                className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${editingCat ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
-                disabled={isBusy}
-              >
-                {isSubmitting
-                  ? editingCat
-                    ? "Atualizando..."
-                    : "Salvando..."
-                  : editingCat
-                    ? "Atualizar"
-                    : "Salvar"}
-              </button>
-            </div>
-          </form>
         </div>
       </div>
     </div>
