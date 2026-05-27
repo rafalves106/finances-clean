@@ -491,9 +491,40 @@ const DashboardView = ({
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-        <h3 className="text-slate-700 font-bold mb-6 flex items-center gap-2">
-          <DollarSign size={18} className="text-blue-500" /> Evolução Financeira
-        </h3>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <h3 className="text-slate-700 font-bold flex items-center gap-2">
+            <DollarSign size={18} className="text-blue-500" /> Evolução
+            Financeira
+          </h3>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              Data início
+              <input
+                type="date"
+                value={exportStartDate}
+                onChange={(e) => setExportStartDate(e.target.value)}
+                className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              Data fim
+              <input
+                type="date"
+                value={exportEndDate}
+                onChange={(e) => setExportEndDate(e.target.value)}
+                className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={isExportingCsv}
+              className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {isExportingCsv ? "Exportando..." : "Exportar CSV"}
+            </button>
+          </div>
+        </div>
 
         <div className="flex items-center justify-between gap-3 mb-4">
           <button
@@ -512,37 +543,6 @@ const DashboardView = ({
             className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             ›
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3 mb-4">
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
-            Data início
-            <input
-              type="date"
-              value={exportStartDate}
-              onChange={(e) => setExportStartDate(e.target.value)}
-              className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
-            Data fim
-            <input
-              type="date"
-              value={exportEndDate}
-              onChange={(e) => setExportEndDate(e.target.value)}
-              className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={isExportingCsv}
-            className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {isExportingCsv ? "Exportando..." : "Exportar CSV"}
           </button>
         </div>
 
