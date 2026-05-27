@@ -123,7 +123,8 @@ const DashboardView = ({
         setIsCategoryComparisonLoading(true);
         setCategoryComparisonError("");
 
-        const meses = categoryTab === "6-meses" ? 6 : categoryTab === "12-meses" ? 12 : 3;
+        const meses =
+          categoryTab === "6-meses" ? 6 : categoryTab === "12-meses" ? 12 : 3;
 
         const response = await fetch(
           `${API_URL}/comparativo-categorias?mes=${selectedMes}&ano=${selectedAno}&meses=${meses}`,
@@ -908,7 +909,7 @@ const DashboardView = ({
                 type="button"
                 onClick={() => setCategoryTab("3-meses")}
                 className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
-                  categoryTab !== "mes-atual"
+                  categoryTab === "3-meses"
                     ? "border-blue-600 text-blue-600"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
