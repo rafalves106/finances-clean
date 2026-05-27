@@ -181,7 +181,7 @@ describe("DashboardView renumeracao de grupo", () => {
       ),
     );
 
-    expect(screen.queryByText(/alerta/i)).toBeNull();
+    expect(screen.queryByText(/\d+ alerta/i)).toBeNull();
   });
 });
 
@@ -256,5 +256,109 @@ describe("DashboardView ciclo 008", () => {
     );
 
     expect(fetchData).not.toHaveBeenCalledWith();
+  });
+});
+
+describe("DashboardView ciclo 009 sprint 2", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.alert = vi.fn();
+    window.confirm = vi.fn(() => true);
+
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+  });
+
+  it("deve exibir card de proximos pagamentos com total previsto", async () => {
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[
+          {
+            id: "pag-1",
+            titulo: "Aluguel",
+            valor: 1200,
+            tipo: "Saida",
+            data: "2026-01-10T00:00:00Z",
+            categoria: { nome: "Moradia" },
+          },
+          {
+            id: "pag-2",
+            titulo: "Energia",
+            valor: 250,
+            tipo: "Saida",
+            data: "2026-01-20T00:00:00Z",
+            categoria: { nome: "Casa" },
+          },
+        ]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Próximos pagamentos")).toBeTruthy(),
+    );
+
+    expect(screen.getAllByText("Aluguel").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Energia").length).toBeGreaterThan(0);
+    expect(screen.getByText("Total previsto")).toBeTruthy();
+  });
+
+  it("deve renderizar estados vazios guiados e acionar CTA de insight", async () => {
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={-100}
+      />,
+    );
+
+    expect(
+      screen.getByText("Nenhum pagamento pendente no restante do período."),
+    ).toBeTruthy();
+    expect(screen.getByText("Insights acionáveis")).toBeTruthy();
+    expect(screen.getByText("Saldo do mês está negativo")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Simular ajuste" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Simular Transação")).toBeTruthy(),
+    );
   });
 });

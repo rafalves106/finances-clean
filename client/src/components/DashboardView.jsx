@@ -624,6 +624,138 @@ const DashboardView = ({
     };
   }, [effectiveExpenses, effectiveIncomes, selectedAno, selectedMes]);
 
+  const handleOpenNewTransaction = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenSimulation = () => {
+    setIsSimulationModalOpen(true);
+  };
+
+  const handleOpenCategoryManager = (triggerElement) => {
+    onOpenCategoryManager(triggerElement || document.activeElement);
+  };
+
+  const upcomingPayments = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(selectedAno, selectedMes - 1, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(selectedAno, selectedMes, 0, 23, 59, 59, 999);
+    const isCurrentPeriod =
+      selectedMes === now.getMonth() + 1 && selectedAno === now.getFullYear();
+
+    const referenceStart = isCurrentPeriod
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      : monthStart;
+
+    if (referenceStart > monthEnd) {
+      return {
+        items: [],
+        totalValue: 0,
+      };
+    }
+
+    const items = effectiveExpenses
+      .filter((item) => !item.investimentoId)
+      .map((item) => {
+        const dueDate = new Date(item.date || item.data);
+
+        return {
+          id: item.id,
+          title: item.name || item.titulo || "Despesa",
+          value: Number(item.value || item.valor || 0),
+          categoria: item.categoria?.nome || "Sem categoria",
+          dueDate,
+        };
+      })
+      .filter(
+        (item) => item.dueDate >= referenceStart && item.dueDate <= monthEnd,
+      )
+      .sort((a, b) => a.dueDate - b.dueDate)
+      .slice(0, 5);
+
+    return {
+      items,
+      totalValue: items.reduce((acc, item) => acc + item.value, 0),
+    };
+  }, [effectiveExpenses, selectedAno, selectedMes]);
+
+  const actionableInsights = useMemo(() => {
+    const insights = [];
+
+    if (displayedFinalBalance < 0) {
+      insights.push({
+        id: "negative-balance",
+        title: "Saldo do mês está negativo",
+        description:
+          "Use simulação para testar ajustes antes de registrar novas saídas.",
+        ctaLabel: "Simular ajuste",
+        tone: "rose",
+      });
+    }
+
+    if (executiveMetrics.expensePressurePercent >= 85) {
+      insights.push({
+        id: "expense-pressure",
+        title: "Pressão de despesas elevada",
+        description:
+          "Reforce entradas ou reprograme gastos para aliviar o fim do mês.",
+        ctaLabel: "Registrar entrada",
+        tone: executiveMetrics.expensePressurePercent > 100 ? "rose" : "amber",
+      });
+    }
+
+    if (totalBudgetAlerts > 0) {
+      insights.push({
+        id: "budget-alerts",
+        title: `${totalBudgetAlerts} categoria${totalBudgetAlerts > 1 ? "s" : ""} em alerta de orçamento`,
+        description:
+          "Revise limites e acompanhe o consumo para evitar estouro.",
+        ctaLabel: "Ajustar categorias",
+        tone: "amber",
+      });
+    }
+
+    if (upcomingPayments.items.length >= 3) {
+      insights.push({
+        id: "upcoming-payments",
+        title: "Concentração de pagamentos nos próximos dias",
+        description:
+          "Priorize pagamentos com vencimento próximo para reduzir risco de atraso.",
+        ctaLabel: "Ver próximos pagamentos",
+        tone: "blue",
+      });
+    }
+
+    return insights.slice(0, 3);
+  }, [
+    displayedFinalBalance,
+    executiveMetrics.expensePressurePercent,
+    totalBudgetAlerts,
+    upcomingPayments.items.length,
+  ]);
+
+  const handleInsightAction = (insightId, event) => {
+    if (insightId === "negative-balance") {
+      handleOpenSimulation();
+      return;
+    }
+
+    if (insightId === "expense-pressure") {
+      handleOpenNewTransaction();
+      return;
+    }
+
+    if (insightId === "budget-alerts") {
+      handleOpenCategoryManager(event?.currentTarget);
+      return;
+    }
+
+    if (insightId === "upcoming-payments") {
+      setCategoryTab("mes-atual");
+    }
+  };
+
   const expensesByCategory = useMemo(() => {
     const grouped = effectiveExpenses
       .filter((item) => !item.investimentoId)
@@ -1119,24 +1251,21 @@ const DashboardView = ({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => {
-                setEditingItem(null);
-                setIsModalOpen(true);
-              }}
+              onClick={handleOpenNewTransaction}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
             >
               <Plus size={16} /> Nova movimentação
             </button>
             <button
               type="button"
-              onClick={() => setIsSimulationModalOpen(true)}
+              onClick={handleOpenSimulation}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
             >
               <Sparkles size={15} /> Simular
             </button>
             <button
               type="button"
-              onClick={(e) => onOpenCategoryManager(e.currentTarget)}
+              onClick={(e) => handleOpenCategoryManager(e.currentTarget)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
             >
               <Settings size={15} /> Categorias
@@ -1328,6 +1457,140 @@ const DashboardView = ({
           </div>
         </div>
       )}
+
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+              Próximos pagamentos
+            </h3>
+            <span className="text-xs font-semibold text-slate-500">
+              {upcomingPayments.items.length} item
+              {upcomingPayments.items.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {upcomingPayments.items.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+              <p className="text-sm text-slate-600 font-medium">
+                Nenhum pagamento pendente no restante do período.
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Registre uma saída planejada para manter previsibilidade do mês.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenNewTransaction}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-medium hover:bg-slate-900 transition-colors"
+              >
+                <Plus size={14} /> Registrar saída
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {upcomingPayments.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {item.categoria} ·{" "}
+                        {item.dueDate.toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-rose-600">
+                      {formatCurrency(item.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500">
+                  Total previsto
+                </span>
+                <span className="text-sm font-bold text-slate-700">
+                  {formatCurrency(upcomingPayments.totalValue)}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+              Insights acionáveis
+            </h3>
+            <span className="text-xs font-semibold text-slate-500">
+              Sprint 2
+            </span>
+          </div>
+
+          {actionableInsights.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50 p-4">
+              <p className="text-sm text-emerald-800 font-medium">
+                Sem alertas críticos para este período.
+              </p>
+              <p className="text-xs text-emerald-700 mt-1">
+                Continue monitorando com simulações e ajustes pontuais.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={handleOpenSimulation}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors"
+                >
+                  <Sparkles size={14} /> Simular cenário
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleOpenCategoryManager(e.currentTarget)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-200 text-emerald-800 text-xs font-medium hover:bg-emerald-100 transition-colors"
+                >
+                  <Settings size={14} /> Revisar categorias
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {actionableInsights.map((insight) => (
+                <div
+                  key={insight.id}
+                  className={`rounded-lg border px-3 py-3 ${
+                    insight.tone === "rose"
+                      ? "bg-rose-50 border-rose-200"
+                      : insight.tone === "amber"
+                        ? "bg-amber-50 border-amber-200"
+                        : insight.tone === "blue"
+                          ? "bg-blue-50 border-blue-200"
+                          : "bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-slate-700">
+                    {insight.title}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {insight.description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(event) => handleInsightAction(insight.id, event)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    {insight.ctaLabel}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 gap-6 items-start">
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
