@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { API_CATEGORIAS_ALERTAS_ORCAMENTO_URL, API_URL } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
@@ -62,9 +62,6 @@ const getMonthDateRange = (month, year) => {
 };
 
 const DashboardView = ({
-  totalIncome,
-  totalExpenses,
-  finalBalance,
   totalInvestmentsBalance,
   fetchData,
   loading,
@@ -101,6 +98,134 @@ const DashboardView = ({
   const [totalBudgetAlerts, setTotalBudgetAlerts] = useState(0);
   const [isBudgetAlertsLoading, setIsBudgetAlertsLoading] = useState(false);
   const [budgetAlertsError, setBudgetAlertsError] = useState("");
+  const [localPatchState, setLocalPatchState] = useState(null);
+  const mutationTokenRef = useRef(0);
+
+  const periodKey = `${selectedAno}-${selectedMes}`;
+  const activePeriodKeyRef = useRef(periodKey);
+
+  useEffect(() => {
+    activePeriodKeyRef.current = periodKey;
+  }, [periodKey]);
+
+  useEffect(() => {
+    setLocalPatchState(null);
+  }, [incomes, expenses, periodKey]);
+
+  const getNextMutationToken = () => {
+    mutationTokenRef.current += 1;
+    return mutationTokenRef.current;
+  };
+
+  const buildPatchBaseState = (targetPeriodKey) => ({
+    periodKey: targetPeriodKey,
+    incomes: [...incomes],
+    expenses: [...expenses],
+  });
+
+  const getCurrentPatchStateForPeriod = (targetPeriodKey) =>
+    localPatchState && localPatchState.periodKey === targetPeriodKey
+      ? localPatchState
+      : buildPatchBaseState(targetPeriodKey);
+
+  const applyPatchForPeriod = (targetPeriodKey, updater) => {
+    if (targetPeriodKey !== activePeriodKeyRef.current) {
+      return;
+    }
+
+    setLocalPatchState((current) => {
+      const baseState =
+        current && current.periodKey === targetPeriodKey
+          ? current
+          : buildPatchBaseState(targetPeriodKey);
+
+      const nextState = updater(baseState);
+
+      return {
+        periodKey: targetPeriodKey,
+        incomes: nextState.incomes,
+        expenses: nextState.expenses,
+      };
+    });
+  };
+
+  const triggerSilentRevalidation = async (targetPeriodKey, mutationToken) => {
+    await fetchData({
+      silent: true,
+      periodKey: targetPeriodKey,
+      mutationToken,
+    });
+  };
+
+  const buildLocalMovementFromPayload = (id, payload) => ({
+    id,
+    name: payload.titulo,
+    description: payload.descricao,
+    value: payload.valor,
+    date: payload.data,
+    type: payload.tipo,
+    tipo: payload.tipo,
+    fixa: payload.fixa,
+    periodo: payload.periodo,
+    tipoRecorrencia: payload.tipoRecorrencia,
+    tipoMovimentacaoFixa: payload.tipoMovimentacaoFixa,
+    investimentoId: null,
+    categoriaId: payload.categoriaId,
+    veiculoId: payload.veiculoId,
+    km: payload.km,
+    categoria:
+      categorias.find((categoria) => categoria.id === payload.categoriaId) ||
+      null,
+  });
+
+  const applyCreatePatch = (targetPeriodKey, movement) => {
+    applyPatchForPeriod(targetPeriodKey, (state) => {
+      if ((movement.type || movement.tipo) === "Entrada") {
+        return {
+          incomes: [...state.incomes, movement],
+          expenses: state.expenses,
+        };
+      }
+
+      return {
+        incomes: state.incomes,
+        expenses: [...state.expenses, movement],
+      };
+    });
+  };
+
+  const applyEditPatch = (targetPeriodKey, movement) => {
+    applyPatchForPeriod(targetPeriodKey, (state) => {
+      const nextIncomes = state.incomes.filter(
+        (item) => item.id !== movement.id,
+      );
+      const nextExpenses = state.expenses.filter(
+        (item) => item.id !== movement.id,
+      );
+
+      if ((movement.type || movement.tipo) === "Entrada") {
+        return {
+          incomes: [...nextIncomes, movement],
+          expenses: nextExpenses,
+        };
+      }
+
+      return {
+        incomes: nextIncomes,
+        expenses: [...nextExpenses, movement],
+      };
+    });
+  };
+
+  const effectiveIncomes =
+    localPatchState && localPatchState.periodKey === periodKey
+      ? localPatchState.incomes
+      : incomes;
+
+  const effectiveExpenses =
+    localPatchState && localPatchState.periodKey === periodKey
+      ? localPatchState.expenses
+      : expenses;
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -259,53 +384,65 @@ const DashboardView = ({
 
   const groupedIncomes = useMemo(
     () =>
-      sortTransactions([...incomes, ...currentMonthSimulatedIncomes]).reduce(
-        (acc, item) => {
-          const date = new Date(item.date || item.data);
-          const month = date.toLocaleString("pt-BR", {
-            month: "long",
-            year: "numeric",
-          });
-          const day = date.toLocaleDateString("pt-BR");
-          if (!acc[month]) acc[month] = {};
-          if (!acc[month][day]) acc[month][day] = [];
-          acc[month][day].push(item);
-          return acc;
-        },
-        {},
-      ),
-    [incomes, currentMonthSimulatedIncomes],
+      sortTransactions([
+        ...effectiveIncomes,
+        ...currentMonthSimulatedIncomes,
+      ]).reduce((acc, item) => {
+        const date = new Date(item.date || item.data);
+        const month = date.toLocaleString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        const day = date.toLocaleDateString("pt-BR");
+        if (!acc[month]) acc[month] = {};
+        if (!acc[month][day]) acc[month][day] = [];
+        acc[month][day].push(item);
+        return acc;
+      }, {}),
+    [effectiveIncomes, currentMonthSimulatedIncomes],
   );
 
   const groupedExpenses = useMemo(
     () =>
-      sortTransactions([...expenses, ...currentMonthSimulatedExpenses]).reduce(
-        (acc, item) => {
-          const date = new Date(item.date || item.data);
-          const month = date.toLocaleString("pt-BR", {
-            month: "long",
-            year: "numeric",
-          });
-          const day = date.toLocaleDateString("pt-BR");
-          if (!acc[month]) acc[month] = {};
-          if (!acc[month][day]) acc[month][day] = [];
-          acc[month][day].push(item);
-          return acc;
-        },
-        {},
-      ),
-    [expenses, currentMonthSimulatedExpenses],
+      sortTransactions([
+        ...effectiveExpenses,
+        ...currentMonthSimulatedExpenses,
+      ]).reduce((acc, item) => {
+        const date = new Date(item.date || item.data);
+        const month = date.toLocaleString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        const day = date.toLocaleDateString("pt-BR");
+        if (!acc[month]) acc[month] = {};
+        if (!acc[month][day]) acc[month][day] = [];
+        acc[month][day].push(item);
+        return acc;
+      }, {}),
+    [effectiveExpenses, currentMonthSimulatedExpenses],
   );
 
   const hasSimulation = simulatedTransactions.length > 0;
-  const displayedIncomeTotal = totalIncome + simulatedIncomeTotal;
-  const displayedExpenseTotal = totalExpenses + simulatedExpenseTotal;
+  const baseIncomeTotal = useMemo(
+    () =>
+      effectiveIncomes.reduce((acc, curr) => acc + Number(curr.value || 0), 0),
+    [effectiveIncomes],
+  );
+
+  const baseExpenseTotal = useMemo(
+    () =>
+      effectiveExpenses.reduce((acc, curr) => acc + Number(curr.value || 0), 0),
+    [effectiveExpenses],
+  );
+
+  const displayedIncomeTotal = baseIncomeTotal + simulatedIncomeTotal;
+  const displayedExpenseTotal = baseExpenseTotal + simulatedExpenseTotal;
   const displayedFinalBalance = hasSimulation
     ? saldoAnterior + displayedIncomeTotal - displayedExpenseTotal
-    : finalBalance;
+    : saldoAnterior + baseIncomeTotal - baseExpenseTotal;
 
   const expensesByCategory = useMemo(() => {
-    const grouped = expenses
+    const grouped = effectiveExpenses
       .filter((item) => !item.investimentoId)
       .reduce((acc, item) => {
         const categoria = item.categoria || {};
@@ -330,14 +467,14 @@ const DashboardView = ({
     return Object.values(grouped)
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
-  }, [expenses]);
+  }, [effectiveExpenses]);
 
   const totalCategoryExpenses = useMemo(
     () =>
-      expenses
+      effectiveExpenses
         .filter((item) => !item.investimentoId)
         .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
-    [expenses],
+    [effectiveExpenses],
   );
 
   const budgetAlertsByCategoryId = useMemo(
@@ -408,8 +545,8 @@ const DashboardView = ({
 
   const chartData = useMemo(() => {
     const grouped = [
-      ...incomes,
-      ...expenses,
+      ...effectiveIncomes,
+      ...effectiveExpenses,
       ...currentMonthSimulatedIncomes,
       ...currentMonthSimulatedExpenses,
     ].reduce((acc, item) => {
@@ -449,8 +586,8 @@ const DashboardView = ({
         return acc;
       }, []);
   }, [
-    incomes,
-    expenses,
+    effectiveIncomes,
+    effectiveExpenses,
     saldoAnterior,
     currentMonthSimulatedIncomes,
     currentMonthSimulatedExpenses,
@@ -565,51 +702,103 @@ const DashboardView = ({
   };
 
   const handleApplySimulation = async () => {
+    if (simulatedTransactions.length === 0) return;
+
+    const requestPeriodKey = activePeriodKeyRef.current;
+    const mutationToken = getNextMutationToken();
+    const successfulSimulationIds = new Set();
+
     try {
       for (const item of simulatedTransactions) {
+        const payload = {
+          titulo: item.name,
+          descricao: item.description,
+          valor: item.value,
+          tipo: item.type,
+          data: item.date,
+          fixa: false,
+          periodo: 0,
+          tipoRecorrencia: "Mensal",
+          tipoMovimentacaoFixa: "RecorrenteFixa",
+          categoriaId: item.categoriaId || null,
+          veiculoId: item.veiculoId || null,
+          km: item.km || null,
+        };
+
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({
-            titulo: item.name,
-            descricao: item.description,
-            valor: item.value,
-            tipo: item.type,
-            data: item.date,
-            fixa: false,
-            periodo: 0,
-            categoriaId: item.categoriaId || null,
-            veiculoId: item.veiculoId || null,
-            km: item.km || null,
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
           throw new Error("Erro ao aplicar simulação");
         }
+
+        let responseBody = null;
+        try {
+          responseBody = await response.clone().json();
+        } catch {
+          responseBody = null;
+        }
+
+        const createdId = responseBody?.id || responseBody?.Id || item.id;
+
+        applyCreatePatch(
+          requestPeriodKey,
+          buildLocalMovementFromPayload(createdId, payload),
+        );
+
+        successfulSimulationIds.add(item.id);
       }
 
-      await fetchData();
-      setSimulatedTransactions([]);
+      setSimulatedTransactions((current) =>
+        current.filter((item) => !successfulSimulationIds.has(item.id)),
+      );
     } catch (err) {
       console.error("Erro ao aplicar simulação:", err);
       alert("Erro ao aplicar as transações simuladas. Verifique o console.");
+      setSimulatedTransactions((current) =>
+        current.filter((item) => !successfulSimulationIds.has(item.id)),
+      );
+    } finally {
+      await triggerSilentRevalidation(requestPeriodKey, mutationToken);
     }
   };
 
   const handleRemove = async (id) => {
+    const requestPeriodKey = activePeriodKeyRef.current;
+    const mutationToken = getNextMutationToken();
+    const rollbackSnapshot = getCurrentPatchStateForPeriod(requestPeriodKey);
+
+    applyPatchForPeriod(requestPeriodKey, (state) => ({
+      incomes: state.incomes.filter((item) => item.id !== id),
+      expenses: state.expenses.filter((item) => item.id !== id),
+    }));
+
     try {
-      await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
-      fetchData();
+
+      if (!response.ok) {
+        throw new Error("Erro ao deletar. Verifique o console.");
+      }
+
+      await triggerSilentRevalidation(requestPeriodKey, mutationToken);
     } catch (err) {
       console.error("Erro ao deletar item:", err);
+
+      if (requestPeriodKey === activePeriodKeyRef.current) {
+        setLocalPatchState(rollbackSnapshot);
+      }
+
       alert("Erro ao deletar. Verifique o console.");
+      await triggerSilentRevalidation(requestPeriodKey, mutationToken);
     }
   };
 
@@ -887,7 +1076,7 @@ const DashboardView = ({
               {hasSimulation ? (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-slate-400 line-through">
-                    {formatCurrency(totalIncome)}
+                    {formatCurrency(baseIncomeTotal)}
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl font-bold text-slate-900">
@@ -900,7 +1089,7 @@ const DashboardView = ({
                 </div>
               ) : (
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totalIncome)}
+                  {formatCurrency(baseIncomeTotal)}
                 </div>
               )}
             </div>
@@ -912,7 +1101,7 @@ const DashboardView = ({
               {hasSimulation ? (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-slate-400 line-through">
-                    {formatCurrency(totalExpenses)}
+                    {formatCurrency(baseExpenseTotal)}
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl font-bold text-slate-900">
@@ -925,7 +1114,7 @@ const DashboardView = ({
                 </div>
               ) : (
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totalExpenses)}
+                  {formatCurrency(baseExpenseTotal)}
                 </div>
               )}
             </div>
@@ -952,7 +1141,9 @@ const DashboardView = ({
               {hasSimulation ? (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-slate-400 line-through">
-                    {formatCurrency(finalBalance)}
+                    {formatCurrency(
+                      saldoAnterior + baseIncomeTotal - baseExpenseTotal,
+                    )}
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-2xl font-bold">
@@ -965,7 +1156,9 @@ const DashboardView = ({
                 </div>
               ) : (
                 <div className="text-2xl font-bold">
-                  {formatCurrency(finalBalance)}
+                  {formatCurrency(
+                    saldoAnterior + baseIncomeTotal - baseExpenseTotal,
+                  )}
                 </div>
               )}
             </div>
@@ -1556,10 +1749,30 @@ const DashboardView = ({
       <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchData}
+        onSuccess={async (mutationResult) => {
+          if (!mutationResult) return;
+
+          const { type, id, payload, requestPeriodKey } = mutationResult;
+          const mutationToken = getNextMutationToken();
+
+          if (requestPeriodKey === activePeriodKeyRef.current) {
+            const movement = buildLocalMovementFromPayload(id, payload);
+
+            if (type === "create") {
+              applyCreatePatch(requestPeriodKey, movement);
+            }
+
+            if (type === "edit") {
+              applyEditPatch(requestPeriodKey, movement);
+            }
+          }
+
+          await triggerSilentRevalidation(requestPeriodKey, mutationToken);
+        }}
         categorias={categorias}
         veiculos={veiculos}
         editingItem={editingItem}
+        periodKey={periodKey}
       />
 
       <TransactionModal

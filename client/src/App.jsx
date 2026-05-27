@@ -48,6 +48,15 @@ const mapApiToFrontend = (item) => ({
   categoria: item.categoria,
 });
 
+const parsePeriodKey = (periodKey) => {
+  const [yearStr, monthStr] = String(periodKey).split("-");
+
+  return {
+    ano: Number(yearStr),
+    mes: Number(monthStr),
+  };
+};
+
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -59,7 +68,6 @@ const App = () => {
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [budgetRefreshKey, setBudgetRefreshKey] = useState(0);
   const [workHoursPerMonth, setWorkHoursPerMonth] = useState(120);
-  const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
   const [saldoAnterior, setSaldoAnterior] = useState(0);
@@ -67,6 +75,10 @@ const App = () => {
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
   const categoryManagerTriggerRef = useRef(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const hasBootstrappedRef = useRef(false);
+  const activePeriodKeyRef = useRef(`${selectedAno}-${selectedMes}`);
+  const latestMutationTokenRef = useRef(0);
 
   const INVESTMENT_GOAL_PERCENT = 10;
 
@@ -83,7 +95,6 @@ const App = () => {
     .reduce((acc, curr) => acc + curr.value, 0);
 
   const investmentAmount = currentMonthIncome * (INVESTMENT_GOAL_PERCENT / 100);
-
   const monthlyIncomeForGoals =
     salaryIncomeForGoals > 0 ? salaryIncomeForGoals : currentMonthIncome;
   const hourlyRate =
@@ -93,6 +104,10 @@ const App = () => {
     setSelectedMes(mes);
     setSelectedAno(ano);
   };
+
+  useEffect(() => {
+    activePeriodKeyRef.current = `${selectedAno}-${selectedMes}`;
+  }, [selectedAno, selectedMes]);
 
   const handleOpenCategoryManager = (triggerElement) => {
     categoryManagerTriggerRef.current =
@@ -150,12 +165,32 @@ const App = () => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async ({
+    silent = false,
+    periodKey,
+    mutationToken,
+  } = {}) => {
+    const requestPeriodKey = periodKey || activePeriodKeyRef.current;
+    const { mes: requestMes, ano: requestAno } =
+      parsePeriodKey(requestPeriodKey);
+    const requestToken = Number(mutationToken || 0);
+
+    if (requestToken > 0) {
+      latestMutationTokenRef.current = Math.max(
+        latestMutationTokenRef.current,
+        requestToken,
+      );
+    }
+
+    const shouldShowLoading = !silent && !hasBootstrappedRef.current;
+
     try {
-      setLoading(true);
+      if (shouldShowLoading) {
+        setIsInitialLoading(true);
+      }
 
       const responseMov = await fetch(
-        `${API_URL}?mes=${selectedMes}&ano=${selectedAno}`,
+        `${API_URL}?mes=${requestMes}&ano=${requestAno}`,
         { headers: getAuthHeaders() },
       );
 
@@ -167,6 +202,17 @@ const App = () => {
 
       const dataMov = await responseMov.json();
 
+      const isStaleByPeriod = activePeriodKeyRef.current !== requestPeriodKey;
+      const isStaleByToken =
+        requestToken > 0 && requestToken < latestMutationTokenRef.current;
+
+      if (isStaleByPeriod || isStaleByToken) {
+        return {
+          discarded: true,
+          reason: isStaleByPeriod ? "period" : "token",
+        };
+      }
+
       setIncomes(
         dataMov.filter((item) => item.tipo === "Entrada").map(mapApiToFrontend),
       );
@@ -175,7 +221,7 @@ const App = () => {
       );
 
       const resSaldo = await fetch(
-        `${API_URL}/saldo-acumulado?mes=${selectedMes}&ano=${selectedAno}`,
+        `${API_URL}/saldo-acumulado?mes=${requestMes}&ano=${requestAno}`,
         { headers: getAuthHeaders() },
       );
 
@@ -191,7 +237,7 @@ const App = () => {
       }
 
       const resResumo = await fetch(
-        `${API_URL}/resumo?mes=${selectedMes}&ano=${selectedAno}`,
+        `${API_URL}/resumo?mes=${requestMes}&ano=${requestAno}`,
         { headers: getAuthHeaders() },
       );
 
@@ -237,10 +283,19 @@ const App = () => {
         const dataInv = await responseInv.json();
         setInvestments(dataInv);
       }
+
+      return { discarded: false };
     } catch (err) {
       console.error("Erro ao buscar dados:", err);
+      return {
+        discarded: false,
+        error: err,
+      };
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setIsInitialLoading(false);
+      }
+      hasBootstrappedRef.current = true;
     }
   };
 
@@ -374,7 +429,7 @@ const App = () => {
               incomes={incomes}
               expenses={expenses}
               fetchData={fetchData}
-              loading={loading}
+              loading={isInitialLoading}
               totalInvestmentsBalance={totalInvestmentsBalance}
               selectedMes={selectedMes}
               selectedAno={selectedAno}

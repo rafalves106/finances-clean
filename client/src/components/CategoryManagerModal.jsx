@@ -42,7 +42,6 @@ const CategoryManagerModal = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     clearForm();
     setFeedback({ type: "", message: "" });
     setIsFormExpanded(false);

@@ -28,6 +28,7 @@ const TransactionModal = ({
   editingItem,
   isSimulation = false,
   onSimulate,
+  periodKey,
 }) => {
   const [form, setForm] = useState(INITIAL_FORM);
   const dialogRef = useRef(null);
@@ -191,7 +192,22 @@ const TransactionModal = ({
           });
 
       if (response.ok) {
-        onSuccess();
+        let responseBody = null;
+
+        try {
+          responseBody = await response.clone().json();
+        } catch {
+          responseBody = null;
+        }
+
+        const resolvedId = editingId || responseBody?.id || responseBody?.Id;
+
+        onSuccess?.({
+          type: editingId ? "edit" : "create",
+          id: resolvedId,
+          payload,
+          requestPeriodKey: periodKey,
+        });
         onClose();
       }
     } catch (err) {

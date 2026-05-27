@@ -8,6 +8,7 @@ import { API_CATEGORIAS_URL } from "../services/api";
 describe("CategoryManagerModal orçamento", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    Element.prototype.scrollTo = vi.fn();
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({}),
@@ -25,6 +26,8 @@ describe("CategoryManagerModal orçamento", () => {
         onCategoriasChange={onCategoriasChange}
       />,
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "Nova categoria" }));
 
     fireEvent.change(screen.getByLabelText("Nome"), {
       target: { value: "Mercado" },

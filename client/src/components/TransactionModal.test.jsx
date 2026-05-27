@@ -6,7 +6,12 @@ import TransactionModal from "./TransactionModal";
 describe("TransactionModal tipoMovimentacaoFixa", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      clone: () => ({
+        json: async () => ({ id: "mov-created" }),
+      }),
+    });
   });
 
   it("deve enviar tipoMovimentacaoFixa no payload quando fixa parcelada", async () => {
@@ -21,6 +26,7 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
         categorias={[]}
         veiculos={[]}
         editingItem={null}
+        periodKey="2026-1"
       />,
     );
 
@@ -50,7 +56,16 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
 
     expect(payload.tipoMovimentacaoFixa).toBe("Parcelada");
     expect(payload.periodo).toBe(3);
-    expect(onSuccess).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith({
+      type: "create",
+      id: "mov-created",
+      payload: expect.objectContaining({
+        titulo: "Notebook",
+        valor: 4500,
+        tipoMovimentacaoFixa: "Parcelada",
+      }),
+      requestPeriodKey: "2026-1",
+    });
     expect(onClose).toHaveBeenCalled();
   });
 });

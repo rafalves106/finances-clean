@@ -184,3 +184,77 @@ describe("DashboardView renumeracao de grupo", () => {
     expect(screen.queryByText(/alerta/i)).toBeNull();
   });
 });
+
+describe("DashboardView ciclo 008", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.alert = vi.fn();
+    window.confirm = vi.fn(() => true);
+
+    globalThis.fetch = vi.fn().mockImplementation((url, options = {}) => {
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      if (options.method === "DELETE") {
+        return Promise.resolve({ ok: true });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+  });
+
+  it("deve revalidar silenciosamente apos excluir sem fallback global", async () => {
+    const fetchData = vi.fn().mockResolvedValue({ discarded: false });
+
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={120}
+        finalBalance={-120}
+        totalInvestmentsBalance={0}
+        fetchData={fetchData}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[
+          {
+            id: "mov-remove",
+            titulo: "Mercado",
+            descricao: "Compra",
+            valor: 120,
+            tipo: "Saida",
+            data: "2026-01-10T00:00:00Z",
+          },
+        ]}
+        saldoAnterior={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("Excluir saída Mercado"));
+
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          silent: true,
+          periodKey: "2026-1",
+          mutationToken: expect.any(Number),
+        }),
+      ),
+    );
+
+    expect(fetchData).not.toHaveBeenCalledWith();
+  });
+});
