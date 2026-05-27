@@ -362,3 +362,104 @@ describe("DashboardView ciclo 009 sprint 2", () => {
     );
   });
 });
+
+describe("DashboardView ciclo 009 sprint 3", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.alert = vi.fn();
+    window.confirm = vi.fn(() => true);
+    Element.prototype.scrollIntoView = vi.fn();
+
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+  });
+
+  it("deve navegar por intenção para seção de planejamento", () => {
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Planejar mês" }));
+
+    expect(
+      screen
+        .getByRole("tab", { name: "Planejar mês" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("deve filtrar lista de transações por busca", async () => {
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[
+          {
+            id: "in-1",
+            titulo: "Alpha Receita",
+            valor: 100,
+            tipo: "Entrada",
+            data: "2026-01-12T00:00:00Z",
+          },
+          {
+            id: "in-2",
+            titulo: "Beta Receita",
+            valor: 150,
+            tipo: "Entrada",
+            data: "2026-01-13T00:00:00Z",
+          },
+        ]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Buscar transação"), {
+      target: { value: "Alpha" },
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText("Alpha Receita").length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText("Beta Receita")).toBeNull();
+  });
+});

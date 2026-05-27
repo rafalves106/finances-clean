@@ -167,8 +167,14 @@ const DashboardView = ({
   const [totalBudgetAlerts, setTotalBudgetAlerts] = useState(0);
   const [isBudgetAlertsLoading, setIsBudgetAlertsLoading] = useState(false);
   const [budgetAlertsError, setBudgetAlertsError] = useState("");
+  const [activeIntent, setActiveIntent] = useState("operar");
+  const [transactionSearch, setTransactionSearch] = useState("");
+  const [transactionViewFilter, setTransactionViewFilter] = useState("todas");
   const [localPatchState, setLocalPatchState] = useState(null);
   const mutationTokenRef = useRef(0);
+  const summarySectionRef = useRef(null);
+  const planningSectionRef = useRef(null);
+  const transactionSectionRef = useRef(null);
 
   const periodKey = `${selectedAno}-${selectedMes}`;
   const activePeriodKeyRef = useRef(periodKey);
@@ -451,12 +457,69 @@ const DashboardView = ({
     [currentMonthSimulatedExpenses],
   );
 
+  const filteredListEntries = useMemo(() => {
+    const normalizedSearch = transactionSearch.trim().toLowerCase();
+
+    const matchesSearch = (item) => {
+      if (!normalizedSearch) return true;
+
+      const title = (item.name || item.titulo || "").toLowerCase();
+      const description = (
+        item.description ||
+        item.descricao ||
+        ""
+      ).toLowerCase();
+      const category = (item.categoria?.nome || "").toLowerCase();
+
+      return (
+        title.includes(normalizedSearch) ||
+        description.includes(normalizedSearch) ||
+        category.includes(normalizedSearch)
+      );
+    };
+
+    const matchesFilter = (item) => {
+      if (transactionViewFilter === "simuladas") {
+        return Boolean(item.isSimulated);
+      }
+
+      if (transactionViewFilter === "com-categoria") {
+        return Boolean(item.categoriaId);
+      }
+
+      if (transactionViewFilter === "fixas") {
+        return Boolean(item.fixa);
+      }
+
+      return true;
+    };
+
+    const incomesList = sortTransactions([
+      ...effectiveIncomes,
+      ...currentMonthSimulatedIncomes,
+    ]).filter((item) => matchesSearch(item) && matchesFilter(item));
+
+    const expensesList = sortTransactions([
+      ...effectiveExpenses,
+      ...currentMonthSimulatedExpenses,
+    ]).filter((item) => matchesSearch(item) && matchesFilter(item));
+
+    return {
+      incomesList,
+      expensesList,
+    };
+  }, [
+    currentMonthSimulatedExpenses,
+    currentMonthSimulatedIncomes,
+    effectiveExpenses,
+    effectiveIncomes,
+    transactionSearch,
+    transactionViewFilter,
+  ]);
+
   const groupedIncomes = useMemo(
     () =>
-      sortTransactions([
-        ...effectiveIncomes,
-        ...currentMonthSimulatedIncomes,
-      ]).reduce((acc, item) => {
+      filteredListEntries.incomesList.reduce((acc, item) => {
         const date = new Date(item.date || item.data);
         const month = date.toLocaleString("pt-BR", {
           month: "long",
@@ -468,15 +531,12 @@ const DashboardView = ({
         acc[month][day].push(item);
         return acc;
       }, {}),
-    [effectiveIncomes, currentMonthSimulatedIncomes],
+    [filteredListEntries.incomesList],
   );
 
   const groupedExpenses = useMemo(
     () =>
-      sortTransactions([
-        ...effectiveExpenses,
-        ...currentMonthSimulatedExpenses,
-      ]).reduce((acc, item) => {
+      filteredListEntries.expensesList.reduce((acc, item) => {
         const date = new Date(item.date || item.data);
         const month = date.toLocaleString("pt-BR", {
           month: "long",
@@ -488,7 +548,7 @@ const DashboardView = ({
         acc[month][day].push(item);
         return acc;
       }, {}),
-    [effectiveExpenses, currentMonthSimulatedExpenses],
+    [filteredListEntries.expensesList],
   );
 
   const hasSimulation = simulatedTransactions.length > 0;
@@ -635,6 +695,31 @@ const DashboardView = ({
 
   const handleOpenCategoryManager = (triggerElement) => {
     onOpenCategoryManager(triggerElement || document.activeElement);
+  };
+
+  const handleIntentNavigation = (intent) => {
+    setActiveIntent(intent);
+
+    if (intent === "planejar") {
+      planningSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    if (intent === "revisar") {
+      transactionSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    summarySectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const upcomingPayments = useMemo(() => {
@@ -1218,7 +1303,12 @@ const DashboardView = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5">
+      <section
+        ref={summarySectionRef}
+        className={`bg-white border rounded-xl shadow-sm p-4 sm:p-5 ${
+          activeIntent === "operar" ? "border-emerald-300" : "border-slate-200"
+        }`}
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
             <div>
@@ -1292,6 +1382,65 @@ const DashboardView = ({
                   : "emerald"
             }
           />
+        </div>
+      </section>
+
+      <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide font-semibold text-slate-500">
+              Navegação por intenção
+            </p>
+            <p className="text-sm text-slate-600">
+              Escolha o foco da sessão para reduzir passos no fluxo do dia.
+            </p>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Navegação por intenção do dashboard"
+            className="flex flex-wrap gap-2"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeIntent === "operar"}
+              onClick={() => handleIntentNavigation("operar")}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                activeIntent === "operar"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Operar agora
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeIntent === "planejar"}
+              onClick={() => handleIntentNavigation("planejar")}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                activeIntent === "planejar"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Planejar mês
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeIntent === "revisar"}
+              onClick={() => handleIntentNavigation("revisar")}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                activeIntent === "revisar"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Revisar transações
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1458,8 +1607,15 @@ const DashboardView = ({
         </div>
       )}
 
-      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <section
+        ref={planningSectionRef}
+        className="grid grid-cols-1 xl:grid-cols-2 gap-4"
+      >
+        <div
+          className={`bg-white rounded-xl border shadow-sm p-4 ${
+            activeIntent === "planejar" ? "border-blue-300" : "border-slate-200"
+          }`}
+        >
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
               Próximos pagamentos
@@ -1521,7 +1677,11 @@ const DashboardView = ({
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div
+          className={`bg-white rounded-xl border shadow-sm p-4 ${
+            activeIntent === "planejar" ? "border-blue-300" : "border-slate-200"
+          }`}
+        >
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
               Insights acionáveis
@@ -1981,7 +2141,62 @@ const DashboardView = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section
+        className={`bg-white border rounded-xl shadow-sm p-4 ${
+          activeIntent === "revisar" ? "border-amber-300" : "border-slate-200"
+        }`}
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide font-semibold text-slate-500">
+              Eficiência da lista
+            </p>
+            <p className="text-sm text-slate-600">
+              Filtre por contexto para revisar e agir mais rápido nas
+              transações.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+            <label htmlFor="transaction-search" className="sr-only">
+              Buscar transação por título, descrição ou categoria
+            </label>
+            <input
+              id="transaction-search"
+              type="search"
+              value={transactionSearch}
+              onChange={(e) => setTransactionSearch(e.target.value)}
+              placeholder="Buscar transação"
+              className="w-full sm:w-60 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            />
+
+            <label htmlFor="transaction-view-filter" className="sr-only">
+              Filtrar visualização da lista de transações
+            </label>
+            <select
+              id="transaction-view-filter"
+              value={transactionViewFilter}
+              onChange={(e) => setTransactionViewFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <option value="todas">Todas</option>
+              <option value="com-categoria">Com categoria</option>
+              <option value="fixas">Recorrentes/fixas</option>
+              <option value="simuladas">Somente simuladas</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3 text-xs text-slate-500" aria-live="polite">
+          {filteredListEntries.incomesList.length} entrada(s) e{" "}
+          {filteredListEntries.expensesList.length} saída(s) no filtro atual.
+        </div>
+      </section>
+
+      <div
+        ref={transactionSectionRef}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
           <h3 className="font-bold text-emerald-700 mb-3 shrink-0">Entradas</h3>
           {Object.keys(groupedIncomes).length === 0 ? (
@@ -2296,26 +2511,21 @@ const DashboardView = ({
       </div>
 
       <button
-        className="fixed bottom-6 right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 sm:w-14 sm:h-14 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
         aria-label="Adicionar nova transação"
-        onClick={() => {
-          setEditingItem(null);
-          setIsModalOpen(true);
-        }}
+        onClick={handleOpenNewTransaction}
       >
-        <Plus size={24} />
+        <Plus size={20} />
       </button>
 
       <button
         type="button"
-        className="fixed bottom-6 right-24 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-4 right-20 sm:bottom-6 sm:right-24 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-12 h-12 sm:w-14 sm:h-14 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
         aria-label="Simular transação"
-        onClick={() => {
-          setIsSimulationModalOpen(true);
-        }}
+        onClick={handleOpenSimulation}
         title="Simular transação"
       >
-        <Sparkles size={22} />
+        <Sparkles size={19} />
       </button>
 
       <TransactionModal
