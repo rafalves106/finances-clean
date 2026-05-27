@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  API_CATEGORIAS_ALERTAS_ORCAMENTO_URL,
-  API_URL,
-} from "../services/api";
+import { API_CATEGORIAS_ALERTAS_ORCAMENTO_URL, API_URL } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
 
@@ -1029,7 +1026,8 @@ const DashboardView = ({
                             />
                           </div>
                           <div className="mt-1 text-[11px] text-slate-500">
-                            {formatCurrency(item.orcamentoMensal)} • {Math.round(item.percentualConsumo)}%
+                            {formatCurrency(item.orcamentoMensal)} •{" "}
+                            {Math.round(item.percentualConsumo)}%
                           </div>
                         </div>
                       );
@@ -1058,7 +1056,8 @@ const DashboardView = ({
                                 {item.icone} {item.nome}
                               </span>
                               <span className="text-slate-500">
-                                {formatCurrency(item.totalDespesasMesAtual)} / {formatCurrency(item.orcamentoMensal)}
+                                {formatCurrency(item.totalDespesasMesAtual)} /{" "}
+                                {formatCurrency(item.orcamentoMensal)}
                               </span>
                             </div>
                             <div className="h-1.5 rounded-full bg-white overflow-hidden border border-slate-100">
@@ -1204,7 +1203,9 @@ const DashboardView = ({
             )}
 
             {categoryTab === "mes-atual" && budgetAlertsError && (
-              <div className="text-xs text-rose-600 mt-4">{budgetAlertsError}</div>
+              <div className="text-xs text-rose-600 mt-4">
+                {budgetAlertsError}
+              </div>
             )}
           </div>
         </div>

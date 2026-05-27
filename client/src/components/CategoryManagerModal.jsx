@@ -314,7 +314,8 @@ const CategoryManagerModal = ({
               />
               {editingCat?.isGlobal && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Para categoria global, apenas o orçamento é personalizado para seu usuário.
+                  Para categoria global, apenas o orçamento é personalizado para
+                  seu usuário.
                 </p>
               )}
             </div>
