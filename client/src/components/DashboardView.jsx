@@ -340,6 +340,72 @@ const DashboardView = ({
     [expenses],
   );
 
+  const budgetAlertsByCategoryId = useMemo(
+    () =>
+      new Map(
+        budgetAlerts
+          .filter((item) => item.categoriaId != null)
+          .map((item) => [item.categoriaId, item]),
+      ),
+    [budgetAlerts],
+  );
+
+  const monthCurrentCategoryItems = useMemo(() => {
+    const mergedItems = [];
+    const seenKeys = new Set();
+
+    const addItem = (item) => {
+      const key = item.id || item.nome;
+
+      if (seenKeys.has(key)) {
+        return;
+      }
+
+      seenKeys.add(key);
+      mergedItems.push(item);
+    };
+
+    expensesByCategory.forEach((item) => {
+      addItem({
+        ...item,
+        budgetAlert: item.id
+          ? budgetAlertsByCategoryId.get(item.id) || null
+          : null,
+      });
+    });
+
+    budgetAlerts.forEach((item) => {
+      addItem({
+        id: item.categoriaId || null,
+        nome: item.nome || "Sem categoria",
+        icone: item.icone || "",
+        cor: "#94a3b8",
+        total: Number(item.totalDespesasMesAtual || 0),
+        budgetAlert: item,
+      });
+    });
+
+    const getRiskRank = (item) => {
+      const state = item.budgetAlert?.estadoAlerta;
+
+      if (state === "Estourado") return 0;
+      if (state === "Atencao") return 1;
+      if (state === "Normal") return 2;
+
+      return 3;
+    };
+
+    return mergedItems.sort((a, b) => {
+      const riskOrder = getRiskRank(a) - getRiskRank(b);
+
+      if (riskOrder !== 0) {
+        return riskOrder;
+      }
+
+      return b.total - a.total;
+    });
+  }, [expensesByCategory, budgetAlerts, budgetAlertsByCategoryId]);
+
   const chartData = useMemo(() => {
     const grouped = [
       ...incomes,
@@ -989,107 +1055,40 @@ const DashboardView = ({
             </div>
 
             {categoryTab === "mes-atual" ? (
-              expensesByCategory.length === 0 ? (
-                budgetAlerts.length === 0 ? (
-                  <div className="text-center text-sm text-slate-400 py-6">
-                    Nenhum gasto registrado neste mês
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Orçamento por categoria
-                    </div>
-                    {budgetAlerts.map((item) => {
-                      const progressColor =
-                        item.estadoAlerta === "Estourado"
-                          ? "#ef4444"
-                          : item.estadoAlerta === "Atencao"
-                            ? "#f59e0b"
-                            : "#10b981";
-
-                      return (
-                        <div key={item.categoriaId}>
-                          <div className="flex items-center justify-between text-sm mb-1">
-                            <span className="text-slate-700 font-medium">
-                              {item.icone} {item.nome}
-                            </span>
-                            <span className="text-slate-600 font-semibold">
-                              {formatCurrency(item.totalDespesasMesAtual)}
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${Math.min(item.percentualConsumo, 100)}%`,
-                                backgroundColor: progressColor,
-                              }}
-                            />
-                          </div>
-                          <div className="mt-1 text-[11px] text-slate-500">
-                            {formatCurrency(item.orcamentoMensal)} •{" "}
-                            {Math.round(item.percentualConsumo)}%
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )
+              monthCurrentCategoryItems.length === 0 ? (
+                <div className="text-center text-sm text-slate-400 py-6">
+                  Nenhum gasto registrado neste mês
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {budgetAlerts.length > 0 && (
-                    <div className="space-y-2 rounded-lg bg-slate-50 border border-slate-200 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Orçamento por categoria
-                      </div>
-                      {budgetAlerts.map((item) => {
-                        const progressColor =
-                          item.estadoAlerta === "Estourado"
-                            ? "#ef4444"
-                            : item.estadoAlerta === "Atencao"
-                              ? "#f59e0b"
-                              : "#10b981";
-
-                        return (
-                          <div key={item.categoriaId}>
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-slate-700 font-medium">
-                                {item.icone} {item.nome}
-                              </span>
-                              <span className="text-slate-500">
-                                {formatCurrency(item.totalDespesasMesAtual)} /{" "}
-                                {formatCurrency(item.orcamentoMensal)}
-                              </span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-white overflow-hidden border border-slate-100">
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${Math.min(item.percentualConsumo, 100)}%`,
-                                  backgroundColor: progressColor,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {expensesByCategory.map((item) => {
-                    const percentage =
-                      totalCategoryExpenses > 0
+                  {monthCurrentCategoryItems.map((item) => {
+                    const budgetAlert = item.budgetAlert;
+                    const hasBudgetLimit =
+                      Number(budgetAlert?.orcamentoMensal || 0) > 0;
+                    const percentage = hasBudgetLimit
+                      ? Number(budgetAlert?.percentualConsumo || 0)
+                      : totalCategoryExpenses > 0
                         ? (item.total / totalCategoryExpenses) * 100
                         : 0;
+                    const progressColor = hasBudgetLimit
+                      ? budgetAlert.estadoAlerta === "Estourado"
+                        ? "#ef4444"
+                        : budgetAlert.estadoAlerta === "Atencao"
+                          ? "#f59e0b"
+                          : "#10b981"
+                      : item.cor || "#94a3b8";
 
                     return (
                       <div key={item.id || item.nome}>
-                        <div className="flex items-center justify-between text-sm mb-1">
+                        <div className="flex items-center justify-between gap-3 text-sm mb-1">
                           <span className="text-slate-700 font-medium">
                             {item.icone} {item.nome}
                           </span>
-                          <span className="text-slate-600 font-semibold">
-                            {formatCurrency(item.total)}
+                          <span className="text-slate-600 font-semibold text-right">
+                            {formatCurrency(item.total)} de{" "}
+                            {hasBudgetLimit
+                              ? formatCurrency(budgetAlert.orcamentoMensal)
+                              : "Orçamento não definido"}
                           </span>
                         </div>
                         <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
@@ -1097,9 +1096,14 @@ const DashboardView = ({
                             className="h-full rounded-full"
                             style={{
                               width: `${Math.min(percentage, 100)}%`,
-                              backgroundColor: item.cor || "#94a3b8",
+                              backgroundColor: progressColor,
                             }}
                           />
+                        </div>
+                        <div className="mt-1 text-[11px] text-slate-500">
+                          {hasBudgetLimit
+                            ? "Uso do orçamento"
+                            : "Participação nas despesas do mês"}
                         </div>
                       </div>
                     );
