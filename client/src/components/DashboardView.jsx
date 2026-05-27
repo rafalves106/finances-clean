@@ -94,6 +94,7 @@ const DashboardView = ({
   const [categoryComparisonError, setCategoryComparisonError] = useState("");
   const [selectedCategoryDrillDown, setSelectedCategoryDrillDown] =
     useState("");
+  const [categoryTab, setCategoryTab] = useState("mes-atual");
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -860,72 +861,12 @@ const DashboardView = ({
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                <PieChart size={18} className="text-slate-500" /> Gastos por
-                Categoria
+                <PieChart size={18} className="text-slate-500" /> Categorias
               </h3>
-              <button
-                type="button"
-                onClick={onOpenCategoryManager}
-                aria-label="Gerenciar categorias"
-                title="Gerenciar categorias"
-                className="p-1 rounded-md hover:bg-slate-50"
-              >
-                <Settings
-                  size={16}
-                  className="text-slate-400 hover:text-slate-600"
-                />
-              </button>
-            </div>
-
-            {expensesByCategory.length === 0 ? (
-              <div className="text-center text-sm text-slate-400 py-6">
-                Nenhum gasto registrado neste mês
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {expensesByCategory.map((item) => {
-                  const percentage =
-                    totalCategoryExpenses > 0
-                      ? (item.total / totalCategoryExpenses) * 100
-                      : 0;
-
-                  return (
-                    <div key={item.id || item.nome}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="text-slate-700 font-medium">
-                          {item.icone} {item.nome}
-                        </span>
-                        <span className="text-slate-600 font-semibold">
-                          {formatCurrency(item.total)}
-                        </span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${Math.min(percentage, 100)}%`,
-                            backgroundColor: item.cor || "#94a3b8",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex flex-col gap-3 mb-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                  <PieChart size={18} className="text-slate-500" />
-                  Comparativo de Categorias (3 meses)
-                </h3>
-
-                {selectedCategoryDrillDown && (
+              <div className="flex items-center gap-2">
+                {categoryTab === "3-meses" && selectedCategoryDrillDown && (
                   <button
                     type="button"
                     onClick={() => setSelectedCategoryDrillDown("")}
@@ -934,91 +875,137 @@ const DashboardView = ({
                     Limpar filtro
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={onOpenCategoryManager}
+                  aria-label="Gerenciar categorias"
+                  title="Gerenciar categorias"
+                  className="p-1 rounded-md hover:bg-slate-50"
+                >
+                  <Settings size={16} className="text-slate-400 hover:text-slate-600" />
+                </button>
               </div>
+            </div>
 
-              {categoryComparisonOptions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {categoryComparisonOptions.map((item) => {
-                    const isSelected =
-                      selectedCategoryDrillDown === item.category;
+            <div className="flex gap-1 mb-4 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCategoryTab("mes-atual")}
+                className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
+                  categoryTab === "mes-atual"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Mês atual
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryTab("3-meses")}
+                className={`text-xs px-3 py-1.5 font-medium transition-colors border-b-2 -mb-px ${
+                  categoryTab === "3-meses"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                3 meses
+              </button>
+            </div>
+
+            {categoryTab === "mes-atual" ? (
+              expensesByCategory.length === 0 ? (
+                <div className="text-center text-sm text-slate-400 py-6">
+                  Nenhum gasto registrado neste mês
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {expensesByCategory.map((item) => {
+                    const percentage =
+                      totalCategoryExpenses > 0
+                        ? (item.total / totalCategoryExpenses) * 100
+                        : 0;
 
                     return (
-                      <button
-                        key={item.category}
-                        type="button"
-                        onClick={() =>
-                          setSelectedCategoryDrillDown(item.category)
-                        }
-                        className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                          isSelected
-                            ? "bg-blue-600 border-blue-600 text-white"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
-                        title={`Filtrar categoria ${item.category}`}
-                      >
-                        {item.category}
-                      </button>
+                      <div key={item.id || item.nome}>
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-slate-700 font-medium">
+                            {item.icone} {item.nome}
+                          </span>
+                          <span className="text-slate-600 font-semibold">
+                            {formatCurrency(item.total)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(percentage, 100)}%`,
+                              backgroundColor: item.cor || "#94a3b8",
+                            }}
+                          />
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-              )}
-            </div>
-
-            {isCategoryComparisonLoading ? (
-              <div className="text-sm text-slate-400 py-8 text-center">
-                Carregando comparativo de categorias...
-              </div>
-            ) : categoryComparisonError ? (
-              <div className="text-sm text-rose-600 py-4">
-                {categoryComparisonError}
-              </div>
-            ) : categoryComparisonChartData.length === 0 ? (
-              <div className="text-sm text-slate-400 py-8 text-center">
-                Sem dados para comparar categorias no período.
-              </div>
+              )
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={categoryComparisonChartData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f1f5f9"
-                  />
-                  <XAxis
-                    dataKey="periodo"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#94a3b8" }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#cbd5e1" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    }}
-                    formatter={(value, name) => {
-                      const formattedValue = formatCurrency(value);
-
-                      if (name === "receita") {
-                        return [formattedValue, "Receita"];
-                      }
-
-                      return [formattedValue, "Despesa"];
-                    }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                  />
-                  <Bar dataKey="receita" fill="#10b981" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="despesa" fill="#f43f5e" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <>
+                {categoryComparisonOptions.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {categoryComparisonOptions.map((item) => {
+                      const isSelected = selectedCategoryDrillDown === item.category;
+                      return (
+                        <button
+                          key={item.category}
+                          type="button"
+                          onClick={() => setSelectedCategoryDrillDown(item.category)}
+                          className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                            isSelected
+                              ? "bg-blue-600 border-blue-600 text-white"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          }`}
+                          title={`Filtrar categoria ${item.category}`}
+                        >
+                          {item.category}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {isCategoryComparisonLoading ? (
+                  <div className="text-sm text-slate-400 py-8 text-center">
+                    Carregando comparativo de categorias...
+                  </div>
+                ) : categoryComparisonError ? (
+                  <div className="text-sm text-rose-600 py-4">
+                    {categoryComparisonError}
+                  </div>
+                ) : categoryComparisonChartData.length === 0 ? (
+                  <div className="text-sm text-slate-400 py-8 text-center">
+                    Sem dados para comparar categorias no período.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={categoryComparisonChartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="periodo" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#cbd5e1" }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                        formatter={(value, name) => {
+                          const formattedValue = formatCurrency(value);
+                          if (name === "receita") return [formattedValue, "Receita"];
+                          return [formattedValue, "Despesa"];
+                        }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                      <Bar dataKey="receita" fill="#10b981" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="despesa" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </>
             )}
           </div>
         </div>
