@@ -460,8 +460,13 @@ const DashboardView = ({
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("content-disposition");
-      const filenameMatch = contentDisposition?.match(/filename="?([^"]+)"?/i);
-      const fileName = filenameMatch?.[1] || "movimentacoes.csv";
+      const filenameMatch =
+        contentDisposition?.match(/filename\*=UTF-8''([^;\r\n]+)/i) ||
+        contentDisposition?.match(/filename="([^"]+)"/i) ||
+        contentDisposition?.match(/filename=([^;\r\n"]+)/i);
+      const fileName = filenameMatch
+        ? decodeURIComponent(filenameMatch[1].trim())
+        : "movimentacoes.csv";
 
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
