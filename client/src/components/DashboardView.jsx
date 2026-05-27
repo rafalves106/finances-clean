@@ -23,6 +23,8 @@ import {
 import {
   AreaChart,
   Area,
+  Bar,
+  BarChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -86,6 +88,12 @@ const DashboardView = ({
   );
   const [exportEndDate, setExportEndDate] = useState(initialRange.endDate);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [categoryComparisonData, setCategoryComparisonData] = useState([]);
+  const [isCategoryComparisonLoading, setIsCategoryComparisonLoading] =
+    useState(false);
+  const [categoryComparisonError, setCategoryComparisonError] = useState("");
+  const [selectedCategoryDrillDown, setSelectedCategoryDrillDown] =
+    useState("");
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
@@ -106,6 +114,43 @@ const DashboardView = ({
     const range = getMonthDateRange(selectedMes, selectedAno);
     setExportStartDate(range.startDate);
     setExportEndDate(range.endDate);
+  }, [selectedMes, selectedAno]);
+
+  useEffect(() => {
+    const fetchCategoryComparison = async () => {
+      try {
+        setIsCategoryComparisonLoading(true);
+        setCategoryComparisonError("");
+
+        const response = await fetch(
+          `${API_URL}/comparativo-categorias?mes=${selectedMes}&ano=${selectedAno}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Não foi possível carregar o comparativo de categorias.",
+          );
+        }
+
+        const data = await response.json();
+        setCategoryComparisonData(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Erro ao buscar comparativo de categorias:", err);
+        setCategoryComparisonData([]);
+        setCategoryComparisonError(
+          err.message || "Erro ao carregar comparativo de categorias.",
+        );
+      } finally {
+        setIsCategoryComparisonLoading(false);
+      }
+    };
+
+    fetchCategoryComparison();
+    setSelectedCategoryDrillDown("");
   }, [selectedMes, selectedAno]);
 
   const simulatedIncomes = useMemo(
@@ -298,6 +343,68 @@ const DashboardView = ({
     currentMonthSimulatedIncomes,
     currentMonthSimulatedExpenses,
   ]);
+
+  const categoryComparisonOptions = useMemo(() => {
+    const grouped = categoryComparisonData.reduce((acc, item) => {
+      const categoryName = item.categoria || "Sem categoria";
+
+      if (!acc[categoryName]) {
+        acc[categoryName] = {
+          category: categoryName,
+          entradas: 0,
+          saidas: 0,
+        };
+      }
+
+      acc[categoryName].entradas += Number(item.totalEntradas || 0);
+      acc[categoryName].saidas += Number(item.totalSaidas || 0);
+
+      return acc;
+    }, {});
+
+    return Object.values(grouped).sort((a, b) => {
+      const totalA = a.entradas + a.saidas;
+      const totalB = b.entradas + b.saidas;
+
+      return totalB - totalA;
+    });
+  }, [categoryComparisonData]);
+
+  const categoryComparisonChartData = useMemo(() => {
+    if (!categoryComparisonData.length) {
+      return [];
+    }
+
+    const monthMap = categoryComparisonData.reduce((acc, item) => {
+      const monthKey = `${item.ano}-${String(item.mes).padStart(2, "0")}`;
+      const categoryName = item.categoria || "Sem categoria";
+
+      if (!acc[monthKey]) {
+        const date = new Date(item.ano, item.mes - 1, 1);
+        acc[monthKey] = {
+          mes: monthKey,
+          periodo: date.toLocaleDateString("pt-BR", {
+            month: "short",
+            year: "2-digit",
+          }),
+          receita: 0,
+          despesa: 0,
+        };
+      }
+
+      if (
+        !selectedCategoryDrillDown ||
+        selectedCategoryDrillDown === categoryName
+      ) {
+        acc[monthKey].receita += Number(item.totalEntradas || 0);
+        acc[monthKey].despesa += Number(item.totalSaidas || 0);
+      }
+
+      return acc;
+    }, {});
+
+    return Object.values(monthMap).sort((a, b) => a.mes.localeCompare(b.mes));
+  }, [categoryComparisonData, selectedCategoryDrillDown]);
 
   const handleEditClick = (item, type) => {
     setEditingItem({ ...item, tipo: type });
@@ -807,6 +914,111 @@ const DashboardView = ({
                   );
                 })}
               </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                  <PieChart size={18} className="text-slate-500" />
+                  Comparativo de Categorias (3 meses)
+                </h3>
+
+                {selectedCategoryDrillDown && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryDrillDown("")}
+                    className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  >
+                    Limpar filtro
+                  </button>
+                )}
+              </div>
+
+              {categoryComparisonOptions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {categoryComparisonOptions.map((item) => {
+                    const isSelected =
+                      selectedCategoryDrillDown === item.category;
+
+                    return (
+                      <button
+                        key={item.category}
+                        type="button"
+                        onClick={() =>
+                          setSelectedCategoryDrillDown(item.category)
+                        }
+                        className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                          isSelected
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                        title={`Filtrar categoria ${item.category}`}
+                      >
+                        {item.category}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {isCategoryComparisonLoading ? (
+              <div className="text-sm text-slate-400 py-8 text-center">
+                Carregando comparativo de categorias...
+              </div>
+            ) : categoryComparisonError ? (
+              <div className="text-sm text-rose-600 py-4">
+                {categoryComparisonError}
+              </div>
+            ) : categoryComparisonChartData.length === 0 ? (
+              <div className="text-sm text-slate-400 py-8 text-center">
+                Sem dados para comparar categorias no período.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={categoryComparisonChartData}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
+                  <XAxis
+                    dataKey="periodo"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#94a3b8" }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#cbd5e1" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                    formatter={(value, name) => {
+                      const formattedValue = formatCurrency(value);
+
+                      if (name === "receita") {
+                        return [formattedValue, "Receita"];
+                      }
+
+                      return [formattedValue, "Despesa"];
+                    }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                  />
+                  <Bar dataKey="receita" fill="#10b981" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="despesa" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>

@@ -9,6 +9,8 @@ vi.mock("recharts", () => {
     ResponsiveContainer: Mock,
     AreaChart: Mock,
     Area: Mock,
+    BarChart: Mock,
+    Bar: Mock,
     XAxis: Mock,
     YAxis: Mock,
     CartesianGrid: Mock,
@@ -24,7 +26,10 @@ import { API_URL } from "../services/api";
 describe("DashboardView renumeracao de grupo", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
     window.confirm = vi.fn(() => true);
     window.alert = vi.fn();
   });
