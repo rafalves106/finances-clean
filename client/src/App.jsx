@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import {
   TrendingUp,
   Wallet,
@@ -7,9 +7,11 @@ import {
   Bike,
   CreditCard,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
-import DashboardView from "./components/DashboardView";
+import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import InvestmentsView from "./components/InvestmentsView";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
@@ -77,6 +79,9 @@ const App = () => {
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(96);
+  const headerRef = useRef(null);
   const categoryManagerTriggerRef = useRef(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const hasBootstrappedRef = useRef(false);
@@ -345,16 +350,65 @@ const App = () => {
     setReleaseNotesOpen(true);
   }, [isLoggedIn]);
 
+  useLayoutEffect(() => {
+    if (!isLoggedIn || !headerRef.current) {
+      return;
+    }
+
+    const updateHeaderHeight = () => {
+      const nextHeight = Math.ceil(
+        headerRef.current?.getBoundingClientRect().height || 96,
+      );
+      setHeaderHeight(nextHeight > 0 ? nextHeight : 96);
+    };
+
+    updateHeaderHeight();
+
+    const observer = new ResizeObserver(() => updateHeaderHeight());
+    observer.observe(headerRef.current);
+
+    window.addEventListener("resize", updateHeaderHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateHeaderHeight);
+    };
+  }, [isLoggedIn, activeTab]);
+
   if (!isLoggedIn) {
     return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
   }
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
-      <aside className="w-20 md:w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300">
-        <div className="p-6 flex items-center gap-3 text-white mb-6">
-          <Wallet className="w-8 h-8 text-emerald-400" />
-          <span className="text-xl font-bold hidden md:block">Finanças</span>
+      <aside
+        className="bg-slate-900 text-slate-300 flex flex-col transition-all duration-200 ease-in-out"
+        style={{ width: isSidebarCollapsed ? 72 : 240 }}
+      >
+        <div className="p-4 flex items-center justify-between gap-3 text-white mb-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <Wallet className="w-8 h-8 text-emerald-400" />
+            {!isSidebarCollapsed ? (
+              <span className="text-xl font-bold">Finanças</span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed((value) => !value)}
+            aria-label={
+              isSidebarCollapsed
+                ? "Expandir menu lateral"
+                : "Recolher menu lateral"
+            }
+            aria-expanded={!isSidebarCollapsed}
+            className="h-10 w-10 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            {isSidebarCollapsed ? (
+              <PanelLeftOpen size={18} className="mx-auto" />
+            ) : (
+              <PanelLeftClose size={18} className="mx-auto" />
+            )}
+          </button>
         </div>
 
         <nav className="flex-1 space-y-2 px-3 text-sm">
@@ -393,34 +447,56 @@ const App = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200
+              title={isSidebarCollapsed ? item.label : undefined}
+              aria-label={item.label}
+              className={`group relative w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-start"} gap-3 p-3 rounded-xl transition-all duration-200
                 ${activeTab === item.id ? `${item.color} text-white shadow-lg` : "hover:bg-slate-800 hover:text-white"}`}
             >
               {item.icon}
-              <span className="hidden md:block font-medium">{item.label}</span>
+              {!isSidebarCollapsed ? (
+                <span className="font-medium">{item.label}</span>
+              ) : (
+                <span className="sr-only">{item.label}</span>
+              )}
+
+              {isSidebarCollapsed ? (
+                <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block group-focus-visible:block">
+                  {item.label}
+                </span>
+              ) : null}
             </button>
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-800 hidden md:block space-y-3">
-          <div className="text-xs text-slate-500 text-center">
-            v{APP_VERSION}
-          </div>
+        <div className="p-4 border-t border-slate-800 space-y-3">
+          {!isSidebarCollapsed ? (
+            <div className="text-xs text-slate-500 text-center">
+              v{APP_VERSION}
+            </div>
+          ) : null}
 
           <button
             onClick={() => {
               removeToken();
               setIsLoggedIn(false);
             }}
-            className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl py-2 transition-colors"
+            aria-label="Sair"
+            title={isSidebarCollapsed ? "Sair" : undefined}
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-center"} gap-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl py-2 transition-colors`}
           >
-            <LogOut size={16} /> Sair
+            <LogOut size={16} />{" "}
+            {!isSidebarCollapsed ? <span>Sair</span> : null}
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-slate-200 p-6 mb-6 flex justify-between items-center sticky top-0 z-10">
+      <main
+        className={`flex-1 ${activeTab === "dashboard" ? "overflow-hidden" : "overflow-auto"}`}
+      >
+        <header
+          ref={headerRef}
+          className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"
+        >
           <h1 className="text-2xl font-bold capitalize text-slate-800">
             {activeTab === "dashboard" && "Visão Geral"}
             {activeTab === "investments" && "Planejador de Futuro"}
@@ -430,9 +506,13 @@ const App = () => {
           </h1>
         </header>
 
-        <div className="px-6 pb-6">
+        <div
+          className={
+            activeTab === "dashboard" ? "px-4 pt-4 pb-4 h-full" : "px-6 pb-6"
+          }
+        >
           {activeTab === "dashboard" && (
-            <DashboardView
+            <DashboardDesktopRedesignView
               totalIncome={totalIncome}
               totalExpenses={totalExpenses}
               finalBalance={finalBalance}
@@ -450,6 +530,7 @@ const App = () => {
               onOpenCardManagement={() => setActiveTab("card")}
               saldoAnterior={saldoAnterior}
               budgetRefreshKey={budgetRefreshKey}
+              headerHeight={headerHeight}
             />
           )}
           {activeTab === "investments" && (
