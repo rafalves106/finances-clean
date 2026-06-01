@@ -9,6 +9,9 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 ### Adicionado
 
 - Estrutura inicial de changelog orientada ao PO para acompanhamento de entregas e riscos.
+- Evolucao do dashboard em 3 sprints (ciclo 9) com resumo executivo, microtendencias e acoes rapidas.
+- Card de proximos pagamentos e bloco de insights acionaveis com CTA no dashboard.
+- Navegacao por intencao e filtros de eficiencia na lista de transacoes (busca e visao operacional).
 - Modulo de cartao visualizador manual sem integracao bancaria.
 - Nova aba de Cartao no app com cadastro, resumo de limite e previsao de fatura.
 - Tela CardViewerView com estado vazio guiado e comunicacao explicita de fluxo manual.
@@ -18,6 +21,9 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 
 ### Alterado
 
+- Dashboard sem refresh global apos CRUD de movimentacoes (ciclo 8), com patch local e revalidacao silenciosa.
+- Separacao de carregamento inicial e revalidacao silenciosa para preservar contexto e scroll.
+- Guardas de periodKey/mutationToken para evitar race condition e drift em atualizacoes rapidas.
 - Modal de transacao com opcao de vincular saida ao cartao ativo.
 - Fluxo de movimentacoes ajustado para aceitar cartaoId opcional sem quebrar transacoes nao-cartao.
 - Dashboard com preservacao de cartaoId no patch local de atualizacao otimista.
