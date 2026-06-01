@@ -11,7 +11,10 @@ public class CartaoController(
     EditarCartaoManualUseCase editarCartaoManualUseCase,
     InativarCartaoManualUseCase inativarCartaoManualUseCase,
     ObterResumoCartaoUseCase obterResumoCartaoUseCase,
-    ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase) : AuthenticatedController
+  ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase,
+  ExecutarPreviewBackfillCompetenciaCartaoUseCase executarPreviewBackfillCompetenciaCartaoUseCase,
+  ExecutarApplyBackfillCompetenciaCartaoUseCase executarApplyBackfillCompetenciaCartaoUseCase,
+  ExecutarRollbackBackfillCompetenciaCartaoUseCase executarRollbackBackfillCompetenciaCartaoUseCase) : AuthenticatedController
 {
   [HttpPost]
   public IActionResult Cadastrar([FromBody] CadastrarCartaoManualDTO dto)
@@ -100,6 +103,50 @@ public class CartaoController(
     return previsao is null ? NotFound(Erro("CARTAO_NAO_ENCONTRADO", "Cartão não encontrado.")) : Ok(previsao);
   }
 
+  [HttpPost("backfill/preview")]
+  public IActionResult PreviewBackfill([FromBody] CartaoBackfillPreviewRequestDTO? dto)
+  {
+    var response = executarPreviewBackfillCompetenciaCartaoUseCase.Executar(UsuarioId, dto?.DataInicio, dto?.DataFim);
+    return Ok(response);
+  }
+
+  [HttpPost("backfill/apply")]
+  public IActionResult ApplyBackfill([FromBody] CartaoBackfillApplyRequestDTO dto)
+  {
+    if (dto.ExecutionId == Guid.Empty)
+    {
+      return Conflict(Erro("BACKFILL_PREVIEW_OBRIGATORIO", "Preview é obrigatório antes do apply."));
+    }
+
+    try
+    {
+      var response = executarApplyBackfillCompetenciaCartaoUseCase.Executar(UsuarioId, dto.ExecutionId);
+      return Ok(response);
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "BACKFILL_PREVIEW_OBRIGATORIO")
+    {
+      return Conflict(Erro("BACKFILL_PREVIEW_OBRIGATORIO", "Preview é obrigatório antes do apply."));
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "BACKFILL_EXECUTION_INVALIDA")
+    {
+      return Conflict(Erro("BACKFILL_EXECUTION_INVALIDA", "ExecutionId inválido para apply."));
+    }
+  }
+
+  [HttpPost("backfill/rollback")]
+  public IActionResult RollbackBackfill([FromBody] CartaoBackfillRollbackRequestDTO dto)
+  {
+    try
+    {
+      var response = executarRollbackBackfillCompetenciaCartaoUseCase.Executar(UsuarioId, dto.ExecutionId);
+      return Ok(response);
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "BACKFILL_EXECUTION_INVALIDA")
+    {
+      return Conflict(Erro("BACKFILL_EXECUTION_INVALIDA", "ExecutionId inválido para rollback."));
+    }
+  }
+
   private static bool TemDadoSensivel(params string?[] values)
       => values.Any(v => !string.IsNullOrWhiteSpace(v));
 
@@ -120,11 +167,6 @@ public class CartaoController(
         !ex.Message.Contains("menor", StringComparison.OrdinalIgnoreCase))
     {
       return Erro("CARTAO_VENCIMENTO_INVALIDO", ex.Message);
-    }
-
-    if (ex.Message.Contains("fechamento deve ser menor", StringComparison.OrdinalIgnoreCase))
-    {
-      return Erro("CARTAO_CICLO_INCONSISTENTE", ex.Message);
     }
 
     return Erro("CARTAO_DADOS_INVALIDOS", ex.Message);

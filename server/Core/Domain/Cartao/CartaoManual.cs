@@ -92,10 +92,5 @@ public class CartaoManual
     {
       throw new ArgumentException("Dia de vencimento deve estar entre 1 e 31.", nameof(diaVencimento));
     }
-
-    if (diaFechamento >= diaVencimento)
-    {
-      throw new ArgumentException("Dia de fechamento deve ser menor que dia de vencimento.");
-    }
   }
 }

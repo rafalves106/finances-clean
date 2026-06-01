@@ -18,6 +18,8 @@ public class FinanceDbContext : DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<Veiculo> Veiculos { get; set; }
     public DbSet<CartaoManual> CartoesManuais { get; set; }
+    public DbSet<CartaoBackfillExecution> CartaoBackfillExecutions { get; set; }
+    public DbSet<CartaoBackfillExecutionItem> CartaoBackfillExecutionItems { get; set; }
 
     private readonly ICurrentUserService? _currentUserService;
 
@@ -198,6 +200,58 @@ public class FinanceDbContext : DbContext
             _currentUserService == null ||
             !_currentUserService.UsuarioId.HasValue ||
             c.UsuarioId == _currentUserService.UsuarioId);
+        });
+
+        // --- CartaoBackfillExecution ---
+        modelBuilder.Entity<CartaoBackfillExecution>(entity =>
+        {
+            entity.ToTable("CartaoBackfillExecutions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UsuarioId).IsRequired();
+            entity.Property(e => e.Modo).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.SourceExecutionId).IsRequired(false);
+            entity.Property(e => e.ExecutedAtUtc).IsRequired();
+            entity.Property(e => e.ExecutedBy).IsRequired().HasMaxLength(120);
+            entity.Property(e => e.TotalAnalisado).IsRequired();
+            entity.Property(e => e.TotalAplicavel).IsRequired();
+            entity.Property(e => e.TotalAmbiguo).IsRequired();
+            entity.Property(e => e.TotalIgnorado).IsRequired();
+            entity.Property(e => e.TotalAplicado).IsRequired();
+            entity.Property(e => e.TotalRevertido).IsRequired();
+
+            entity.HasIndex(e => new { e.UsuarioId, e.ExecutedAtUtc });
+            entity.HasIndex(e => e.SourceExecutionId);
+
+            entity.HasQueryFilter(e =>
+                _currentUserService == null ||
+                !_currentUserService.UsuarioId.HasValue ||
+                e.UsuarioId == _currentUserService.UsuarioId);
+        });
+
+        // --- CartaoBackfillExecutionItem ---
+        modelBuilder.Entity<CartaoBackfillExecutionItem>(entity =>
+        {
+            entity.ToTable("CartaoBackfillExecutionItems");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ExecutionId).IsRequired();
+            entity.Property(e => e.MovimentacaoId).IsRequired();
+            entity.Property(e => e.CartaoId).IsRequired(false);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.MotivoStatus).IsRequired().HasMaxLength(80);
+            entity.Property(e => e.DescricaoOriginal).HasMaxLength(500).IsRequired(false);
+            entity.Property(e => e.DataOriginal).IsRequired();
+            entity.Property(e => e.DataExtraida).IsRequired(false);
+            entity.Property(e => e.DataAplicada).IsRequired(false);
+            entity.Property(e => e.CompetenciaOriginal).IsRequired(false);
+            entity.Property(e => e.CompetenciaAplicada).IsRequired(false);
+
+            entity.HasOne<CartaoBackfillExecution>()
+                .WithMany(e => e.Itens)
+                .HasForeignKey(e => e.ExecutionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.ExecutionId, e.Status });
+            entity.HasIndex(e => e.MovimentacaoId);
         });
 
         // --- Usuario ---
