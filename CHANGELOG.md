@@ -9,6 +9,25 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 ### Adicionado
 
 - Estrutura inicial de changelog orientada ao PO para acompanhamento de entregas e riscos.
+- Modulo de cartao visualizador manual sem integracao bancaria.
+- Nova aba de Cartao no app com cadastro, resumo de limite e previsao de fatura.
+- Tela CardViewerView com estado vazio guiado e comunicacao explicita de fluxo manual.
+- Endpoints autenticados de cartao para cadastro, edicao, inativacao, resumo e previsao.
+- Testes de integracao backend para regras de cartao (ciclo valido, 1 cartao ativo e bloqueio de dado sensivel).
+- Testes frontend para CardViewerView e ajuste do fluxo de vinculacao no modal de transacao.
+
+### Alterado
+
+- Modal de transacao com opcao de vincular saida ao cartao ativo.
+- Fluxo de movimentacoes ajustado para aceitar cartaoId opcional sem quebrar transacoes nao-cartao.
+- Dashboard com preservacao de cartaoId no patch local de atualizacao otimista.
+
+### Tecnico
+
+- Nova entidade de dominio CartaoManual e casos de uso de cadastro, edicao, inativacao, resumo e previsao.
+- Migration AddCartaoVisualizadorMvp com estruturas de persistencia do modulo de cartao.
+- Validacao obrigatoria de ciclo (diaFechamento < diaVencimento).
+- Regra funcional de no maximo 1 cartao ativo por usuario no MVP.
 
 ## [0.4.0] - 2026-05-26
 

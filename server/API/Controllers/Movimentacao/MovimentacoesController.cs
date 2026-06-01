@@ -8,11 +8,17 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
     {
+        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO);
+        if (validacaoCartao is not null)
+        {
+            return validacaoCartao;
+        }
+
         try
         {
             Movimentacao movimentacao = movimentacaoDTO.Tipo switch
@@ -26,6 +32,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.Fixa,
                     movimentacaoDTO.Periodo,
                     movimentacaoDTO.TipoRecorrencia,
+                    cartaoId: movimentacaoDTO.CartaoId,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
                     km: movimentacaoDTO.Km,
@@ -40,6 +47,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.Fixa,
                     movimentacaoDTO.Periodo,
                     movimentacaoDTO.TipoRecorrencia,
+                    cartaoId: movimentacaoDTO.CartaoId,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
                     km: movimentacaoDTO.Km,
@@ -173,6 +181,12 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     [HttpPut("{id}")]
     public IActionResult AtualizarMovimentacao(Guid id, [FromBody] MovimentacaoDTO movimentacaoDTO)
     {
+        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO);
+        if (validacaoCartao is not null)
+        {
+            return validacaoCartao;
+        }
+
         try
         {
             atualizarMovimentacaoUseCase.Executar(id, movimentacaoDTO);
@@ -249,6 +263,41 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         {
             return StatusCode(500, "Erro ao exportar movimentações em CSV.");
         }
+    }
+
+    private IActionResult? ValidarVinculoCartao(MovimentacaoDTO dto)
+    {
+        if (dto.CartaoId is null)
+        {
+            return null;
+        }
+
+        if (dto.Tipo != TipoMovimentacao.Saida)
+        {
+            return BadRequest(new
+            {
+                error = new
+                {
+                    code = "MOVIMENTACAO_TIPO_INVALIDO_PARA_CARTAO",
+                    message = "Apenas saídas podem ser vinculadas ao cartão."
+                }
+            });
+        }
+
+        var cartao = cartaoRepository.ObterPorId(dto.CartaoId.Value, UsuarioId);
+        if (cartao is null || !cartao.Ativo)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                error = new
+                {
+                    code = "MOVIMENTACAO_ACESSO_NEGADO",
+                    message = "Cartão inválido para vínculo da movimentação."
+                }
+            });
+        }
+
+        return null;
     }
 }
 

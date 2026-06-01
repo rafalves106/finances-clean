@@ -11,6 +11,7 @@ public record MovimentacaoDTO(
   bool Fixa = false,
   int Periodo = 0,
   Guid? InvestimentoId = null,
+  Guid? CartaoId = null,
   Guid? CategoriaId = null,
   Guid? VeiculoId = null,
   int? Km = null,

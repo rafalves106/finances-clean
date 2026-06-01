@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { API_URL } from "../services/api";
+import { API_CARTAO_URL, API_URL } from "../services/api";
 import { formatDate } from "../util/formatDate";
 
 const INITIAL_FORM = {
@@ -17,6 +17,8 @@ const INITIAL_FORM = {
   period: "",
   tipoRecorrencia: "Mensal",
   tipoMovimentacaoFixa: "RecorrenteFixa",
+  vincularCartao: false,
+  cartaoId: null,
 };
 
 const TransactionModal = ({
@@ -31,6 +33,8 @@ const TransactionModal = ({
   periodKey,
 }) => {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [cartaoAtivo, setCartaoAtivo] = useState(null);
+  const [loadingCartao, setLoadingCartao] = useState(false);
   const dialogRef = useRef(null);
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -42,7 +46,6 @@ const TransactionModal = ({
       const rawDate = editingItem.date || editingItem.data;
       const dateStr = rawDate ? rawDate.split("T")[0] : "";
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         editingId: editingItem.id,
         name: editingItem.name || editingItem.titulo || "",
@@ -64,12 +67,42 @@ const TransactionModal = ({
           editingItem.tipoMovimentacaoFixa === "Parcelada"
             ? "Parcelada"
             : "RecorrenteFixa",
+        vincularCartao: Boolean(editingItem.cartaoId),
+        cartaoId: editingItem.cartaoId || null,
         date: dateStr,
       });
     } else {
       setForm(INITIAL_FORM);
     }
   }, [editingItem, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const carregarCartaoAtivo = async () => {
+      setLoadingCartao(true);
+
+      try {
+        const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          setCartaoAtivo(null);
+          return;
+        }
+
+        const data = await response.json();
+        setCartaoAtivo(data?.cartao || null);
+      } catch {
+        setCartaoAtivo(null);
+      } finally {
+        setLoadingCartao(false);
+      }
+    };
+
+    carregarCartaoAtivo();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !dialogRef.current) return;
@@ -138,6 +171,8 @@ const TransactionModal = ({
       km,
       tipoRecorrencia,
       tipoMovimentacaoFixa,
+      vincularCartao,
+      cartaoId,
     } = form;
 
     if (!name || !value || !tipo || !date) return;
@@ -156,6 +191,8 @@ const TransactionModal = ({
       categoriaId: categoryId || null,
       veiculoId: veiculoId || null,
       km: km ? parseInt(km) : null,
+      cartaoId:
+        tipo === "Saida" && vincularCartao && cartaoId ? cartaoId : null,
     };
 
     if (isSimulation) {
@@ -172,6 +209,8 @@ const TransactionModal = ({
         period,
         tipoRecorrencia,
         tipoMovimentacaoFixa,
+        vincularCartao,
+        cartaoId,
       });
       return;
     }
@@ -231,6 +270,7 @@ const TransactionModal = ({
     period,
     tipoRecorrencia,
     tipoMovimentacaoFixa,
+    vincularCartao,
   } = form;
 
   const categoriaTransporte = categorias.find(
@@ -401,11 +441,55 @@ const TransactionModal = ({
             <select
               className="p-2 border rounded-lg"
               value={tipo}
-              onChange={(e) => setField("tipo", e.target.value)}
+              onChange={(e) => {
+                const novoTipo = e.target.value;
+                setField("tipo", novoTipo);
+
+                if (novoTipo !== "Saida") {
+                  setField("vincularCartao", false);
+                }
+              }}
             >
               <option value="Saida">Saída</option>
               <option value="Entrada">Entrada</option>
             </select>
+
+            {tipo === "Saida" && (
+              <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={vincularCartao}
+                    disabled={!cartaoAtivo}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setField("vincularCartao", checked);
+                      setField(
+                        "cartaoId",
+                        checked ? cartaoAtivo?.id || null : null,
+                      );
+                    }}
+                  />
+                  Marcar como compra no cartão ativo
+                </label>
+
+                {loadingCartao ? (
+                  <p className="text-xs text-slate-500">
+                    Carregando cartão ativo...
+                  </p>
+                ) : cartaoAtivo ? (
+                  <p className="text-xs text-slate-600">
+                    Cartão ativo: <strong>{cartaoAtivo.nome}</strong>{" "}
+                    (fechamento dia {cartaoAtivo.diaFechamento})
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-700">
+                    Nenhum cartão ativo encontrado. Cadastre um cartão para
+                    vincular compras.
+                  </p>
+                )}
+              </div>
+            )}
 
             <select
               className="p-2 border rounded-lg md:col-span-2"

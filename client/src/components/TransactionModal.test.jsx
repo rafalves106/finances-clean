@@ -2,15 +2,22 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import TransactionModal from "./TransactionModal";
+import { API_CARTAO_URL } from "../services/api";
 
 describe("TransactionModal tipoMovimentacaoFixa", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      clone: () => ({
-        json: async () => ({ id: "mov-created" }),
-      }),
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).startsWith(`${API_CARTAO_URL}/resumo`)) {
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        clone: () => ({
+          json: async () => ({ id: "mov-created" }),
+        }),
+      });
     });
   });
 
@@ -51,11 +58,19 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
 
-    const request = globalThis.fetch.mock.calls[0][1];
+    const postCall = globalThis.fetch.mock.calls.find(
+      ([url, options]) =>
+        String(url).includes("/api/v1/movimentacoes") &&
+        options?.method === "POST",
+    );
+
+    expect(postCall).toBeTruthy();
+    const request = postCall[1];
     const payload = JSON.parse(request.body);
 
     expect(payload.tipoMovimentacaoFixa).toBe("Parcelada");
     expect(payload.periodo).toBe(3);
+    expect(payload.cartaoId).toBeNull();
     expect(onSuccess).toHaveBeenCalledWith({
       type: "create",
       id: "mov-created",

@@ -39,6 +39,7 @@ public class RenumerarGrupoUseCase(IMovimentacaoRepository movimentacaoRepositor
           movimentacao.CategoriaId,
           movimentacao.VeiculoId,
           movimentacao.Km,
+              movimentacao.CartaoId,
           movimentacao.TipoMovimentacaoFixa);
     }
 

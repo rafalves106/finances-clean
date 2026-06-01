@@ -29,6 +29,7 @@ builder.Services.AddScoped<IMetaRepository, MetaRepository>();
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<ICategoriaOrcamentoUsuarioRepository, CategoriaOrcamentoUsuarioRepository>();
 builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();
+builder.Services.AddScoped<ICartaoRepository, CartaoRepository>();
 
 builder.Services.AddScoped<CriarMovimentacaoUseCase>();
 builder.Services.AddScoped<ListarMovimentacoesUseCase>();
@@ -44,6 +45,11 @@ builder.Services.AddScoped<ObterResumoMensalUseCase>();
 builder.Services.AddScoped<ObterComparativoCategoriaMensalUseCase>();
 builder.Services.AddScoped<RenumerarGrupoUseCase>();
 builder.Services.AddScoped<ExportarMovimentacoesCsvUseCase>();
+builder.Services.AddScoped<CadastrarCartaoManualUseCase>();
+builder.Services.AddScoped<EditarCartaoManualUseCase>();
+builder.Services.AddScoped<InativarCartaoManualUseCase>();
+builder.Services.AddScoped<ObterResumoCartaoUseCase>();
+builder.Services.AddScoped<ObterPrevisaoFaturaUseCase>();
 
 builder.Services.AddScoped<CriarInvestimentoUseCase>();
 builder.Services.AddScoped<ListarInvestimentosUseCase>();

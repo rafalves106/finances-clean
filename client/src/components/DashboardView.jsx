@@ -245,6 +245,7 @@ const DashboardView = ({
     tipoRecorrencia: payload.tipoRecorrencia,
     tipoMovimentacaoFixa: payload.tipoMovimentacaoFixa,
     investimentoId: null,
+    cartaoId: payload.cartaoId,
     categoriaId: payload.categoriaId,
     veiculoId: payload.veiculoId,
     km: payload.km,

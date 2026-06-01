@@ -17,6 +17,7 @@ public class FinanceDbContext : DbContext
     public DbSet<CategoriaOrcamentoUsuario> CategoriasOrcamentosUsuarios { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<Veiculo> Veiculos { get; set; }
+    public DbSet<CartaoManual> CartoesManuais { get; set; }
 
     private readonly ICurrentUserService? _currentUserService;
 
@@ -61,6 +62,12 @@ public class FinanceDbContext : DbContext
                   .IsRequired(false)
                   .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne<CartaoManual>()
+                .WithMany()
+                .HasForeignKey(m => m.CartaoId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasOne(e => e.Categoria)
                   .WithMany()
                   .HasForeignKey(e => e.CategoriaId)
@@ -80,6 +87,7 @@ public class FinanceDbContext : DbContext
             entity.HasIndex(e => e.Data);
             entity.HasIndex(e => e.Tipo);
             entity.HasIndex(e => e.InvestimentoId);
+            entity.HasIndex(e => e.CartaoId);
             entity.HasIndex(m => m.VeiculoId);
 
             entity.HasQueryFilter(m =>
@@ -164,6 +172,30 @@ public class FinanceDbContext : DbContext
                 _currentUserService == null ||
                 !_currentUserService.UsuarioId.HasValue ||
                 v.UsuarioId == _currentUserService.UsuarioId);
+        });
+
+        // --- CartaoManual ---
+        modelBuilder.Entity<CartaoManual>(entity =>
+        {
+            entity.ToTable("CartoesManuais");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UsuarioId).IsRequired();
+            entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.LimiteTotal).HasPrecision(18, 2);
+            entity.Property(e => e.DiaFechamento).IsRequired();
+            entity.Property(e => e.DiaVencimento).IsRequired();
+            entity.Property(e => e.Ativo).IsRequired();
+            entity.Property(e => e.CreatedAtUtc).IsRequired();
+            entity.Property(e => e.UpdatedAtUtc).IsRequired();
+
+            entity.HasIndex(e => new { e.UsuarioId, e.Ativo })
+                .IsUnique()
+                .HasFilter("\"Ativo\" = true");
+
+            entity.HasQueryFilter(c =>
+            _currentUserService == null ||
+            !_currentUserService.UsuarioId.HasValue ||
+            c.UsuarioId == _currentUserService.UsuarioId);
         });
 
         // --- Usuario ---

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Target,
   Bike,
+  CreditCard,
   LogOut,
 } from "lucide-react";
 
@@ -12,6 +13,7 @@ import DashboardView from "./components/DashboardView";
 import InvestmentsView from "./components/InvestmentsView";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
+import CardViewerView from "./components/CardViewerView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
@@ -42,6 +44,7 @@ const mapApiToFrontend = (item) => ({
   periodo: item.periodo,
   tipoRecorrencia: item.tipoRecorrencia,
   investimentoId: item.investimentoId,
+  cartaoId: item.cartaoId,
   categoriaId: item.categoriaId,
   veiculoId: item.veiculoId,
   km: item.km,
@@ -380,6 +383,12 @@ const App = () => {
               icon: <Bike size={20} />,
               color: "bg-orange-600",
             },
+            {
+              id: "card",
+              label: "Cartão",
+              icon: <CreditCard size={20} />,
+              color: "bg-teal-600",
+            },
           ].map((item) => (
             <button
               key={item.id}
@@ -417,6 +426,7 @@ const App = () => {
             {activeTab === "investments" && "Planejador de Futuro"}
             {activeTab === "wishlist" && "Custo de Oportunidade"}
             {activeTab === "vehicle" && "Gestão de Veículos"}
+            {activeTab === "card" && "Cartão Manual"}
           </h1>
         </header>
 
@@ -463,6 +473,7 @@ const App = () => {
               categorias={categorias}
             />
           )}
+          {activeTab === "card" && <CardViewerView />}
 
           <CategoryManagerModal
             isOpen={isCategoryManagerOpen}
