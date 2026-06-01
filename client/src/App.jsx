@@ -447,6 +447,7 @@ const App = () => {
               categorias={categorias}
               veiculos={veiculos}
               onOpenCategoryManager={handleOpenCategoryManager}
+              onOpenCardManagement={() => setActiveTab("card")}
               saldoAnterior={saldoAnterior}
               budgetRefreshKey={budgetRefreshKey}
             />

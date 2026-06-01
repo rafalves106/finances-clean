@@ -463,3 +463,138 @@ describe("DashboardView ciclo 009 sprint 3", () => {
     expect(screen.queryByText("Beta Receita")).toBeNull();
   });
 });
+
+describe("DashboardView ciclo 011", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.alert = vi.fn();
+    window.confirm = vi.fn(() => true);
+
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes("/api/v1/cartao/resumo")) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({}),
+        });
+      }
+
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+  });
+
+  it("deve exibir estado vazio guiado do cartão quando não houver cartão ativo", async () => {
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        onOpenCardManagement={() => {}}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Nenhum cartão ativo encontrado.")).toBeTruthy(),
+    );
+  });
+
+  it("deve abrir modal de nova compra no cartão e acionar gestão dedicada", async () => {
+    const onOpenCardManagement = vi.fn();
+
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes("/api/v1/cartao/resumo")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            cartao: {
+              id: "card-1",
+              nome: "Cartão principal",
+              limiteTotal: 5000,
+              diaFechamento: 10,
+              diaVencimento: 20,
+            },
+            limite: { utilizado: 500, disponivel: 4500, percentualUso: 10 },
+            previsaoFatura: { atual: 350, proxima: 150 },
+          }),
+        });
+      }
+
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    render(
+      <DashboardView
+        totalIncome={0}
+        totalExpenses={0}
+        finalBalance={0}
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        onOpenCardManagement={onOpenCardManagement}
+        incomes={[]}
+        expenses={[]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Nova compra no cartão")).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Abrir gestão" }));
+    expect(onOpenCardManagement).toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nova compra no cartão" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Nova Transação")).toBeTruthy(),
+    );
+
+    expect(
+      screen.getByLabelText("Marcar como compra no cartão ativo").checked,
+    ).toBe(true);
+  });
+});

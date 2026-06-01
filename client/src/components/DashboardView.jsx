@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { API_CATEGORIAS_ALERTAS_ORCAMENTO_URL, API_URL } from "../services/api";
+import {
+  API_CARTAO_URL,
+  API_CATEGORIAS_ALERTAS_ORCAMENTO_URL,
+  extractApiErrorMessage,
+  API_URL,
+} from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
 
@@ -8,6 +13,7 @@ import {
   Pencil,
   X,
   Wallet,
+  CreditCard,
   DollarSign,
   PiggyBank,
   ArrowDownCircle,
@@ -140,6 +146,7 @@ const DashboardView = ({
   categorias,
   veiculos,
   onOpenCategoryManager,
+  onOpenCardManagement = () => {},
   incomes = [],
   expenses = [],
   saldoAnterior = 0,
@@ -168,6 +175,10 @@ const DashboardView = ({
   const [isBudgetAlertsLoading, setIsBudgetAlertsLoading] = useState(false);
   const [budgetAlertsError, setBudgetAlertsError] = useState("");
   const [activeIntent, setActiveIntent] = useState("operar");
+  const [cardSummary, setCardSummary] = useState(null);
+  const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
+  const [cardSummaryError, setCardSummaryError] = useState("");
+  const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [transactionSearch, setTransactionSearch] = useState("");
   const [transactionViewFilter, setTransactionViewFilter] = useState("todas");
   const [localPatchState, setLocalPatchState] = useState(null);
@@ -399,6 +410,54 @@ const DashboardView = ({
 
     fetchBudgetAlerts();
   }, [selectedMes, selectedAno, budgetRefreshKey]);
+
+  const fetchCardSummary = async () => {
+    try {
+      setIsCardSummaryLoading(true);
+      setCardSummaryError("");
+
+      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response) {
+        throw new Error("Resposta inválida ao carregar resumo de cartão.");
+      }
+
+      if (response.status === 404) {
+        setCardSummary(null);
+        return;
+      }
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível carregar o resumo do cartão.",
+        );
+        setCardSummaryError(message);
+        setCardSummary(null);
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.cartao && data?.limite && data?.previsaoFatura) {
+        setCardSummary(data);
+      } else {
+        setCardSummary(null);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar resumo de cartão:", err);
+      setCardSummaryError("Erro ao carregar resumo do cartão.");
+      setCardSummary(null);
+    } finally {
+      setIsCardSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCardSummary();
+  }, [selectedMes, selectedAno]);
 
   const simulatedIncomes = useMemo(
     () =>
@@ -687,6 +746,13 @@ const DashboardView = ({
 
   const handleOpenNewTransaction = () => {
     setEditingItem(null);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenNewCardPurchase = () => {
+    setEditingItem(null);
+    setOpenCardPurchaseMode(true);
     setIsModalOpen(true);
   };
 
@@ -1058,6 +1124,7 @@ const DashboardView = ({
 
   const handleEditClick = (item, type) => {
     setEditingItem({ ...item, tipo: type });
+    setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
 
@@ -1384,6 +1451,99 @@ const DashboardView = ({
             }
           />
         </div>
+      </section>
+
+      <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+              Cartão
+            </p>
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 mt-1">
+              <CreditCard size={16} className="text-teal-600" />
+              Resumo operacional
+            </h3>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleOpenNewCardPurchase}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 transition-colors"
+            >
+              <Plus size={15} /> Nova compra no cartão
+            </button>
+            <button
+              type="button"
+              onClick={onOpenCardManagement}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <Settings size={15} /> Abrir gestão
+            </button>
+          </div>
+        </div>
+
+        {isCardSummaryLoading ? (
+          <p className="mt-4 text-sm text-slate-500">
+            Carregando resumo do cartão...
+          </p>
+        ) : cardSummaryError ? (
+          <p className="mt-4 text-sm text-rose-600">{cardSummaryError}</p>
+        ) : !cardSummary ? (
+          <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+            <p className="text-sm font-medium text-slate-700">
+              Nenhum cartão ativo encontrado.
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Abra a gestão de cartão para cadastrar um cartão manual e
+              acompanhar faturas no dashboard.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Fatura atual
+              </p>
+              <p className="text-lg font-bold text-slate-800">
+                {formatCurrency(cardSummary.previsaoFatura.atual || 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Fatura próxima
+              </p>
+              <p className="text-lg font-bold text-slate-800">
+                {formatCurrency(cardSummary.previsaoFatura.proxima || 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Limite usado / disponível
+              </p>
+              <p className="text-sm font-semibold text-slate-700">
+                {formatCurrency(cardSummary.limite.utilizado || 0)} /{" "}
+                {formatCurrency(cardSummary.limite.disponivel || 0)}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Total: {formatCurrency(cardSummary.cartao.limiteTotal || 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Ciclo
+              </p>
+              <p className="text-sm font-semibold text-slate-700">
+                Fechamento dia {cardSummary.cartao.diaFechamento} · Vencimento
+                dia {cardSummary.cartao.diaVencimento}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {Number(cardSummary.limite.percentualUso || 0).toFixed(2)}% do
+                limite em uso
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
@@ -2531,7 +2691,10 @@ const DashboardView = ({
 
       <TransactionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setOpenCardPurchaseMode(false);
+        }}
         onSuccess={async (mutationResult) => {
           if (!mutationResult) return;
 
@@ -2551,11 +2714,13 @@ const DashboardView = ({
           }
 
           await triggerSilentRevalidation(requestPeriodKey, mutationToken);
+          await fetchCardSummary();
         }}
         categorias={categorias}
         veiculos={veiculos}
         editingItem={editingItem}
         periodKey={periodKey}
+        initialCardPurchaseMode={openCardPurchaseMode}
       />
 
       <TransactionModal

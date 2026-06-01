@@ -31,10 +31,12 @@ const TransactionModal = ({
   isSimulation = false,
   onSimulate,
   periodKey,
+  initialCardPurchaseMode = false,
 }) => {
   const [form, setForm] = useState(INITIAL_FORM);
   const [cartaoAtivo, setCartaoAtivo] = useState(null);
   const [loadingCartao, setLoadingCartao] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const dialogRef = useRef(null);
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -71,10 +73,16 @@ const TransactionModal = ({
         cartaoId: editingItem.cartaoId || null,
         date: dateStr,
       });
+      setValidationError("");
     } else {
-      setForm(INITIAL_FORM);
+      setForm({
+        ...INITIAL_FORM,
+        tipo: initialCardPurchaseMode ? "Saida" : INITIAL_FORM.tipo,
+        vincularCartao: initialCardPurchaseMode,
+      });
+      setValidationError("");
     }
-  }, [editingItem, isOpen]);
+  }, [editingItem, initialCardPurchaseMode, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,7 +101,17 @@ const TransactionModal = ({
         }
 
         const data = await response.json();
-        setCartaoAtivo(data?.cartao || null);
+        const cartao = data?.cartao || null;
+        setCartaoAtivo(cartao);
+
+        if (!editingItem && initialCardPurchaseMode && cartao?.id) {
+          setForm((prev) => ({
+            ...prev,
+            tipo: "Saida",
+            vincularCartao: true,
+            cartaoId: cartao.id,
+          }));
+        }
       } catch {
         setCartaoAtivo(null);
       } finally {
@@ -102,7 +120,7 @@ const TransactionModal = ({
     };
 
     carregarCartaoAtivo();
-  }, [isOpen]);
+  }, [editingItem, initialCardPurchaseMode, isOpen]);
 
   useEffect(() => {
     if (!isOpen || !dialogRef.current) return;
@@ -157,6 +175,8 @@ const TransactionModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setValidationError("");
+
     const {
       editingId,
       name,
@@ -175,8 +195,22 @@ const TransactionModal = ({
       cartaoId,
     } = form;
 
-    if (!name || !value || !tipo || !date) return;
-    if (isFixed && !period) return;
+    if (!name || !value || !tipo || !date) {
+      setValidationError("Preencha os campos obrigatórios da transação.");
+      return;
+    }
+
+    if (isFixed && !period) {
+      setValidationError("Informe a duração da recorrência.");
+      return;
+    }
+
+    if (tipo === "Saida" && vincularCartao && !cartaoId) {
+      setValidationError(
+        "Selecione um cartão ativo para registrar compra no cartão.",
+      );
+      return;
+    }
 
     const payload = {
       titulo: name,
@@ -278,6 +312,7 @@ const TransactionModal = ({
   );
   const isTransporte =
     categoryId === categoriaTransporte?.id && tipo === "Saida";
+  const isCompraNoCartao = tipo === "Saida" && vincularCartao;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -312,6 +347,12 @@ const TransactionModal = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {validationError ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+              {validationError}
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -473,15 +514,39 @@ const TransactionModal = ({
                   Marcar como compra no cartão ativo
                 </label>
 
+                {isCompraNoCartao ? (
+                  <div className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-xs text-teal-700">
+                    Use a data real da compra. O vencimento é calculado pelo
+                    ciclo do cartão.
+                  </div>
+                ) : null}
+
                 {loadingCartao ? (
                   <p className="text-xs text-slate-500">
                     Carregando cartão ativo...
                   </p>
                 ) : cartaoAtivo ? (
-                  <p className="text-xs text-slate-600">
-                    Cartão ativo: <strong>{cartaoAtivo.nome}</strong>{" "}
-                    (fechamento dia {cartaoAtivo.diaFechamento})
-                  </p>
+                  <div className="space-y-2">
+                    <label className="block text-xs text-slate-600">
+                      Cartão selecionado
+                      <select
+                        className="mt-1 w-full rounded-md border border-slate-300 p-2 text-xs bg-white"
+                        value={form.cartaoId || cartaoAtivo.id}
+                        onChange={(e) =>
+                          setField("cartaoId", e.target.value || null)
+                        }
+                      >
+                        <option value={cartaoAtivo.id}>
+                          {cartaoAtivo.nome}
+                        </option>
+                      </select>
+                    </label>
+                    <p className="text-xs text-slate-600">
+                      Fechamento dia{" "}
+                      <strong>{cartaoAtivo.diaFechamento}</strong> · Vencimento
+                      dia <strong>{cartaoAtivo.diaVencimento}</strong>
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-xs text-amber-700">
                     Nenhum cartão ativo encontrado. Cadastre um cartão para
