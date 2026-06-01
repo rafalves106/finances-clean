@@ -516,8 +516,9 @@ const TransactionModal = ({
 
                 {isCompraNoCartao ? (
                   <div className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-xs text-teal-700">
-                    Use a data real da compra. O vencimento é calculado pelo
-                    ciclo do cartão.
+                    Use a data real da compra (não use a data de vencimento). A
+                    competência e o vencimento são calculados pelo ciclo do
+                    cartão.
                   </div>
                 ) : null}
 
