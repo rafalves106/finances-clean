@@ -18,6 +18,9 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 - Endpoints autenticados de cartao para cadastro, edicao, inativacao, resumo e previsao.
 - Testes de integracao backend para regras de cartao (ciclo valido, 1 cartao ativo e bloqueio de dado sensivel).
 - Testes frontend para CardViewerView e ajuste do fluxo de vinculacao no modal de transacao.
+- Fluxo de hotfix para competencia do cartao com preview, apply e rollback por executionId.
+- Parser conservador de datas legadas na descricao com suporte apenas a dd/MM e dd-MM.
+- Auditoria de execucao do backfill com contagens por status (aplicavel, ambiguo e ignorado).
 
 ### Alterado
 
@@ -27,6 +30,9 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 - Modal de transacao com opcao de vincular saida ao cartao ativo.
 - Fluxo de movimentacoes ajustado para aceitar cartaoId opcional sem quebrar transacoes nao-cartao.
 - Dashboard com preservacao de cartaoId no patch local de atualizacao otimista.
+- Regra de ciclo do cartao para aceitar cenarios cruzando mes (exemplo: fechamento 29 e vencimento 5).
+- Regra de virada de fatura reforcada: compra no dia do fechamento ou apos entra na proxima fatura.
+- Correcao automatica limitada a lancamentos de cartao e apenas para novos ajustes validos.
 
 ### Tecnico
 
@@ -34,6 +40,8 @@ Formato baseado em Keep a Changelog e versionamento por marcos de entrega do pro
 - Migration AddCartaoVisualizadorMvp com estruturas de persistencia do modulo de cartao.
 - Validacao obrigatoria de ciclo (diaFechamento < diaVencimento).
 - Regra funcional de no maximo 1 cartao ativo por usuario no MVP.
+- Migration AddCartaoBackfillHotfixCiclo012 com estrutura de auditoria para preview/apply/rollback.
+- Novos casos de uso para backfill seguro sem alterar lancamentos nao-cartao.
 
 ## [0.4.0] - 2026-05-26
 
