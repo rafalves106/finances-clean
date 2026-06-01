@@ -12,6 +12,7 @@ public record MovimentacaoDTO(
   int Periodo = 0,
   Guid? InvestimentoId = null,
   Guid? CartaoId = null,
+  int? CompetenciaFatura = null,
   Guid? CategoriaId = null,
   Guid? VeiculoId = null,
   int? Km = null,

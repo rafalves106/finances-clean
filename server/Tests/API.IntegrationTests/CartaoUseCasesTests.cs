@@ -7,6 +7,29 @@ namespace API.IntegrationTests;
 
 public class CartaoUseCasesTests
 {
+  [Theory]
+  [InlineData("2026-06-09", 10, 202606)]
+  [InlineData("2026-06-10", 10, 202607)]
+  [InlineData("2026-06-11", 10, 202607)]
+  public void CompetenciaFatura_DeveRespeitarRegraVirada(string dataCompraIso, int diaFechamento, int competenciaEsperada)
+  {
+    var dataCompra = DateTime.SpecifyKind(DateTime.Parse(dataCompraIso), DateTimeKind.Utc);
+
+    var competencia = CompetenciaFaturaCalculator.CalcularCompetencia(dataCompra, diaFechamento);
+
+    Assert.Equal(competenciaEsperada, competencia);
+  }
+
+  [Fact]
+  public void CompetenciaFatura_DeveNormalizarFechamentoEmMesCurto()
+  {
+    var dataCompra = new DateTime(2026, 2, 28, 10, 0, 0, DateTimeKind.Utc);
+
+    var competencia = CompetenciaFaturaCalculator.CalcularCompetencia(dataCompra, 31);
+
+    Assert.Equal(202603, competencia);
+  }
+
   [Fact]
   public void CartaoManual_CicloInvalido_DeveFalhar()
   {

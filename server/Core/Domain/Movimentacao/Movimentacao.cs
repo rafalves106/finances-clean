@@ -8,6 +8,7 @@ public abstract class Movimentacao
     public Guid? GrupoRecorrenciaId { get; private set; }
     public Guid? InvestimentoId { get; private set; }
     public Guid? CartaoId { get; private set; }
+    public int? CompetenciaFatura { get; private set; }
     public Guid? VeiculoId { get; private set; }
     public Guid? CategoriaId { get; private set; }
     public Categoria? Categoria { get; private set; }
@@ -20,7 +21,7 @@ public abstract class Movimentacao
     public int Periodo { get; private set; }
     public TipoMovimentacaoFixa TipoMovimentacaoFixa { get; private set; }
     public TipoMovimentacao Tipo { get; protected set; }
-    protected Movimentacao(string titulo, string? descricao, decimal valor, DateTime data, Guid usuarioId, TipoRecorrencia tipoRecorrencia = TipoRecorrencia.Mensal, bool fixa = false, int periodo = 0, Guid? grupoRecorrenciaId = null, Guid? investimentoId = null, Guid? cartaoId = null, Guid? categoriaId = null, Guid? veiculoId = null, int? km = null, TipoMovimentacaoFixa tipoMovimentacaoFixa = TipoMovimentacaoFixa.RecorrenteFixa)
+    protected Movimentacao(string titulo, string? descricao, decimal valor, DateTime data, Guid usuarioId, TipoRecorrencia tipoRecorrencia = TipoRecorrencia.Mensal, bool fixa = false, int periodo = 0, Guid? grupoRecorrenciaId = null, Guid? investimentoId = null, Guid? cartaoId = null, int? competenciaFatura = null, Guid? categoriaId = null, Guid? veiculoId = null, int? km = null, TipoMovimentacaoFixa tipoMovimentacaoFixa = TipoMovimentacaoFixa.RecorrenteFixa)
     {
         if (valor <= 0) throw new ArgumentException("O valor deve ser maior que zero.", nameof(valor));
         if (string.IsNullOrWhiteSpace(titulo)) throw new ArgumentException("O título não pode ser vazio.", nameof(titulo));
@@ -41,11 +42,12 @@ public abstract class Movimentacao
         GrupoRecorrenciaId = grupoRecorrenciaId;
         InvestimentoId = investimentoId;
         CartaoId = cartaoId;
+        CompetenciaFatura = competenciaFatura;
         CategoriaId = categoriaId;
         VeiculoId = veiculoId;
         Km = km;
     }
-    public void AtualizarDados(string titulo, string? descricao, decimal valor, DateTime data, bool fixa, int periodo, Guid? categoriaId = null, Guid? veiculoId = null, int? km = null, Guid? cartaoId = null, TipoMovimentacaoFixa tipoMovimentacaoFixa = TipoMovimentacaoFixa.RecorrenteFixa)
+    public void AtualizarDados(string titulo, string? descricao, decimal valor, DateTime data, bool fixa, int periodo, Guid? categoriaId = null, Guid? veiculoId = null, int? km = null, Guid? cartaoId = null, int? competenciaFatura = null, TipoMovimentacaoFixa tipoMovimentacaoFixa = TipoMovimentacaoFixa.RecorrenteFixa)
     {
         if (valor <= 0) throw new ArgumentException("O valor deve ser maior que zero.", nameof(valor));
         if (string.IsNullOrWhiteSpace(titulo)) throw new ArgumentException("O título não pode ser vazio.", nameof(titulo));
@@ -65,6 +67,7 @@ public abstract class Movimentacao
         VeiculoId = veiculoId;
         Km = km;
         CartaoId = cartaoId;
+        CompetenciaFatura = competenciaFatura;
     }
 
     public abstract Movimentacao ClonarComNovaData(DateTime novaData, Guid grupoId, string? novoTitulo = null);

@@ -13,11 +13,13 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
     {
-        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO);
+        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO, out var cartaoSelecionado);
         if (validacaoCartao is not null)
         {
             return validacaoCartao;
         }
+
+        var competenciaFatura = ObterCompetenciaFaturaNovaCompra(movimentacaoDTO, cartaoSelecionado);
 
         try
         {
@@ -33,6 +35,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.Periodo,
                     movimentacaoDTO.TipoRecorrencia,
                     cartaoId: movimentacaoDTO.CartaoId,
+                    competenciaFatura: competenciaFatura,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
                     km: movimentacaoDTO.Km,
@@ -48,6 +51,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
                     movimentacaoDTO.Periodo,
                     movimentacaoDTO.TipoRecorrencia,
                     cartaoId: movimentacaoDTO.CartaoId,
+                    competenciaFatura: competenciaFatura,
                     categoriaId: movimentacaoDTO.CategoriaId,
                     veiculoId: movimentacaoDTO.VeiculoId,
                     km: movimentacaoDTO.Km,
@@ -181,15 +185,20 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     [HttpPut("{id}")]
     public IActionResult AtualizarMovimentacao(Guid id, [FromBody] MovimentacaoDTO movimentacaoDTO)
     {
-        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO);
+        var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO, out var cartaoSelecionado);
         if (validacaoCartao is not null)
         {
             return validacaoCartao;
         }
 
+        var dtoAjustado = movimentacaoDTO with
+        {
+            CompetenciaFatura = ObterCompetenciaFaturaNovaCompra(movimentacaoDTO, cartaoSelecionado)
+        };
+
         try
         {
-            atualizarMovimentacaoUseCase.Executar(id, movimentacaoDTO);
+            atualizarMovimentacaoUseCase.Executar(id, dtoAjustado);
             return NoContent();
         }
         catch (ArgumentException)
@@ -265,11 +274,25 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         }
     }
 
-    private IActionResult? ValidarVinculoCartao(MovimentacaoDTO dto)
+    private IActionResult? ValidarVinculoCartao(MovimentacaoDTO dto, out CartaoManual? cartaoValido)
     {
+        cartaoValido = null;
+
         if (dto.CartaoId is null)
         {
             return null;
+        }
+
+        if (dto.Data == default)
+        {
+            return BadRequest(new
+            {
+                error = new
+                {
+                    code = "DATA_COMPRA_INVALIDA",
+                    message = "Data real da compra é obrigatória para compras no cartão."
+                }
+            });
         }
 
         if (dto.Tipo != TipoMovimentacao.Saida)
@@ -287,17 +310,29 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         var cartao = cartaoRepository.ObterPorId(dto.CartaoId.Value, UsuarioId);
         if (cartao is null || !cartao.Ativo)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new
+            return NotFound(new
             {
                 error = new
                 {
-                    code = "MOVIMENTACAO_ACESSO_NEGADO",
-                    message = "Cartão inválido para vínculo da movimentação."
+                    code = "CARTAO_INATIVO_OU_NAO_ENCONTRADO",
+                    message = "Cartão inativo ou não encontrado para vínculo da movimentação."
                 }
             });
         }
 
+        cartaoValido = cartao;
+
         return null;
+    }
+
+    private static int? ObterCompetenciaFaturaNovaCompra(MovimentacaoDTO dto, CartaoManual? cartao)
+    {
+        if (dto.CartaoId is null || dto.Tipo != TipoMovimentacao.Saida || cartao is null)
+        {
+            return null;
+        }
+
+        return CompetenciaFaturaCalculator.CalcularCompetencia(dto.Data, cartao.DiaFechamento);
     }
 }
 

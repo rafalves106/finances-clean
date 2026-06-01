@@ -55,6 +55,7 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.TipoMovimentacaoFixa)
                 .HasConversion<string>()
                 .HasDefaultValue(TipoMovimentacaoFixa.RecorrenteFixa);
+            entity.Property(e => e.CompetenciaFatura).IsRequired(false);
 
             entity.HasOne<Investimento>()
                   .WithMany()
@@ -88,6 +89,7 @@ public class FinanceDbContext : DbContext
             entity.HasIndex(e => e.Tipo);
             entity.HasIndex(e => e.InvestimentoId);
             entity.HasIndex(e => e.CartaoId);
+            entity.HasIndex(e => e.CompetenciaFatura);
             entity.HasIndex(m => m.VeiculoId);
 
             entity.HasQueryFilter(m =>

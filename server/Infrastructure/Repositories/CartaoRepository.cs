@@ -45,21 +45,35 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
 
   public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento)
   {
+    var competenciaAtual = CompetenciaFaturaCalculator.CalcularCompetencia(referenciaUtc, diaFechamento);
+    var competenciaProxima = CompetenciaFaturaCalculator.ProximaCompetencia(competenciaAtual);
+
     var inicioMes = new DateTime(referenciaUtc.Year, referenciaUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc);
     var fechamentoAtual = NormalizarDiaMes(referenciaUtc.Year, referenciaUtc.Month, diaFechamento);
 
     var inicioProximoMesBase = inicioMes.AddMonths(1);
     var fechamentoProximo = NormalizarDiaMes(inicioProximoMesBase.Year, inicioProximoMesBase.Month, diaFechamento);
 
-    var faturaAtual = context.Saidas
-        .Where(s => s.CartaoId == cartaoId && s.Data <= fechamentoAtual)
+    var faturaAtualNovaRegra = context.Saidas
+      .Where(s => s.CartaoId == cartaoId && s.CompetenciaFatura == competenciaAtual)
         .Sum(s => (decimal?)s.Valor) ?? 0m;
 
-    var faturaProxima = context.Saidas
-        .Where(s => s.CartaoId == cartaoId && s.Data > fechamentoAtual && s.Data <= fechamentoProximo)
+    var faturaProximaNovaRegra = context.Saidas
+      .Where(s => s.CartaoId == cartaoId && s.CompetenciaFatura == competenciaProxima)
         .Sum(s => (decimal?)s.Valor) ?? 0m;
 
-    return (faturaAtual, faturaProxima);
+    // Mantem comportamento legado para registros antigos sem reprocessamento retroativo.
+    var faturaAtualLegado = context.Saidas
+      .Where(s => s.CartaoId == cartaoId && s.CompetenciaFatura == null && s.Data <= fechamentoAtual)
+      .Sum(s => (decimal?)s.Valor) ?? 0m;
+
+    var faturaProximaLegado = context.Saidas
+      .Where(s => s.CartaoId == cartaoId && s.CompetenciaFatura == null && s.Data > fechamentoAtual && s.Data <= fechamentoProximo)
+      .Sum(s => (decimal?)s.Valor) ?? 0m;
+
+    return (
+      faturaAtualNovaRegra + faturaAtualLegado,
+      faturaProximaNovaRegra + faturaProximaLegado);
   }
 
   private static DateTime NormalizarDiaMes(int ano, int mes, int dia)
