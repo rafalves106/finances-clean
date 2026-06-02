@@ -34,6 +34,96 @@ const sortByDate = (list) =>
     (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
   );
 
+const DEFAULT_CARD_THEME = "#271815";
+
+const normalizeCardTheme = (value) => {
+  if (typeof value !== "string") {
+    return DEFAULT_CARD_THEME;
+  }
+
+  const trimmed = value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  return DEFAULT_CARD_THEME;
+};
+
+const hexToRgb = (hexColor) => {
+  const normalized = normalizeCardTheme(hexColor).replace("#", "");
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
+};
+
+const toRgba = (hexColor, alpha) => {
+  const { r, g, b } = hexToRgb(hexColor);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const clampRatio = (value) => Math.min(1, Math.max(0, value));
+
+const mixRgb = (from, to, ratio) =>
+  Math.round(from + (to - from) * clampRatio(ratio));
+
+const rgbToHex = ({ r, g, b }) =>
+  `#${[r, g, b]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
+
+const mixWithWhite = (hexColor, ratio) => {
+  const rgb = hexToRgb(hexColor);
+  return rgbToHex({
+    r: mixRgb(rgb.r, 255, ratio),
+    g: mixRgb(rgb.g, 255, ratio),
+    b: mixRgb(rgb.b, 255, ratio),
+  });
+};
+
+const mixWithBlack = (hexColor, ratio) => {
+  const rgb = hexToRgb(hexColor);
+  return rgbToHex({
+    r: mixRgb(rgb.r, 0, ratio),
+    g: mixRgb(rgb.g, 0, ratio),
+    b: mixRgb(rgb.b, 0, ratio),
+  });
+};
+
+const getThemePalette = (themeColor) => ({
+  backName: mixWithWhite(themeColor, 0.58),
+  usedText: mixWithWhite(themeColor, 0.62),
+  cardName: mixWithWhite(themeColor, 0.56),
+  progressTrackBorder: mixWithWhite(themeColor, 0.36),
+  progressTrackStart: toRgba(themeColor, 0.22),
+  progressTrackEnd: toRgba(mixWithBlack(themeColor, 0.68), 0.9),
+  progressFillBorder: mixWithWhite(themeColor, 0.48),
+  progressFillStart: mixWithWhite(themeColor, 0.24),
+  progressFillEnd: mixWithBlack(themeColor, 0.4),
+});
+
+const getBackLayerStyle = (themeColor, index) => ({
+  borderColor:
+    index === 0 ? toRgba(themeColor, 0.42) : toRgba(themeColor, 0.34),
+  background:
+    index === 0
+      ? `linear-gradient(180deg, ${toRgba(themeColor, 0.45)} 0%, rgba(28, 27, 36, 0.86) 100%)`
+      : `linear-gradient(180deg, ${toRgba(themeColor, 0.34)} 0%, rgba(30, 28, 36, 0.75) 100%)`,
+});
+
+const getFrontLayerStyle = (themeColor) => ({
+  borderColor: toRgba(themeColor, 0.58),
+  background: `
+    radial-gradient(circle at 12% 15%, ${toRgba(themeColor, 0.16)} 0%, ${toRgba(
+      themeColor,
+      0,
+    )} 45%),
+    linear-gradient(145deg, ${toRgba(themeColor, 0.96)} 0%, rgba(29, 17, 16, 0.92) 52%, #191026 100%)
+  `,
+});
+
 const DashboardDesktopRedesignView = ({
   incomes = [],
   expenses = [],
@@ -147,6 +237,8 @@ const DashboardDesktopRedesignView = ({
 
   const cardSummary = cardSummaries[0] || null;
   const backCardSummaries = cardSummaries.slice(1, 3);
+  const activeCardTheme = normalizeCardTheme(cardSummary?.cartao?.corTema);
+  const activeCardPalette = getThemePalette(activeCardTheme);
 
   const handleBringCardToFront = (cardIndex) => {
     setCardSummaries((current) => {
@@ -577,8 +669,19 @@ const DashboardDesktopRedesignView = ({
                       onClick={() => handleBringCardToFront(index + 1)}
                       className={`uiux-card-layer uiux-card-layer-back-clickable ${index === 0 ? "uiux-card-layer-back-1" : "uiux-card-layer-back-2"}`}
                       aria-label={`Selecionar cartão ${item?.cartao?.nome || "secundário"}`}
+                      style={getBackLayerStyle(
+                        normalizeCardTheme(item?.cartao?.corTema),
+                        index,
+                      )}
                     >
-                      <p className="uiux-card-layer-back-name">
+                      <p
+                        className="uiux-card-layer-back-name"
+                        style={{
+                          color: getThemePalette(
+                            normalizeCardTheme(item?.cartao?.corTema),
+                          ).backName,
+                        }}
+                      >
                         {item?.cartao?.nome || ""}
                       </p>
                     </button>
@@ -589,9 +692,13 @@ const DashboardDesktopRedesignView = ({
                     onClick={onOpenCardManagement}
                     className="uiux-card-layer uiux-card-layer-front uiux-card-layer-front-clickable"
                     aria-label="Abrir gestão do cartão"
+                    style={getFrontLayerStyle(activeCardTheme)}
                   >
                     <div className="uiux-card-top-row">
-                      <p className="uiux-card-value-used">
+                      <p
+                        className="uiux-card-value-used"
+                        style={{ color: activeCardPalette.usedText }}
+                      >
                         {formatCurrency(cardLimitUsed)}
                       </p>
                       <p className="uiux-card-value-limit">
@@ -606,15 +713,26 @@ const DashboardDesktopRedesignView = ({
                       aria-valuemax={100}
                       aria-valuenow={Math.round(cardUsagePercent)}
                       aria-label="Uso do limite do cartão"
+                      style={{
+                        borderColor: activeCardPalette.progressTrackBorder,
+                        background: `linear-gradient(90deg, ${activeCardPalette.progressTrackStart} 0%, ${activeCardPalette.progressTrackEnd} 100%)`,
+                      }}
                     >
                       <div
                         className={`uiux-card-progress-fill ${cardUsagePercent <= 0 ? "uiux-card-progress-fill-empty" : ""}`}
-                        style={{ width: `${cardUsagePercent}%` }}
+                        style={{
+                          width: `${cardUsagePercent}%`,
+                          borderColor: activeCardPalette.progressFillBorder,
+                          background: `linear-gradient(90deg, ${activeCardPalette.progressFillStart} 0%, ${activeCardPalette.progressFillEnd} 100%)`,
+                        }}
                       />
                     </div>
 
                     <div className="uiux-card-footer-row">
-                      <p className="uiux-card-name">
+                      <p
+                        className="uiux-card-name"
+                        style={{ color: activeCardPalette.cardName }}
+                      >
                         {cardSummary.cartao?.nome || "Cartão"}
                       </p>
                       <div
