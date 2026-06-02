@@ -11,7 +11,8 @@ public class EditarCartaoManualUseCase(ICartaoRepository cartaoRepository)
       string nome,
       decimal limiteTotal,
       int diaFechamento,
-      int diaVencimento)
+      int diaVencimento,
+      string? corTema = null)
   {
     var cartao = cartaoRepository.ObterPorId(cartaoId, usuarioId)
         ?? throw new KeyNotFoundException("Cartão não encontrado.");
@@ -21,7 +22,7 @@ public class EditarCartaoManualUseCase(ICartaoRepository cartaoRepository)
       throw new InvalidOperationException("Cartão inativo não pode ser editado.");
     }
 
-    cartao.Editar(nome, limiteTotal, diaFechamento, diaVencimento);
+    cartao.Editar(nome, limiteTotal, diaFechamento, diaVencimento, corTema);
     cartaoRepository.Atualizar(cartao);
     return cartao;
   }

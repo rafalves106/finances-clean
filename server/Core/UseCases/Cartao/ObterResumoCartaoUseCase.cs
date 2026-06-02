@@ -32,6 +32,7 @@ public class ObterResumoCartaoUseCase(ICartaoRepository cartaoRepository)
             cartao.LimiteTotal,
             cartao.DiaFechamento,
             cartao.DiaVencimento,
+          cartao.CorTema,
             cartao.Ativo,
             cartao.CreatedAtUtc,
             cartao.UpdatedAtUtc),

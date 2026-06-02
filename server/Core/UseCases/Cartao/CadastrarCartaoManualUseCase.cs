@@ -12,7 +12,8 @@ public class CadastrarCartaoManualUseCase(ICartaoRepository cartaoRepository)
       string nome,
       decimal limiteTotal,
       int diaFechamento,
-      int diaVencimento)
+      int diaVencimento,
+      string? corTema = null)
   {
     var totalAtivos = cartaoRepository.ContarCartoesAtivos(usuarioId);
     if (totalAtivos >= LimiteMaximoCartoesAtivos)
@@ -25,7 +26,8 @@ public class CadastrarCartaoManualUseCase(ICartaoRepository cartaoRepository)
         nome,
         limiteTotal,
         diaFechamento,
-        diaVencimento);
+      diaVencimento,
+      corTema);
 
     cartaoRepository.Adicionar(cartao);
     return cartao;

@@ -255,6 +255,26 @@ public class CartaoUseCasesTests
     public CartaoManual? ObterPorId(Guid id, Guid usuarioId)
         => _cartoes.FirstOrDefault(c => c.Id == id && c.UsuarioId == usuarioId);
 
+    public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true)
+    {
+      var query = _cartoes.Where(c => c.UsuarioId == usuarioId);
+      if (!incluirInativos)
+      {
+        query = query.Where(c => c.Ativo);
+      }
+
+      return query
+        .OrderByDescending(c => c.Ativo)
+        .ThenByDescending(c => c.UpdatedAtUtc)
+        .ToList();
+    }
+
+    public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId)
+      => _cartoes
+        .Where(c => c.UsuarioId == usuarioId && c.Ativo)
+        .OrderByDescending(c => c.UpdatedAtUtc)
+        .ToList();
+
     public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null)
       => _cartoes.Count(c => c.UsuarioId == usuarioId && c.Ativo && (!ignorarCartaoId.HasValue || c.Id != ignorarCartaoId.Value));
 

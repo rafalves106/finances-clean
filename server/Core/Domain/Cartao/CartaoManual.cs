@@ -8,6 +8,7 @@ public class CartaoManual
   public decimal LimiteTotal { get; private set; }
   public int DiaFechamento { get; private set; }
   public int DiaVencimento { get; private set; }
+  public string? CorTema { get; private set; }
   public bool Ativo { get; private set; }
   public DateTime CreatedAtUtc { get; private set; }
   public DateTime UpdatedAtUtc { get; private set; }
@@ -19,7 +20,8 @@ public class CartaoManual
       string nome,
       decimal limiteTotal,
       int diaFechamento,
-      int diaVencimento)
+      int diaVencimento,
+      string? corTema = null)
   {
     ValidarNome(nome);
     ValidarLimite(limiteTotal);
@@ -31,12 +33,13 @@ public class CartaoManual
     LimiteTotal = limiteTotal;
     DiaFechamento = diaFechamento;
     DiaVencimento = diaVencimento;
+    CorTema = NormalizarCorTema(corTema);
     Ativo = true;
     CreatedAtUtc = DateTime.UtcNow;
     UpdatedAtUtc = DateTime.UtcNow;
   }
 
-  public void Editar(string nome, decimal limiteTotal, int diaFechamento, int diaVencimento)
+  public void Editar(string nome, decimal limiteTotal, int diaFechamento, int diaVencimento, string? corTema = null)
   {
     ValidarNome(nome);
     ValidarLimite(limiteTotal);
@@ -46,6 +49,7 @@ public class CartaoManual
     LimiteTotal = limiteTotal;
     DiaFechamento = diaFechamento;
     DiaVencimento = diaVencimento;
+    CorTema = NormalizarCorTema(corTema);
     UpdatedAtUtc = DateTime.UtcNow;
   }
 
@@ -92,5 +96,21 @@ public class CartaoManual
     {
       throw new ArgumentException("Dia de vencimento deve estar entre 1 e 31.", nameof(diaVencimento));
     }
+  }
+
+  private static string? NormalizarCorTema(string? corTema)
+  {
+    if (string.IsNullOrWhiteSpace(corTema))
+    {
+      return null;
+    }
+
+    var normalized = corTema.Trim();
+    if (!System.Text.RegularExpressions.Regex.IsMatch(normalized, "^#[0-9a-fA-F]{6}$"))
+    {
+      throw new ArgumentException("Cor tema deve estar no formato #RRGGBB.", nameof(corTema));
+    }
+
+    return normalized.ToUpperInvariant();
   }
 }
