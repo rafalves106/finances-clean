@@ -59,7 +59,7 @@ const DashboardDesktopRedesignView = ({
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
-  const [cardSummary, setCardSummary] = useState(null);
+  const [cardSummaries, setCardSummaries] = useState([]);
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
@@ -79,13 +79,41 @@ const DashboardDesktopRedesignView = ({
         setIsCardSummaryLoading(true);
         setCardSummaryError("");
 
+        const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (multiResponse.ok) {
+          const multiData = await multiResponse.json();
+          const summaries = Array.isArray(multiData) ? multiData : [];
+
+          if (summaries.length > 0) {
+            setCardSummaries(summaries.slice(0, 3));
+            return;
+          }
+
+          setCardSummaries([]);
+          return;
+        }
+
+        if (multiResponse.status !== 404 && multiResponse.status !== 405) {
+          const message = await extractApiErrorMessage(
+            multiResponse,
+            "Não foi possível carregar o resumo do cartão.",
+          );
+          setCardSummaryError(message);
+          setCardSummaries([]);
+          return;
+        }
+
         const response = await fetch(`${API_CARTAO_URL}/resumo`, {
           method: "GET",
           credentials: "include",
         });
 
         if (response.status === 404) {
-          setCardSummary(null);
+          setCardSummaries([]);
           return;
         }
 
@@ -95,20 +123,20 @@ const DashboardDesktopRedesignView = ({
             "Não foi possível carregar o resumo do cartão.",
           );
           setCardSummaryError(message);
-          setCardSummary(null);
+          setCardSummaries([]);
           return;
         }
 
         const data = await response.json();
         if (data?.cartao && data?.limite && data?.previsaoFatura) {
-          setCardSummary(data);
+          setCardSummaries([data]);
         } else {
-          setCardSummary(null);
+          setCardSummaries([]);
         }
       } catch (error) {
         console.error("Erro ao buscar resumo de cartão:", error);
         setCardSummaryError("Erro ao carregar resumo do cartão.");
-        setCardSummary(null);
+        setCardSummaries([]);
       } finally {
         setIsCardSummaryLoading(false);
       }
@@ -116,6 +144,20 @@ const DashboardDesktopRedesignView = ({
 
     fetchCardSummary();
   }, [selectedMes, selectedAno]);
+
+  const cardSummary = cardSummaries[0] || null;
+  const backCardSummaries = cardSummaries.slice(1, 3);
+
+  const handleBringCardToFront = (cardIndex) => {
+    setCardSummaries((current) => {
+      if (cardIndex <= 0 || cardIndex >= current.length) {
+        return current;
+      }
+
+      const selected = current[cardIndex];
+      return [selected, ...current.filter((_, index) => index !== cardIndex)];
+    });
+  };
 
   const desktopGap = viewportHeight >= 1080 ? 16 : 12;
   const mainPaddingTop = 16;
@@ -524,14 +566,23 @@ const DashboardDesktopRedesignView = ({
                   className="uiux-card-stack"
                   aria-label="Resumo visual do cartão"
                 >
-                  <div
-                    className="uiux-card-layer uiux-card-layer-back-1"
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="uiux-card-layer uiux-card-layer-back-2"
-                    aria-hidden="true"
-                  />
+                  {backCardSummaries.map((item, index) => (
+                    <button
+                      key={
+                        item?.cartao?.id ||
+                        item?.cartao?.nome ||
+                        `back-card-${index}`
+                      }
+                      type="button"
+                      onClick={() => handleBringCardToFront(index + 1)}
+                      className={`uiux-card-layer uiux-card-layer-back-clickable ${index === 0 ? "uiux-card-layer-back-1" : "uiux-card-layer-back-2"}`}
+                      aria-label={`Selecionar cartão ${item?.cartao?.nome || "secundário"}`}
+                    >
+                      <p className="uiux-card-layer-back-name">
+                        {item?.cartao?.nome || ""}
+                      </p>
+                    </button>
+                  ))}
 
                   <button
                     type="button"
@@ -557,7 +608,7 @@ const DashboardDesktopRedesignView = ({
                       aria-label="Uso do limite do cartão"
                     >
                       <div
-                        className="uiux-card-progress-fill"
+                        className={`uiux-card-progress-fill ${cardUsagePercent <= 0 ? "uiux-card-progress-fill-empty" : ""}`}
                         style={{ width: `${cardUsagePercent}%` }}
                       />
                     </div>

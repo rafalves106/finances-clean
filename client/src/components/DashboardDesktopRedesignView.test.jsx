@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("recharts", () => {
   const Mock = ({ children }) => <div>{children}</div>;
@@ -27,6 +27,46 @@ import DashboardDesktopRedesignView from "./DashboardDesktopRedesignView";
 const buildFetchMock = () =>
   vi.fn().mockImplementation(async (url) => {
     const path = String(url);
+
+    if (path.includes("/api/v1/cartao/resumos")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            cartao: {
+              nome: "Cartao Principal",
+              diaFechamento: 27,
+              diaVencimento: 5,
+            },
+            limite: {
+              limiteTotal: 3000,
+              limiteDisponivel: 1800,
+              limiteUtilizado: 1200,
+            },
+            previsaoFatura: { atual: 1200, proxima: 980 },
+          },
+          {
+            cartao: { nome: "Cartao Secundario" },
+            limite: {
+              limiteTotal: 2000,
+              limiteDisponivel: 1700,
+              limiteUtilizado: 300,
+            },
+            previsaoFatura: { atual: 300, proxima: 220 },
+          },
+          {
+            cartao: { nome: "Cartao Reserva" },
+            limite: {
+              limiteTotal: 1500,
+              limiteDisponivel: 1200,
+              limiteUtilizado: 300,
+            },
+            previsaoFatura: { atual: 300, proxima: 150 },
+          },
+        ],
+      };
+    }
 
     if (path.includes("/api/v1/cartao/resumo")) {
       return {
@@ -109,9 +149,63 @@ describe("DashboardDesktopRedesignView", () => {
     expect(root.style.height).toBe("948px");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/cartao/resumo"),
+      expect.stringContaining("/api/v1/cartao/resumos"),
       expect.objectContaining({ credentials: "include", method: "GET" }),
     );
+  });
+
+  it("deve exibir o nome dos dois cartoes de tras", async () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    expect(await screen.findByText("Cartao Secundario")).toBeTruthy();
+    expect(screen.getByText("Cartao Reserva")).toBeTruthy();
+  });
+
+  it("deve trocar o cartao ativo ao clicar em um cartao de tras", async () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    const backCard = await screen.findByLabelText(
+      "Selecionar cartão Cartao Secundario",
+    );
+    fireEvent.click(backCard);
+
+    expect(screen.getByText("Cartao Secundario")).toBeTruthy();
+    const activeButton = screen.getByLabelText("Abrir gestão do cartão");
+    expect(activeButton.textContent).toContain("Cartao Secundario");
   });
 
   it("deve manter saidas a esquerda e entradas a direita na secao de movimentacoes", () => {

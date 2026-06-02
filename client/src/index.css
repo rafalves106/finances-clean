@@ -123,10 +123,13 @@ body {
 }
 
 .uiux-card-layer-back-1 {
-  top: 16px;
+  top: 32px;
   bottom: 0;
   left: 10px;
   right: 10px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 14px;
   border: 1px solid rgba(104, 87, 63, 0.25);
   background: linear-gradient(
     180deg,
@@ -136,10 +139,13 @@ body {
 }
 
 .uiux-card-layer-back-2 {
-  top: 8px;
-  bottom: 8px;
+  top: 22px;
+  bottom: 22px;
   left: 5px;
   right: 5px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px;
   border: 1px solid rgba(120, 102, 75, 0.3);
   background: linear-gradient(
     180deg,
@@ -148,9 +154,43 @@ body {
   );
 }
 
+.uiux-card-layer-back-clickable {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.uiux-card-layer-back-clickable:hover {
+  transform: translateY(-1px);
+  border-color: rgba(173, 148, 112, 0.5);
+  box-shadow: 0 8px 18px rgba(8, 7, 17, 0.24);
+}
+
+.uiux-card-layer-back-clickable:focus-visible {
+  outline: none;
+  border-color: #9d7e6b;
+  box-shadow: 0 0 0 2px rgba(157, 126, 107, 0.28);
+}
+
+.uiux-card-layer-back-name {
+  margin: 0;
+  color: rgba(216, 210, 235, 0.78);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .uiux-card-layer-front {
   top: 0;
-  bottom: 16px;
+  bottom: 48px;
   z-index: 2;
   border: 1px solid #6a4f45;
   background:
@@ -209,7 +249,7 @@ body {
   color: #9a7461;
   font-size: 18px;
   line-height: 1.1;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .uiux-card-value-limit {
@@ -222,7 +262,7 @@ body {
 
 .uiux-card-progress-track {
   position: relative;
-  height: 34px;
+  height: 28px;
   border-radius: 999px;
   border: 1px solid #59453f;
   background: linear-gradient(90deg, #231616 0%, #181536 100%);
@@ -238,6 +278,11 @@ body {
   transition: width 220ms ease-in-out;
 }
 
+.uiux-card-progress-fill-empty {
+  border: 0;
+  background: transparent;
+}
+
 .uiux-card-footer-row {
   display: flex;
   align-items: flex-end;
@@ -249,7 +294,7 @@ body {
   margin: 0;
   color: #8e7d74;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .uiux-card-cycle {
