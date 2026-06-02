@@ -35,9 +35,9 @@ public class CartaoController(
 
       return CreatedAtAction(nameof(ObterResumo), new { id = cartao.Id }, cartao);
     }
-    catch (InvalidOperationException)
+    catch (InvalidOperationException ex) when (ex.Message == "CARTAO_LIMITE_ATIVOS_EXCEDIDO")
     {
-      return Conflict(Erro("CARTAO_ATIVO_JA_EXISTE", "Já existe um cartão ativo para o usuário."));
+      return Conflict(Erro("CARTAO_LIMITE_ATIVOS_EXCEDIDO", "Usuário já possui 3 cartões ativos."));
     }
     catch (ArgumentException ex)
     {

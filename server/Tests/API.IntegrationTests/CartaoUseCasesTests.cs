@@ -42,15 +42,57 @@ public class CartaoUseCasesTests
   }
 
   [Fact]
-  public void CadastrarCartao_SegundoCartaoAtivo_DeveFalhar()
+  public void CadastrarCartao_AteTresAtivos_DevePermitir()
   {
     var usuarioId = Guid.NewGuid();
     var repository = new InMemoryCartaoRepository();
-    repository.Adicionar(new CartaoManual(usuarioId, "Cartão A", 3000m, 10, 20));
     var useCase = new CadastrarCartaoManualUseCase(repository);
 
-    Assert.Throws<InvalidOperationException>(() =>
-        useCase.Executar(usuarioId, "Cartão B", 4000m, 12, 22));
+    var cartao1 = useCase.Executar(usuarioId, "Cartão A", 3000m, 10, 20);
+    var cartao2 = useCase.Executar(usuarioId, "Cartão B", 4000m, 12, 22);
+    var cartao3 = useCase.Executar(usuarioId, "Cartão C", 5000m, 15, 25);
+
+    Assert.NotNull(cartao1);
+    Assert.NotNull(cartao2);
+    Assert.NotNull(cartao3);
+    Assert.Equal(3, repository.ContarCartoesAtivos(usuarioId));
+  }
+
+  [Fact]
+  public void CadastrarCartao_QuartoAtivo_DeveFalhar()
+  {
+    var usuarioId = Guid.NewGuid();
+    var repository = new InMemoryCartaoRepository();
+    var useCase = new CadastrarCartaoManualUseCase(repository);
+
+    useCase.Executar(usuarioId, "Cartão A", 3000m, 10, 20);
+    useCase.Executar(usuarioId, "Cartão B", 4000m, 12, 22);
+    useCase.Executar(usuarioId, "Cartão C", 5000m, 15, 25);
+
+    var ex = Assert.Throws<InvalidOperationException>(() =>
+        useCase.Executar(usuarioId, "Cartão D", 4500m, 13, 23));
+
+    Assert.Equal("CARTAO_LIMITE_ATIVOS_EXCEDIDO", ex.Message);
+  }
+
+  [Fact]
+  public void InativarCartao_ComTresAtivosEAdicionarNovo_DevePermitir()
+  {
+    var usuarioId = Guid.NewGuid();
+    var repository = new InMemoryCartaoRepository();
+    var cadastrarUseCase = new CadastrarCartaoManualUseCase(repository);
+    var inativarUseCase = new InativarCartaoManualUseCase(repository);
+
+    var cartao1 = cadastrarUseCase.Executar(usuarioId, "Cartão A", 3000m, 10, 20);
+    cadastrarUseCase.Executar(usuarioId, "Cartão B", 4000m, 12, 22);
+    cadastrarUseCase.Executar(usuarioId, "Cartão C", 5000m, 15, 25);
+
+    inativarUseCase.Executar(usuarioId, cartao1.Id);
+
+    var novoCartao = cadastrarUseCase.Executar(usuarioId, "Cartão D", 4500m, 13, 23);
+
+    Assert.NotNull(novoCartao);
+    Assert.Equal(3, repository.ContarCartoesAtivos(usuarioId));
   }
 
   [Fact]
@@ -213,8 +255,8 @@ public class CartaoUseCasesTests
     public CartaoManual? ObterPorId(Guid id, Guid usuarioId)
         => _cartoes.FirstOrDefault(c => c.Id == id && c.UsuarioId == usuarioId);
 
-    public bool ExisteCartaoAtivo(Guid usuarioId, Guid? ignorarCartaoId = null)
-        => _cartoes.Any(c => c.UsuarioId == usuarioId && c.Ativo && (!ignorarCartaoId.HasValue || c.Id != ignorarCartaoId.Value));
+    public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null)
+      => _cartoes.Count(c => c.UsuarioId == usuarioId && c.Ativo && (!ignorarCartaoId.HasValue || c.Id != ignorarCartaoId.Value));
 
     public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento)
     {
