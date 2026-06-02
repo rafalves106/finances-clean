@@ -30,7 +30,7 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
         .FirstOrDefault(c => c.Id == id && c.UsuarioId == usuarioId);
   }
 
-  public bool ExisteCartaoAtivo(Guid usuarioId, Guid? ignorarCartaoId = null)
+  public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null)
   {
     var query = context.CartoesManuais
         .Where(c => c.UsuarioId == usuarioId && c.Ativo);
@@ -40,7 +40,7 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
       query = query.Where(c => c.Id != ignorarCartaoId.Value);
     }
 
-    return query.Any();
+    return query.Count();
   }
 
   public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento)

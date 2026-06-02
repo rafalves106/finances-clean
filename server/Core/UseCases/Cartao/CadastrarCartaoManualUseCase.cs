@@ -5,6 +5,8 @@ namespace Finance.Core.UseCases;
 
 public class CadastrarCartaoManualUseCase(ICartaoRepository cartaoRepository)
 {
+  private const int LimiteMaximoCartoesAtivos = 3;
+
   public CartaoManual Executar(
       Guid usuarioId,
       string nome,
@@ -12,9 +14,10 @@ public class CadastrarCartaoManualUseCase(ICartaoRepository cartaoRepository)
       int diaFechamento,
       int diaVencimento)
   {
-    if (cartaoRepository.ExisteCartaoAtivo(usuarioId))
+    var totalAtivos = cartaoRepository.ContarCartoesAtivos(usuarioId);
+    if (totalAtivos >= LimiteMaximoCartoesAtivos)
     {
-      throw new InvalidOperationException("Já existe um cartão ativo para o usuário.");
+      throw new InvalidOperationException("CARTAO_LIMITE_ATIVOS_EXCEDIDO");
     }
 
     var cartao = new CartaoManual(

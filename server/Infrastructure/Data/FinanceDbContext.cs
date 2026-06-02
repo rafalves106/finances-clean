@@ -193,7 +193,6 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.UpdatedAtUtc).IsRequired();
 
             entity.HasIndex(e => new { e.UsuarioId, e.Ativo })
-                .IsUnique()
                 .HasFilter("\"Ativo\" = true");
 
             entity.HasQueryFilter(c =>

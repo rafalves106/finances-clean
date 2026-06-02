@@ -43,40 +43,92 @@ public class CartaoControllerTests : IClassFixture<ApiWebApplicationFactory>
   }
 
   [Fact]
-  public async Task CadastrarCartao_SegundoCartaoAtivo_DeveRetornar409()
+  public async Task CadastrarCartao_QuartoCartaoAtivo_DeveRetornar409()
   {
     using var client = BuildAuthenticatedClient();
 
-    using var primeiroCadastro = BuildRequest(
+    for (var i = 1; i <= 3; i++)
+    {
+      using var cadastro = BuildRequest(
+          HttpMethod.Post,
+          "/api/v1/cartao",
+          new
+          {
+            nome = $"Cartão {i}",
+            limiteTotal = 2000 + (i * 500),
+            diaFechamento = 7 + i,
+            diaVencimento = 17 + i
+          });
+
+      var response = await client.SendAsync(cadastro);
+      Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    using var quartoCadastro = BuildRequest(
         HttpMethod.Post,
         "/api/v1/cartao",
         new
         {
-          nome = "Cartão Principal",
-          limiteTotal = 4000,
-          diaFechamento = 9,
-          diaVencimento = 19
+          nome = "Cartão 4",
+          limiteTotal = 3500,
+          diaFechamento = 12,
+          diaVencimento = 22
         });
 
-    var primeiroResponse = await client.SendAsync(primeiroCadastro);
-    Assert.Equal(HttpStatusCode.Created, primeiroResponse.StatusCode);
+    var quartoResponse = await client.SendAsync(quartoCadastro);
+    var body = await quartoResponse.Content.ReadAsStringAsync();
 
-    using var segundoCadastro = BuildRequest(
+    Assert.Equal(HttpStatusCode.Conflict, quartoResponse.StatusCode);
+    Assert.Contains("CARTAO_LIMITE_ATIVOS_EXCEDIDO", body);
+  }
+
+  [Fact]
+  public async Task InativarCartao_ComTresAtivosEAdicionarNovo_DevePermitirNovoCadastro()
+  {
+    using var client = BuildAuthenticatedClient();
+    Guid? ultimoCartaoId = null;
+
+    for (var i = 1; i <= 3; i++)
+    {
+      using var cadastro = BuildRequest(
+          HttpMethod.Post,
+          "/api/v1/cartao",
+          new
+          {
+            nome = $"Cartão ativo {i}",
+            limiteTotal = 1500 + (i * 400),
+            diaFechamento = 6 + i,
+            diaVencimento = 16 + i
+          });
+
+      var response = await client.SendAsync(cadastro);
+      Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+      var payload = await response.Content.ReadAsStringAsync();
+      using var document = JsonDocument.Parse(payload);
+      ultimoCartaoId = document.RootElement.GetProperty("id").GetGuid();
+    }
+
+    Assert.True(ultimoCartaoId.HasValue);
+
+    using var inativacao = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/cartao/{ultimoCartaoId.Value}");
+    inativacao.Headers.TryAddWithoutValidation("Origin", "http://allowed.example.com");
+    var inativarResponse = await client.SendAsync(inativacao);
+    Assert.Equal(HttpStatusCode.NoContent, inativarResponse.StatusCode);
+
+    using var novoCadastro = BuildRequest(
         HttpMethod.Post,
         "/api/v1/cartao",
         new
         {
-          nome = "Cartão Extra",
-          limiteTotal = 2500,
-          diaFechamento = 8,
-          diaVencimento = 18
+          nome = "Cartão pós-inativação",
+          limiteTotal = 3900,
+          diaFechamento = 11,
+          diaVencimento = 21
         });
 
-    var segundoResponse = await client.SendAsync(segundoCadastro);
-    var body = await segundoResponse.Content.ReadAsStringAsync();
-
-    Assert.Equal(HttpStatusCode.Conflict, segundoResponse.StatusCode);
-    Assert.Contains("CARTAO_ATIVO_JA_EXISTE", body);
+    var novoResponse = await client.SendAsync(novoCadastro);
+    Assert.Equal(HttpStatusCode.Created, novoResponse.StatusCode);
   }
 
   private HttpClient BuildAuthenticatedClient()
