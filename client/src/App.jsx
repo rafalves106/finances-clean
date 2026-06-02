@@ -534,7 +534,16 @@ const App = () => {
               categorias={categorias}
             />
           )}
-          {activeTab === "card" && <CardViewerView />}
+          {activeTab === "card" && (
+            <CardViewerView
+              onCardsChanged={() =>
+                fetchData({
+                  silent: true,
+                  periodKey: `${selectedAno}-${selectedMes}`,
+                })
+              }
+            />
+          )}
 
           <CategoryManagerModal
             isOpen={isCategoryManagerOpen}

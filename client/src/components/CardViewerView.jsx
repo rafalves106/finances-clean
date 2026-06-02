@@ -3,68 +3,122 @@ import { API_CARTAO_URL, extractApiErrorMessage } from "../services/api";
 import { getAuthHeaders } from "../services/auth";
 import { formatCurrency } from "../util/formatCurrency";
 
+const QUICK_COLORS = [
+  "#271815",
+  "#1E293B",
+  "#14532D",
+  "#3F2B27",
+  "#1F2937",
+  "#7C2D12",
+  "#0F766E",
+  "#581C87",
+];
+
 const INITIAL_FORM = {
   nome: "",
   limiteTotal: "",
   diaFechamento: "",
   diaVencimento: "",
+  corTema: "#271815",
 };
 
-const CardViewerView = () => {
-  const [resumo, setResumo] = useState(null);
-  const [form, setForm] = useState(INITIAL_FORM);
+const normalizeColor = (value) => {
+  if (!value || typeof value !== "string") {
+    return "#271815";
+  }
+
+  const trimmed = value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  return "#271815";
+};
+
+const mapCardToForm = (card) => ({
+  nome: card.nome || "",
+  limiteTotal: String(card.limiteTotal ?? ""),
+  diaFechamento: String(card.diaFechamento ?? ""),
+  diaVencimento: String(card.diaVencimento ?? ""),
+  corTema: normalizeColor(card.corTema),
+});
+
+const CardViewerView = ({ onCardsChanged }) => {
+  const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingCardId, setEditingCardId] = useState(null);
+  const [form, setForm] = useState(INITIAL_FORM);
 
-  const preencherForm = (cartao) => {
-    setForm({
-      nome: cartao.nome || "",
-      limiteTotal: String(cartao.limiteTotal ?? ""),
-      diaFechamento: String(cartao.diaFechamento ?? ""),
-      diaVencimento: String(cartao.diaVencimento ?? ""),
-    });
-  };
-
-  const carregarResumo = useCallback(async () => {
+  const loadCards = useCallback(async () => {
     setLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+      const response = await fetch(`${API_CARTAO_URL}?incluirInativos=true`, {
+        method: "GET",
         headers: getAuthHeaders(),
       });
 
+      if (response.ok) {
+        const data = await response.json();
+        setCards(Array.isArray(data) ? data : []);
+        return;
+      }
+
       if (response.status === 404) {
-        setResumo(null);
-        setForm(INITIAL_FORM);
+        setCards([]);
         return;
       }
 
-      if (!response.ok) {
-        const message = await extractApiErrorMessage(
-          response,
-          "Não foi possível carregar o cartão.",
-        );
-        setErrorMessage(message);
-        return;
+      if (response.status === 405) {
+        const fallback = await fetch(`${API_CARTAO_URL}/resumos`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
+
+        if (fallback.ok) {
+          const data = await fallback.json();
+          const fallbackCards = Array.isArray(data)
+            ? data.map((item) => item?.cartao).filter(Boolean)
+            : [];
+          setCards(fallbackCards);
+          return;
+        }
       }
 
-      const data = await response.json();
-      setResumo(data);
-      preencherForm(data.cartao);
+      const message = await extractApiErrorMessage(
+        response,
+        "Não foi possível carregar os cartões.",
+      );
+      setErrorMessage(message);
+      setCards([]);
     } catch {
-      setErrorMessage("Falha de conexão ao carregar dados do cartão.");
+      setErrorMessage("Falha de conexão ao carregar cartões.");
+      setCards([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    carregarResumo();
-  }, [carregarResumo]);
+    void loadCards();
+  }, [loadCards]);
+
+  const activeCards = useMemo(
+    () => cards.filter((card) => card?.ativo),
+    [cards],
+  );
+  const inactiveCards = useMemo(
+    () => cards.filter((card) => !card?.ativo),
+    [cards],
+  );
+
+  const isEditing = Boolean(editingCardId);
+  const activeLimitReached = activeCards.length >= 3;
 
   const payload = useMemo(
     () => ({
@@ -72,6 +126,7 @@ const CardViewerView = () => {
       limiteTotal: Number(form.limiteTotal),
       diaFechamento: Number(form.diaFechamento),
       diaVencimento: Number(form.diaVencimento),
+      corTema: form.corTema?.trim() ? normalizeColor(form.corTema) : null,
     }),
     [form],
   );
@@ -84,10 +139,40 @@ const CardViewerView = () => {
     payload.diaVencimento >= 1 &&
     payload.diaVencimento <= 31;
 
+  const openCreateForm = () => {
+    setEditingCardId(null);
+    setForm(INITIAL_FORM);
+    setIsFormOpen(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const openEditForm = (card) => {
+    setEditingCardId(card.id);
+    setForm(mapCardToForm(card));
+    setIsFormOpen(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingCardId(null);
+    setForm(INITIAL_FORM);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!isFormValid) {
       setErrorMessage("Preencha os dados do cartão corretamente.");
+      return;
+    }
+
+    if (!isEditing && activeLimitReached) {
+      setErrorMessage(
+        "Você já possui 3 cartões ativos. Inative um cartão para cadastrar outro.",
+      );
       return;
     }
 
@@ -96,12 +181,11 @@ const CardViewerView = () => {
     setSuccessMessage("");
 
     try {
-      const endpoint =
-        editing && resumo?.cartao?.id
-          ? `${API_CARTAO_URL}/${resumo.cartao.id}`
-          : API_CARTAO_URL;
+      const endpoint = isEditing
+        ? `${API_CARTAO_URL}/${editingCardId}`
+        : API_CARTAO_URL;
 
-      const method = editing ? "PUT" : "POST";
+      const method = isEditing ? "PUT" : "POST";
 
       const response = await fetch(endpoint, {
         method,
@@ -113,7 +197,7 @@ const CardViewerView = () => {
       });
 
       if (!response.ok) {
-        const fallback = editing
+        const fallback = isEditing
           ? "Não foi possível atualizar o cartão."
           : "Não foi possível cadastrar o cartão.";
         const message = await extractApiErrorMessage(response, fallback);
@@ -122,12 +206,13 @@ const CardViewerView = () => {
       }
 
       setSuccessMessage(
-        editing
+        isEditing
           ? "Cartão atualizado com sucesso."
           : "Cartão cadastrado com sucesso.",
       );
-      setEditing(false);
-      await carregarResumo();
+      closeForm();
+      await loadCards();
+      await onCardsChanged?.();
     } catch {
       setErrorMessage("Falha de conexão ao salvar cartão.");
     } finally {
@@ -135,8 +220,12 @@ const CardViewerView = () => {
     }
   };
 
-  const handleInativar = async () => {
-    if (!resumo?.cartao?.id) {
+  const handleInactivate = async (card) => {
+    const confirmed = window.confirm(
+      `Deseja inativar o cartão "${card.nome}"?`,
+    );
+
+    if (!confirmed) {
       return;
     }
 
@@ -145,7 +234,7 @@ const CardViewerView = () => {
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`${API_CARTAO_URL}/${resumo.cartao.id}`, {
+      const response = await fetch(`${API_CARTAO_URL}/${card.id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -159,12 +248,9 @@ const CardViewerView = () => {
         return;
       }
 
-      setSuccessMessage(
-        "Cartão inativado. Cadastre um novo cartão para continuar.",
-      );
-      setResumo(null);
-      setEditing(false);
-      setForm(INITIAL_FORM);
+      setSuccessMessage("Cartão inativado com sucesso.");
+      await loadCards();
+      await onCardsChanged?.();
     } catch {
       setErrorMessage("Falha de conexão ao inativar cartão.");
     } finally {
@@ -175,8 +261,8 @@ const CardViewerView = () => {
   return (
     <section className="space-y-5">
       <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
-        Este módulo é manual e não possui integração bancária. Cadastre compras
-        no app para manter limite e previsão atualizados.
+        Gestão completa de cartões manuais. Você pode criar, editar, inativar e
+        personalizar cor tema. Limite máximo: 3 cartões ativos por usuário.
       </div>
 
       {errorMessage ? (
@@ -193,193 +279,269 @@ const CardViewerView = () => {
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-          Carregando dados do cartão...
+          Carregando cartões...
         </div>
       ) : (
         <>
-          {!resumo ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
-              <h2 className="text-lg font-semibold text-slate-800">
-                Cadastre seu cartão manual
-              </h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Cartões ativos
+                </h2>
+                <p className="text-sm text-slate-500">
+                  {activeCards.length}/3 ativos
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={openCreateForm}
+                disabled={saving}
+                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+              >
+                Novo cartão
+              </button>
+            </div>
+
+            {activeCards.length === 0 ? (
               <p className="text-sm text-slate-600">
-                Você ainda não possui cartão ativo. Preencha os dados básicos
-                para começar a acompanhar limite e fatura.
+                Nenhum cartão ativo. Cadastre o primeiro cartão para começar.
               </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Limite utilizado
-                </p>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
-                  {formatCurrency(resumo.limite.utilizado || 0)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Limite disponível
-                </p>
-                <p className="mt-1 text-2xl font-bold text-emerald-700">
-                  {formatCurrency(resumo.limite.disponivel || 0)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Uso do limite
-                </p>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
-                  {Number(resumo.limite.percentualUso || 0).toFixed(2)}%
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Fatura atual / próxima
-                </p>
-                <p className="mt-1 text-sm font-semibold text-slate-700">
-                  {formatCurrency(resumo.previsaoFatura.atual || 0)} /{" "}
-                  {formatCurrency(resumo.previsaoFatura.proxima || 0)}
-                </p>
-              </div>
-            </div>
-          )}
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {activeCards.map((card) => (
+                  <article
+                    key={card.id}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-800">
+                          {card.nome}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          Limite: {formatCurrency(card.limiteTotal || 0)}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Fechamento{" "}
+                          {String(card.diaFechamento || "-").padStart(2, "0")} ·
+                          Vencimento{" "}
+                          {String(card.diaVencimento || "-").padStart(2, "0")}
+                        </p>
+                      </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-slate-800">
-                {resumo
-                  ? editing
-                    ? "Editar cartão"
-                    : "Cartão cadastrado"
-                  : "Novo cartão"}
-              </h3>
+                      <span
+                        className="inline-block h-4 w-4 rounded-full border border-slate-300"
+                        style={{
+                          backgroundColor: normalizeColor(card.corTema),
+                        }}
+                        title={`Cor tema ${normalizeColor(card.corTema)}`}
+                      />
+                    </div>
 
-              {resumo && !editing ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(card)}
+                        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleInactivate(card)}
+                        disabled={saving}
+                        className="rounded-md border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                      >
+                        Inativar
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            {inactiveCards.length > 0 ? (
+              <div className="pt-3 border-t border-slate-200">
+                <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                  Cartões inativos
+                </h3>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {inactiveCards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                    >
+                      <p className="text-sm font-medium text-slate-700">
+                        {card.nome}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Limite {formatCurrency(card.limiteTotal || 0)} · Fech{" "}
+                        {String(card.diaFechamento || "-").padStart(2, "0")} ·
+                        Venc{" "}
+                        {String(card.diaVencimento || "-").padStart(2, "0")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {isFormOpen ? (
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  {isEditing ? "Editar cartão" : "Novo cartão"}
+                </h3>
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  onClick={() => setEditing(true)}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={closeForm}
                 >
-                  Editar
+                  Fechar
                 </button>
-              ) : null}
-            </div>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="space-y-1 text-sm text-slate-700">
-                <span>Nome do cartão</span>
-                <input
-                  type="text"
-                  className="w-full rounded-lg border border-slate-300 p-2"
-                  value={form.nome}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, nome: event.target.value }))
-                  }
-                  disabled={Boolean(resumo) && !editing}
-                  maxLength={100}
-                />
-              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="space-y-1 text-sm text-slate-700">
+                  <span>Nome do cartão</span>
+                  <input
+                    type="text"
+                    value={form.nome}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, nome: event.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 p-2"
+                    maxLength={100}
+                  />
+                </label>
 
-              <label className="space-y-1 text-sm text-slate-700">
-                <span>Limite total</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="w-full rounded-lg border border-slate-300 p-2"
-                  value={form.limiteTotal}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      limiteTotal: event.target.value,
-                    }))
-                  }
-                  disabled={Boolean(resumo) && !editing}
-                />
-              </label>
+                <label className="space-y-1 text-sm text-slate-700">
+                  <span>Limite total</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.limiteTotal}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        limiteTotal: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 p-2"
+                  />
+                </label>
 
-              <label className="space-y-1 text-sm text-slate-700">
-                <span>Dia de fechamento</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  className="w-full rounded-lg border border-slate-300 p-2"
-                  value={form.diaFechamento}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      diaFechamento: event.target.value,
-                    }))
-                  }
-                  disabled={Boolean(resumo) && !editing}
-                />
-              </label>
+                <label className="space-y-1 text-sm text-slate-700">
+                  <span>Dia de fechamento</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.diaFechamento}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        diaFechamento: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 p-2"
+                  />
+                </label>
 
-              <label className="space-y-1 text-sm text-slate-700">
-                <span>Dia de vencimento</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  className="w-full rounded-lg border border-slate-300 p-2"
-                  value={form.diaVencimento}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      diaVencimento: event.target.value,
-                    }))
-                  }
-                  disabled={Boolean(resumo) && !editing}
-                />
-              </label>
-            </div>
+                <label className="space-y-1 text-sm text-slate-700">
+                  <span>Dia de vencimento</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.diaVencimento}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        diaVencimento: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 p-2"
+                  />
+                </label>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              {(!resumo || editing) && (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">Cor tema</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {QUICK_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="h-7 w-7 rounded-full border border-slate-300"
+                      style={{ backgroundColor: color }}
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, corTema: color }))
+                      }
+                      aria-label={`Selecionar cor ${color}`}
+                    />
+                  ))}
+
+                  <input
+                    type="color"
+                    value={normalizeColor(form.corTema)}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        corTema: event.target.value,
+                      }))
+                    }
+                    className="h-8 w-10 rounded border border-slate-300"
+                    aria-label="Selecionar cor personalizada"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs text-slate-500 uppercase tracking-wide">
+                  Preview
+                </p>
+                <div
+                  className="mt-2 rounded-xl border border-slate-300 px-4 py-3 text-white"
+                  style={{ backgroundColor: normalizeColor(form.corTema) }}
+                >
+                  <p className="text-sm font-medium truncate">
+                    {form.nome.trim() || "Nome do cartão"}
+                  </p>
+                  <p className="text-xs opacity-90 mt-1">
+                    Limite {formatCurrency(Number(form.limiteTotal) || 0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-70"
+                  disabled={saving || !isFormValid}
+                  className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
                 >
                   {saving
                     ? "Salvando..."
-                    : resumo
+                    : isEditing
                       ? "Salvar alterações"
                       : "Cadastrar cartão"}
                 </button>
-              )}
 
-              {resumo && editing ? (
-                <button
-                  type="button"
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  onClick={() => {
-                    preencherForm(resumo.cartao);
-                    setEditing(false);
-                    setErrorMessage("");
-                  }}
-                >
-                  Cancelar edição
-                </button>
-              ) : null}
-
-              {resumo ? (
-                <button
-                  type="button"
-                  onClick={handleInativar}
-                  disabled={saving}
-                  className="rounded-lg border border-rose-300 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-70"
-                >
-                  Inativar cartão
-                </button>
-              ) : null}
-            </div>
-          </form>
+                {activeLimitReached && !isEditing ? (
+                  <p className="text-xs text-amber-700">
+                    Limite de 3 cartões ativos atingido.
+                  </p>
+                ) : null}
+              </div>
+            </form>
+          ) : null}
         </>
       )}
     </section>
