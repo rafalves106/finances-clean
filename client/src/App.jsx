@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import {
   TrendingUp,
-  Wallet,
   LayoutDashboard,
   Target,
   Bike,
   CreditCard,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
@@ -79,7 +76,7 @@ const App = () => {
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(96);
   const headerRef = useRef(null);
   const categoryManagerTriggerRef = useRef(null);
@@ -89,6 +86,7 @@ const App = () => {
   const latestMutationTokenRef = useRef(0);
 
   const INVESTMENT_GOAL_PERCENT = 10;
+  const isSidebarExpanded = isSidebarHovered;
 
   const totalInvestmentsBalance = investments.reduce(
     (acc, curr) => acc + curr.saldoAtual,
@@ -351,7 +349,16 @@ const App = () => {
   }, [isLoggedIn]);
 
   useLayoutEffect(() => {
-    if (!isLoggedIn || !headerRef.current) {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    if (activeTab === "dashboard") {
+      setHeaderHeight(0);
+      return;
+    }
+
+    if (!headerRef.current) {
       return;
     }
 
@@ -380,97 +387,69 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
+    <div className="uiux-shell flex h-screen overflow-hidden text-[#e8ebff]">
       <aside
-        className="bg-slate-900 text-slate-300 flex flex-col transition-all duration-200 ease-in-out"
-        style={{ width: isSidebarCollapsed ? 72 : 240 }}
+        className="uiux-sidebar flex flex-col text-[#aeb2d8] transition-all duration-200 ease-in-out"
+        style={{ width: isSidebarExpanded ? 240 : 64 }}
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
       >
-        <div className="p-4 flex items-center justify-between gap-3 text-white mb-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <Wallet className="w-8 h-8 text-emerald-400" />
-            {!isSidebarCollapsed ? (
-              <span className="text-xl font-bold">Finanças</span>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsSidebarCollapsed((value) => !value)}
-            aria-label={
-              isSidebarCollapsed
-                ? "Expandir menu lateral"
-                : "Recolher menu lateral"
-            }
-            aria-expanded={!isSidebarCollapsed}
-            className="h-10 w-10 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-          >
-            {isSidebarCollapsed ? (
-              <PanelLeftOpen size={18} className="mx-auto" />
-            ) : (
-              <PanelLeftClose size={18} className="mx-auto" />
-            )}
-          </button>
-        </div>
-
-        <nav className="flex-1 space-y-2 px-3 text-sm">
+        <nav className="my-auto space-y-3 px-3 text-sm">
           {[
             {
               id: "dashboard",
               label: "Dashboard",
               icon: <LayoutDashboard size={20} />,
-              color: "bg-emerald-600",
+              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "investments",
               label: "Investimentos",
               icon: <TrendingUp size={20} />,
-              color: "bg-blue-600",
+              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "wishlist",
-              label: "Metas & Sonhos",
+              label: "Conquistas",
               icon: <Target size={20} />,
-              color: "bg-indigo-600",
+              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "vehicle",
               label: "Manutenção Veicular",
               icon: <Bike size={20} />,
-              color: "bg-orange-600",
+              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "card",
-              label: "Cartão",
+              label: "Cartões",
               icon: <CreditCard size={20} />,
-              color: "bg-teal-600",
+              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              title={isSidebarCollapsed ? item.label : undefined}
+              title={!isSidebarExpanded ? item.label : undefined}
               aria-label={item.label}
-              className={`group relative w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-start"} gap-3 p-3 rounded-xl transition-all duration-200
-                ${activeTab === item.id ? `${item.color} text-white shadow-lg` : "hover:bg-slate-800 hover:text-white"}`}
+              className={`group relative w-full flex items-center ${isSidebarExpanded ? "justify-start" : "justify-center"} gap-3 px-4 py-2.5 rounded-full transition-all duration-200
+                ${activeTab === item.id ? `${item.color} shadow-[0_0_25px_rgba(89,102,192,0.35)]` : "text-[#989fc9] hover:bg-[#171b40] hover:text-white"}`}
             >
-              {item.icon}
-              {!isSidebarCollapsed ? (
+              <span className="h-5 w-5 shrink-0 flex items-center justify-center">
+                {item.icon}
+              </span>
+              {isSidebarExpanded ? (
                 <span className="font-medium">{item.label}</span>
               ) : (
                 <span className="sr-only">{item.label}</span>
               )}
-
-              {isSidebarCollapsed ? (
-                <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block group-focus-visible:block">
-                  {item.label}
-                </span>
-              ) : null}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800 space-y-3">
-          {!isSidebarCollapsed ? (
-            <div className="text-xs text-slate-500 text-center">
+        <div className="p-4 border-t border-[#1f2553] space-y-3">
+          {isSidebarExpanded ? (
+            <div className="text-xs text-[#7f86b5] text-center">
               v{APP_VERSION}
             </div>
           ) : null}
@@ -481,11 +460,10 @@ const App = () => {
               setIsLoggedIn(false);
             }}
             aria-label="Sair"
-            title={isSidebarCollapsed ? "Sair" : undefined}
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-center"} gap-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl py-2 transition-colors`}
+            title={!isSidebarExpanded ? "Sair" : undefined}
+            className={`w-full flex items-center justify-center gap-2 text-sm font-medium text-[#9ea4cf] hover:text-white hover:bg-[#171b40] rounded-full py-2 transition-colors`}
           >
-            <LogOut size={16} />{" "}
-            {!isSidebarCollapsed ? <span>Sair</span> : null}
+            <LogOut size={16} /> {isSidebarExpanded ? <span>Sair</span> : null}
           </button>
         </div>
       </aside>
@@ -493,18 +471,19 @@ const App = () => {
       <main
         className={`flex-1 ${activeTab === "dashboard" ? "overflow-hidden" : "overflow-auto"}`}
       >
-        <header
-          ref={headerRef}
-          className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"
-        >
-          <h1 className="text-2xl font-bold capitalize text-slate-800">
-            {activeTab === "dashboard" && "Visão Geral"}
-            {activeTab === "investments" && "Planejador de Futuro"}
-            {activeTab === "wishlist" && "Custo de Oportunidade"}
-            {activeTab === "vehicle" && "Gestão de Veículos"}
-            {activeTab === "card" && "Cartão Manual"}
-          </h1>
-        </header>
+        {activeTab !== "dashboard" ? (
+          <header
+            ref={headerRef}
+            className="uiux-header p-6 flex justify-between items-center sticky top-0 z-10 border-b border-[#2c315f]"
+          >
+            <h1 className="text-2xl font-semibold tracking-wide capitalize text-[#ecefff]">
+              {activeTab === "investments" && "Planejador de Futuro"}
+              {activeTab === "wishlist" && "Custo de Oportunidade"}
+              {activeTab === "vehicle" && "Gestão de Veículos"}
+              {activeTab === "card" && "Cartão Manual"}
+            </h1>
+          </header>
+        ) : null}
 
         <div
           className={

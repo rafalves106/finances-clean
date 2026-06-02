@@ -29,12 +29,6 @@ const formatDateLabel = (dateInput) => {
   return date.toLocaleDateString("pt-BR");
 };
 
-const monthLabel = (month, year) =>
-  new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(year, month - 1, 1));
-
 const sortByDate = (list) =>
   [...list].sort(
     (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
@@ -137,7 +131,6 @@ const DashboardDesktopRedesignView = ({
   const hSecao2 = Math.floor(hConteudo * 0.28);
   const hSecao3 = hConteudo - hSecao1 - hSecao2;
 
-  const periodoLabel = monthLabel(selectedMes, selectedAno);
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
     [expenses, incomes, simulatedTransactions],
@@ -160,6 +153,16 @@ const DashboardDesktopRedesignView = ({
   );
 
   const saldoLivre = saldoAnterior + totalIncome - totalExpense;
+  const cardLimitTotal = Number(
+    cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
+  );
+  const cardLimitUsed = Number(
+    cardSummary?.limite?.limiteUtilizado || cardSummary?.limite?.utilizado || 0,
+  );
+  const cardUsagePercent =
+    cardLimitTotal > 0
+      ? Math.min(100, Math.max(0, (cardLimitUsed / cardLimitTotal) * 100))
+      : 0;
 
   const chartData = useMemo(() => {
     const grouped = allTransactions.reduce((acc, item) => {
@@ -390,90 +393,24 @@ const DashboardDesktopRedesignView = ({
         }}
       >
         <section ref={summaryRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm min-h-0">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
-                  Resumo executivo
-                </p>
-                <h2 className="text-base font-bold text-slate-800 capitalize">
-                  {periodoLabel}
-                </h2>
-              </div>
-              <span
-                className={`text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full ${
-                  saldoLivre >= 0
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-rose-100 text-rose-700"
-                }`}
-              >
-                {saldoLivre >= 0 ? "Estável" : "Atenção"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-slate-200 p-2">
-                <p className="text-[11px] text-slate-500">Entradas</p>
-                <p className="text-sm font-bold text-emerald-700">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-2">
-                <p className="text-[11px] text-slate-500">Saídas</p>
-                <p className="text-sm font-bold text-rose-700">
-                  {formatCurrency(totalExpense)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-2">
-                <p className="text-[11px] text-slate-500">Investimentos</p>
-                <p className="text-sm font-bold text-blue-700">
-                  {formatCurrency(totalInvestmentsBalance)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-2">
-                <p className="text-[11px] text-slate-500">Saldo livre</p>
-                <p className="text-sm font-bold text-slate-800">
-                  {formatCurrency(saldoLivre)}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleOpenNewTransaction}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600"
-              >
-                <Plus size={14} /> Nova movimentação
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenSimulation}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600"
-              >
-                <Sparkles size={14} /> Simular
-              </button>
-            </div>
-          </article>
-
           <article className="col-span-2 bg-white border border-slate-200 rounded-xl p-4 shadow-sm min-h-0 flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <DollarSign size={16} className="text-blue-500" /> Evolução
+              <h3 className="uiux-subsection-title text-sm font-semibold tracking-wide flex items-center gap-2">
+                <DollarSign size={16} className="text-[#aba8c2]" /> Evolução
                 financeira
               </h3>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handlePreviousMonth}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600"
+                  className="px-2.5 py-1 rounded-lg border border-[#2f2c46] text-[#aba8c2]"
                 >
                   ‹
                 </button>
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600"
+                  className="px-2.5 py-1 rounded-lg border border-[#2f2c46] text-[#aba8c2]"
                 >
                   ›
                 </button>
@@ -559,6 +496,103 @@ const DashboardDesktopRedesignView = ({
               </ResponsiveContainer>
             </div>
           </article>
+
+          <article className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3">
+            <div className="uiux-card-premium-wrap flex-1">
+              {isCardSummaryLoading ? (
+                <div
+                  className="uiux-card-state-box"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <p className="text-sm text-[#c8c5dd] font-medium">
+                    Carregando cartão...
+                  </p>
+                </div>
+              ) : !cardSummary ? (
+                <div className="uiux-card-state-box">
+                  <p className="text-sm text-[#d6d4e7] font-semibold">
+                    Nenhum cartão ativo encontrado.
+                  </p>
+                  <p className="text-xs text-[#9f9cb9] mt-1">
+                    Cadastre um cartão para visualizar limite, fechamento e
+                    vencimento.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="uiux-card-stack"
+                  aria-label="Resumo visual do cartão"
+                >
+                  <div
+                    className="uiux-card-layer uiux-card-layer-back-1"
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="uiux-card-layer uiux-card-layer-back-2"
+                    aria-hidden="true"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={onOpenCardManagement}
+                    className="uiux-card-layer uiux-card-layer-front uiux-card-layer-front-clickable"
+                    aria-label="Abrir gestão do cartão"
+                  >
+                    <div className="uiux-card-top-row">
+                      <p className="uiux-card-value-used">
+                        {formatCurrency(cardLimitUsed)}
+                      </p>
+                      <p className="uiux-card-value-limit">
+                        {formatCurrency(cardLimitTotal)}
+                      </p>
+                    </div>
+
+                    <div
+                      className="uiux-card-progress-track"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(cardUsagePercent)}
+                      aria-label="Uso do limite do cartão"
+                    >
+                      <div
+                        className="uiux-card-progress-fill"
+                        style={{ width: `${cardUsagePercent}%` }}
+                      />
+                    </div>
+
+                    <div className="uiux-card-footer-row">
+                      <p className="uiux-card-name">
+                        {cardSummary.cartao?.nome || "Cartão"}
+                      </p>
+                      <div
+                        className="uiux-card-cycle"
+                        aria-label="Dados de fechamento e vencimento"
+                      >
+                        <p>
+                          Fechamento{" "}
+                          {String(
+                            cardSummary.cartao?.diaFechamento || "-",
+                          ).padStart(2, "0")}
+                        </p>
+                        <p>
+                          Vencimento{" "}
+                          {String(
+                            cardSummary.cartao?.diaVencimento || "-",
+                          ).padStart(2, "0")}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {cardSummaryError ? (
+              <p className="mt-1 text-xs text-rose-300">{cardSummaryError}</p>
+            ) : null}
+          </article>
         </section>
 
         <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
@@ -618,20 +652,12 @@ const DashboardDesktopRedesignView = ({
               </div>
               <div className="rounded-lg border border-slate-200 p-3">
                 <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">
-                  <CreditCard size={14} className="text-teal-600" /> Cartão
+                  <CreditCard size={14} className="text-teal-600" />
+                  Investimentos
                 </div>
-                {isCardSummaryLoading ? (
-                  <p className="text-xs text-slate-500 mt-1">Carregando...</p>
-                ) : !cardSummary ? (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Nenhum cartão ativo encontrado.
-                  </p>
-                ) : (
-                  <p className="text-sm font-semibold text-slate-700 mt-1">
-                    Atual{" "}
-                    {formatCurrency(cardSummary.previsaoFatura.atual || 0)}
-                  </p>
-                )}
+                <p className="text-base font-bold text-slate-800 mt-1">
+                  {formatCurrency(totalInvestmentsBalance)}
+                </p>
               </div>
               <div className="rounded-lg border border-slate-200 p-3">
                 <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">

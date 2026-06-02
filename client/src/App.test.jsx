@@ -96,7 +96,7 @@ describe("App dashboard integration", () => {
     };
   });
 
-  it("deve renderizar dashboard redesign por padrao e permitir recolher sidebar", async () => {
+  it("deve renderizar dashboard redesign por padrao com sidebar expandindo em hover", async () => {
     const { container } = render(<App />);
 
     await waitFor(() => {
@@ -106,9 +106,12 @@ describe("App dashboard integration", () => {
     const main = container.querySelector("main");
     expect(main.className).toContain("overflow-hidden");
 
-    const collapseButton = screen.getByLabelText("Recolher menu lateral");
-    fireEvent.click(collapseButton);
+    const sidebar = container.querySelector("aside");
+    expect(sidebar).toBeTruthy();
+    expect(sidebar.style.width).toBe("64px");
 
-    expect(screen.getByLabelText("Expandir menu lateral")).toBeTruthy();
+    fireEvent.mouseEnter(sidebar);
+
+    expect(sidebar.style.width).toBe("240px");
   });
 });
