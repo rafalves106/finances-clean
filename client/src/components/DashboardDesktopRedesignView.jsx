@@ -847,7 +847,7 @@ const DashboardDesktopRedesignView = ({
   }, [allTransactions, filterType, searchTerm]);
 
   const sortedMovimentacoes = useMemo(
-    () => sortByDate(filteredTransactions).slice(0, 6),
+    () => sortByDate(filteredTransactions).slice(0, 5),
     [filteredTransactions],
   );
 
