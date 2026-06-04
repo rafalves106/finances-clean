@@ -370,6 +370,9 @@ const DashboardDesktopRedesignView = ({
   const [viewportHeight, setViewportHeight] = useState(
     typeof window !== "undefined" ? window.innerHeight : 900,
   );
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1920,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("todas");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -386,7 +389,10 @@ const DashboardDesktopRedesignView = ({
   const reviewRef = useRef(null);
 
   useEffect(() => {
-    const onResize = () => setViewportHeight(window.innerHeight);
+    const onResize = () => {
+      setViewportHeight(window.innerHeight);
+      setViewportWidth(window.innerWidth);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -487,9 +493,27 @@ const DashboardDesktopRedesignView = ({
     });
   };
 
-  const desktopGap = viewportHeight >= 1080 ? 16 : 12;
-  const mainPaddingTop = 16;
-  const mainPaddingBottom = 16;
+  const viewportTier =
+    viewportWidth >= 1920 || viewportHeight >= 1080
+      ? "xl"
+      : viewportWidth >= 1440 || viewportHeight >= 900
+        ? "lg"
+        : "md";
+  const desktopGap =
+    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 9;
+  const mainPaddingTop =
+    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 10;
+  const mainPaddingBottom =
+    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 10;
+  const chartMargin =
+    viewportTier === "xl"
+      ? { top: 8, right: 8, left: 8, bottom: 8 }
+      : viewportTier === "lg"
+        ? { top: 6, right: 6, left: 4, bottom: 6 }
+        : { top: 4, right: 4, left: 2, bottom: 4 };
+  const chartTickFontSize = viewportTier === "md" ? 9 : 10;
+  const chartYAxisWidth =
+    viewportTier === "xl" ? 28 : viewportTier === "lg" ? 26 : 24;
   const hUtil = Math.max(
     380,
     Math.floor(
@@ -915,10 +939,7 @@ const DashboardDesktopRedesignView = ({
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={chartData}
-                    margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-                  >
+                  <AreaChart data={chartData} margin={chartMargin}>
                     <defs>
                       <linearGradient
                         id="colorReceitaRedesign"
@@ -984,7 +1005,7 @@ const DashboardDesktopRedesignView = ({
                       dataKey="data"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 10, fill: "#7f84a8" }}
+                      tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
                     />
                     <YAxis
                       axisLine={false}
@@ -992,8 +1013,8 @@ const DashboardDesktopRedesignView = ({
                       domain={[0, 10000]}
                       ticks={CHART_Y_TICKS}
                       tickFormatter={formatChartAxisTick}
-                      tick={{ fontSize: 10, fill: "#7f84a8" }}
-                      width={28}
+                      tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                      width={chartYAxisWidth}
                     />
                     <Tooltip
                       content={renderChartTooltip}

@@ -427,3 +427,127 @@ body {
 .text-negative {
   color: var(--color-vermelho-text);
 }
+
+/* ── Desktop 1440x900 ─────────────────────────────────────────
+   Densidade intermediária: gaps e padding ligeiramente menores,
+   card stack e tipografia compactados. 1920x1080 permanece
+   inalterado por ser baseline. */
+@media screen and (max-width: 1440px) and (max-height: 900px) {
+  .uiux-shell {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .dashboard-desktop-redesign {
+    padding: 12px;
+  }
+
+  .dashboard-desktop-redesign article {
+    padding: 12px !important;
+  }
+
+  .uiux-card-stack {
+    min-height: 192px;
+    padding-bottom: 16px;
+  }
+
+  .uiux-card-layer-front {
+    padding: 14px 14px 12px;
+    gap: 10px;
+  }
+
+  .uiux-card-layer-back-1 {
+    top: 30px;
+  }
+
+  .uiux-card-value-limit {
+    font-size: 18px;
+  }
+
+  .uiux-card-value-used {
+    font-size: 16px;
+  }
+
+  .uiux-card-cycle {
+    font-size: 13px;
+  }
+
+  .dashboard-desktop-redesign .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  .dashboard-desktop-redesign .text-\[24px\] {
+    font-size: 20px !important;
+  }
+}
+
+/* ── Desktop 1366x768 ─────────────────────────────────────────
+   Densidade máxima: gaps mínimos, padding comprimido,
+   card stack mais baixo, KPIs com text-xs em linha única. */
+@media screen and (max-width: 1366px) and (max-height: 768px) {
+  .uiux-shell {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .dashboard-desktop-redesign {
+    padding: 10px;
+  }
+
+  .dashboard-desktop-redesign article {
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .uiux-card-stack {
+    min-height: 170px;
+    padding-bottom: 12px;
+  }
+
+  .uiux-card-layer-front {
+    padding: 12px 12px 10px;
+    gap: 8px;
+  }
+
+  .uiux-card-layer-back-1 {
+    top: 26px;
+  }
+
+  .uiux-card-layer-back-2 {
+    top: 17px;
+  }
+
+  .uiux-card-value-limit {
+    font-size: 16px;
+  }
+
+  .uiux-card-value-used {
+    font-size: 14px;
+  }
+
+  .uiux-card-cycle {
+    font-size: 12px;
+  }
+
+  .uiux-card-progress-track {
+    height: 24px;
+  }
+
+  .dashboard-desktop-redesign .text-2xl {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .dashboard-desktop-redesign .text-\[24px\] {
+    font-size: 18px !important;
+  }
+
+  /* Texto auxiliar de KPI em linha única para evitar quebra em tela pequena */
+  .dashboard-desktop-redesign p.text-xs {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
