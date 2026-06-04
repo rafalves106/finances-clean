@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Target,
   Bike,
-  CreditCard,
   LogOut,
 } from "lucide-react";
 
@@ -12,7 +11,6 @@ import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignV
 import InvestmentsView from "./components/InvestmentsView";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
-import CardViewerView from "./components/CardViewerView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
@@ -420,12 +418,6 @@ const App = () => {
               icon: <Bike size={20} />,
               color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
-            {
-              id: "card",
-              label: "Cartões",
-              icon: <CreditCard size={20} />,
-              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
-            },
           ].map((item) => (
             <button
               key={item.id}
@@ -499,7 +491,6 @@ const App = () => {
               {activeTab === "investments" && "Planejador de Futuro"}
               {activeTab === "wishlist" && "Custo de Oportunidade"}
               {activeTab === "vehicle" && "Gestão de Veículos"}
-              {activeTab === "card" && "Cartão Manual"}
             </h1>
           </header>
         ) : null}
@@ -525,7 +516,6 @@ const App = () => {
               categorias={categorias}
               veiculos={veiculos}
               onOpenCategoryManager={handleOpenCategoryManager}
-              onOpenCardManagement={() => setActiveTab("card")}
               saldoAnterior={saldoAnterior}
               budgetRefreshKey={budgetRefreshKey}
               headerHeight={headerHeight}
@@ -553,17 +543,6 @@ const App = () => {
               categorias={categorias}
             />
           )}
-          {activeTab === "card" && (
-            <CardViewerView
-              onCardsChanged={() =>
-                fetchData({
-                  silent: true,
-                  periodKey: `${selectedAno}-${selectedMes}`,
-                })
-              }
-            />
-          )}
-
           <CategoryManagerModal
             isOpen={isCategoryManagerOpen}
             onClose={handleCloseCategoryManager}
