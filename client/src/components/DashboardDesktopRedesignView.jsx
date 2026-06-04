@@ -3,6 +3,8 @@ import { DollarSign, Plus, RefreshCw, Sparkles } from "lucide-react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   Cell,
   CartesianGrid,
   Line,
@@ -170,6 +172,113 @@ const renderChartTooltip = ({ active, payload, label }) => {
         </p>
       ))}
     </div>
+  );
+};
+
+const renderCategoryComparisonTooltip = ({ active, payload }) => {
+  if (!active || !Array.isArray(payload) || payload.length === 0) {
+    return null;
+  }
+
+  const rawCategoryName = payload[0]?.payload?.nome;
+  const categoryName =
+    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
+      ? rawCategoryName
+      : "Categoria";
+
+  return (
+    <div
+      style={{
+        background: "#15172a",
+        border: "1px solid #32375e",
+        borderRadius: "12px",
+        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
+        color: "#dbe3ff",
+        fontSize: "12px",
+        padding: "10px 12px",
+      }}
+    >
+      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+        {categoryName}
+      </p>
+      {payload.map((item) => (
+        <p
+          key={item.dataKey}
+          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
+        >
+          {item.name}: {formatCurrency(item.value)}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const renderCategoryPieTooltip = ({ active, payload }) => {
+  if (!active || !Array.isArray(payload) || payload.length === 0) {
+    return null;
+  }
+
+  const firstItem = payload[0];
+  const rawCategoryName = firstItem?.payload?.nome;
+  const categoryName =
+    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
+      ? rawCategoryName
+      : "Categoria";
+
+  return (
+    <div
+      style={{
+        background: "#15172a",
+        border: "1px solid #32375e",
+        borderRadius: "12px",
+        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
+        color: "#dbe3ff",
+        fontSize: "12px",
+        padding: "10px 12px",
+      }}
+    >
+      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+        {categoryName}
+      </p>
+      <p style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}>
+        Gasto no mês: {formatCurrency(firstItem?.value || 0)}
+      </p>
+    </div>
+  );
+};
+
+const renderCategoryPieIconLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+  payload,
+}) => {
+  if (!payload?.icone || (Number.isFinite(percent) && percent < 0.06)) {
+    return null;
+  }
+
+  const centerX = Number(cx);
+  const centerY = Number(cy);
+  const inner = Number(innerRadius);
+  const outer = Number(outerRadius);
+  const radius = inner + (outer - inner) * 0.5;
+  const angleInRad = (-Number(midAngle) * Math.PI) / 180;
+  const x = centerX + radius * Math.cos(angleInRad);
+  const y = centerY + radius * Math.sin(angleInRad);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      style={{ fontSize: 12 }}
+    >
+      {payload.icone}
+    </text>
   );
 };
 
@@ -781,7 +890,7 @@ const DashboardDesktopRedesignView = ({
       }));
   }, [incomes, selectedAno, selectedMes]);
 
-  const categoryRanking = useMemo(() => {
+  const categoryRankingAll = useMemo(() => {
     const categoriaById = new Map(
       categorias.map((categoria) => [String(categoria.id), categoria]),
     );
@@ -808,15 +917,139 @@ const DashboardDesktopRedesignView = ({
       return acc;
     }, {});
 
-    return Object.values(grouped)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 4);
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
   }, [categorias, expenses]);
 
-  const categoryPieData = useMemo(
-    () => categoryRanking.filter((item) => item.total > 0).slice(0, 4),
-    [categoryRanking],
+  const categoryRanking = useMemo(
+    () => categoryRankingAll.slice(0, 4),
+    [categoryRankingAll],
   );
+
+  const slideCategoryRanking = useMemo(
+    () => categoryRankingAll.slice(0, 8),
+    [categoryRankingAll],
+  );
+
+  const slideCategoryLeftColumn = useMemo(
+    () => slideCategoryRanking.slice(0, 4),
+    [slideCategoryRanking],
+  );
+
+  const slideCategoryRightColumn = useMemo(
+    () => slideCategoryRanking.slice(4, 8),
+    [slideCategoryRanking],
+  );
+
+  const exceededCategoryAlerts = useMemo(
+    () =>
+      categoryRankingAll
+        .filter((item) => item.limite > 0 && item.total > item.limite)
+        .slice(0, 8),
+    [categoryRankingAll],
+  );
+
+  const exceededAlertsLeftColumn = useMemo(
+    () => exceededCategoryAlerts.slice(0, 4),
+    [exceededCategoryAlerts],
+  );
+
+  const exceededAlertsRightColumn = useMemo(
+    () => exceededCategoryAlerts.slice(4, 8),
+    [exceededCategoryAlerts],
+  );
+
+  const categoryComparisonData = useMemo(() => {
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
+    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
+    const previousMonth = previousRef.getMonth() + 1;
+    const previousYear = previousRef.getFullYear();
+
+    const grouped = allTransactions.reduce((acc, item) => {
+      if ((item.type || item.tipo) !== "Saida") {
+        return acc;
+      }
+
+      const dateInfo = getMonthYearFromValue(item.date || item.data);
+      if (!dateInfo) {
+        return acc;
+      }
+
+      const isCurrentPeriod =
+        dateInfo.month === selectedMes && dateInfo.year === selectedAno;
+      const isPreviousPeriod =
+        dateInfo.month === previousMonth && dateInfo.year === previousYear;
+
+      if (!isCurrentPeriod && !isPreviousPeriod) {
+        return acc;
+      }
+
+      const key = String(
+        item.categoriaId || item.categoria?.id || "sem-categoria",
+      );
+      const categoriaRef = categoriaById.get(key);
+      const nome =
+        item.categoria?.nome || categoriaRef?.nome || "Sem categoria";
+      const cor = item.categoria?.cor || categoriaRef?.cor || "#6A6785";
+
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          nome,
+          cor,
+          currentTotal: 0,
+          previousTotal: 0,
+        };
+      }
+
+      const value = Number(item.value || item.valor || 0);
+      if (isCurrentPeriod) {
+        acc[key].currentTotal += value;
+      }
+      if (isPreviousPeriod) {
+        acc[key].previousTotal += value;
+      }
+
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .filter((item) => item.currentTotal > 0 || item.previousTotal > 0)
+      .sort((a, b) => {
+        if (b.currentTotal !== a.currentTotal) {
+          return b.currentTotal - a.currentTotal;
+        }
+
+        return b.previousTotal - a.previousTotal;
+      })
+      .slice(0, 8)
+      .map((item) => ({
+        ...item,
+        shortName: truncateWithThreeDots(item.nome, 10),
+      }));
+  }, [allTransactions, categorias, selectedAno, selectedMes]);
+
+  const currentMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+  }).format(new Date(selectedAno, selectedMes - 1, 1));
+
+  const previousMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+  }).format(new Date(selectedAno, selectedMes - 2, 1));
+
+  const categoryPieData = useMemo(
+    () => categoryRankingAll.filter((item) => item.total > 0),
+    [categoryRankingAll],
+  );
+
+  const slideCategoryPieData = useMemo(
+    () => slideCategoryRanking.filter((item) => item.total > 0),
+    [slideCategoryRanking],
+  );
+
+  const dashboardPiePaddingAngle = categoryPieData.length > 8 ? 2 : 6;
+  const dashboardPieCornerRadius = categoryPieData.length > 8 ? 8 : 14;
 
   const filteredTransactions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -1539,7 +1772,7 @@ const DashboardDesktopRedesignView = ({
                               })}
                             </Pie>
                             <defs>
-                              {categoryPieData.map((item) => {
+                              {slideCategoryPieData.map((item) => {
                                 const standardColor = getCategoryStandardColor(
                                   item.cor,
                                 );
