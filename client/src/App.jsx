@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import {
-  TrendingUp,
-  LayoutDashboard,
-  Target,
-  Bike,
-  LogOut,
-} from "lucide-react";
+import { LayoutDashboard, Target, Bike, LogOut } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import InvestmentsView from "./components/InvestmentsView";
@@ -401,12 +395,6 @@ const App = () => {
               color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
-              id: "investments",
-              label: "Investimentos",
-              icon: <TrendingUp size={20} />,
-              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
-            },
-            {
               id: "wishlist",
               label: "Conquistas",
               icon: <Target size={20} />,
@@ -505,8 +493,10 @@ const App = () => {
               totalIncome={totalIncome}
               totalExpenses={totalExpenses}
               finalBalance={finalBalance}
+              investmentAmount={investmentAmount}
               incomes={incomes}
               expenses={expenses}
+              investments={investments}
               fetchData={fetchData}
               loading={isInitialLoading}
               totalInvestmentsBalance={totalInvestmentsBalance}
