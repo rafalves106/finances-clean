@@ -248,7 +248,7 @@ const CategoryManagerModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50">
+    <div className="fixed inset-0 z-50 bg-[#090b14]/75 backdrop-blur-[2px]">
       <div
         ref={dialogRef}
         role="dialog"
@@ -256,19 +256,19 @@ const CategoryManagerModal = ({
         aria-labelledby="category-modal-title"
         tabIndex={-1}
         onKeyDown={handleDialogKeyDown}
-        className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl overflow-y-auto"
+        className="absolute left-1/2 top-1/2 w-[min(92vw,760px)] max-h-[88vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(15,20,35,0.97)_100%)] shadow-[0_22px_80px_rgba(6,10,20,0.65)]"
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-4 border-b border-[#2a3554] sticky top-0 bg-[#121a31] z-10">
           <h2
             id="category-modal-title"
-            className="text-lg font-bold text-slate-800"
+            className="text-lg font-bold text-[#dbe3ff]"
           >
             Categorias
           </h2>
           <button
             onClick={onClose}
             aria-label="Fechar modal de categorias"
-            className="text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="text-[#8f94b4] hover:text-[#dbe3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff] rounded"
             disabled={isBusy}
           >
             <X size={20} />
@@ -286,8 +286,8 @@ const CategoryManagerModal = ({
               aria-live={feedback.type === "error" ? "assertive" : "polite"}
               className={`text-sm rounded-lg border px-3 py-2 ${
                 feedback.type === "error"
-                  ? "bg-rose-50 border-rose-200 text-rose-700"
-                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  ? "bg-[#341f2b] border-[#6b3040] text-[#ffb6c6]"
+                  : "bg-[#193126] border-[#28553f] text-[#8ef0c6]"
               }`}
             >
               {feedback.message}
@@ -299,7 +299,7 @@ const CategoryManagerModal = ({
             onClick={toggleFormExpanded}
             aria-expanded={isFormExpanded}
             aria-controls="category-form-panel"
-            className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium border border-[#2f4566] bg-[#151f34] text-[#b9bfd8] hover:bg-[#1a2842] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
             disabled={isBusy}
           >
             {isFormExpanded
@@ -316,7 +316,7 @@ const CategoryManagerModal = ({
               <div>
                 <label
                   htmlFor="category-name"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-[#b9bfd8] mb-1"
                 >
                   Nome
                 </label>
@@ -325,7 +325,7 @@ const CategoryManagerModal = ({
                   id="category-name"
                   type="text"
                   required
-                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                   value={formNome}
                   onChange={(e) => setFormNome(e.target.value)}
                   disabled={Boolean(editingCat?.isGlobal) || isBusy}
@@ -335,7 +335,7 @@ const CategoryManagerModal = ({
               <div>
                 <label
                   htmlFor="category-icon"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-[#b9bfd8] mb-1"
                 >
                   Ícone
                 </label>
@@ -344,7 +344,7 @@ const CategoryManagerModal = ({
                   type="text"
                   maxLength={2}
                   placeholder="Emoji"
-                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                   value={formIcone}
                   onChange={(e) => setFormIcone(e.target.value)}
                   disabled={Boolean(editingCat?.isGlobal) || isBusy}
@@ -354,14 +354,14 @@ const CategoryManagerModal = ({
               <div>
                 <label
                   htmlFor="category-color"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-[#b9bfd8] mb-1"
                 >
                   Cor
                 </label>
                 <input
                   id="category-color"
                   type="color"
-                  className="w-full h-11 p-1 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full h-11 p-1 border border-[#2a3554] rounded-lg bg-[#10152d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                   value={formCor}
                   onChange={(e) => setFormCor(e.target.value)}
                   disabled={Boolean(editingCat?.isGlobal) || isBusy}
@@ -371,7 +371,7 @@ const CategoryManagerModal = ({
               <div>
                 <label
                   htmlFor="category-budget"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-[#b9bfd8] mb-1"
                 >
                   Orçamento mensal
                 </label>
@@ -381,16 +381,16 @@ const CategoryManagerModal = ({
                   min="0.01"
                   step="0.01"
                   placeholder="Ex.: 500"
-                  className="w-full p-2 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                   value={formOrcamentoMensal}
                   onChange={(e) => setFormOrcamentoMensal(e.target.value)}
                   disabled={isBusy}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#8f94b4] mt-1">
                   Opcional. Valor mensal em R$.
                 </p>
                 {editingCat?.isGlobal && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-[#8f94b4] mt-1">
                     Para categoria global, apenas o orçamento é personalizado
                     para seu usuário.
                   </p>
@@ -402,7 +402,7 @@ const CategoryManagerModal = ({
                   <button
                     type="button"
                     onClick={clearForm}
-                    className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="flex-1 rounded-lg border border-[#2a3554] bg-[#151f34] text-[#b9bfd8] hover:bg-[#1a2842] font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                     disabled={isBusy}
                   >
                     Cancelar
@@ -410,7 +410,7 @@ const CategoryManagerModal = ({
                 )}
                 <button
                   type="submit"
-                  className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${editingCat ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                  className={`flex-1 rounded-lg font-medium transition-colors p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff] ${editingCat ? "border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] hover:bg-[#5b4f2e]" : "border border-[#26513f] bg-[#143325] text-[#8ef0c6] hover:bg-[#194130]"}`}
                   disabled={isBusy}
                 >
                   {isSubmitting
@@ -429,20 +429,20 @@ const CategoryManagerModal = ({
             {categorias.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200"
+                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#2a3554] bg-[#10152d]"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-lg">{category.icone || "•"}</span>
-                  <span className="font-medium text-slate-700 truncate">
+                  <span className="font-medium text-[#dbe3ff] truncate">
                     {category.nome}
                   </span>
                   {category.isGlobal && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold uppercase tracking-wide">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1d2b4a] text-[#9ec2ff] font-semibold uppercase tracking-wide border border-[#2f4566]">
                       Global
                     </span>
                   )}
                   <span
-                    className="w-3 h-3 rounded-full shrink-0 border border-slate-200"
+                    className="w-3 h-3 rounded-full shrink-0 border border-[#2a3554]"
                     style={{ backgroundColor: category.cor || "#94a3b8" }}
                   />
                 </div>
@@ -452,7 +452,7 @@ const CategoryManagerModal = ({
                     type="button"
                     onClick={() => handleEdit(category)}
                     aria-label={`Editar categoria ${category.nome}`}
-                    className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="p-2 rounded-lg hover:bg-[#1a2842] text-[#8f94b4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff]"
                     title="Editar"
                     disabled={isBusy}
                   >
@@ -466,7 +466,7 @@ const CategoryManagerModal = ({
                         ? `Excluindo categoria ${category.nome}`
                         : `Deletar categoria ${category.nome}`
                     }
-                    className={`p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${category.isGlobal || isBusy ? "text-slate-300 cursor-not-allowed" : "hover:bg-red-50 text-red-500"}`}
+                    className={`p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7aa8ff] ${category.isGlobal || isBusy ? "text-[#4f5678] cursor-not-allowed" : "hover:bg-[#351e2a] text-[#f08f9f]"}`}
                     title={
                       deletingCategoryId === category.id
                         ? "Excluindo..."
