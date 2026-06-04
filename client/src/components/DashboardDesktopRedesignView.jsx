@@ -6,6 +6,7 @@ import {
   CreditCard,
   DollarSign,
   Plus,
+  RefreshCw,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -25,7 +26,21 @@ import TransactionModal from "./TransactionModal";
 
 const formatDateLabel = (dateInput) => {
   const date = new Date(dateInput);
-  return date.toLocaleDateString("pt-BR");
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+};
+
+const UPCOMING_ITEM_TITLE_MAX_LENGTH = 22;
+
+const truncateWithThreeDots = (text, maxLength) => {
+  const normalized = String(text || "").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
 };
 
 const sortByDate = (list) =>
@@ -250,6 +265,7 @@ const DashboardDesktopRedesignView = ({
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
+  const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -445,9 +461,35 @@ const DashboardDesktopRedesignView = ({
         title: item.name || item.titulo || "Despesa",
         value: Number(item.value || item.valor || 0),
         categoria: item.categoria?.nome || "Sem categoria",
+        icone: item.categoria?.icone || "•",
         dueDate: new Date(item.date || item.data),
       }));
   }, [expenses, selectedAno, selectedMes]);
+
+  const upcomingReceipts = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(selectedAno, selectedMes - 1, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(selectedAno, selectedMes, 0, 23, 59, 59, 999);
+    const start =
+      selectedMes === now.getMonth() + 1 && selectedAno === now.getFullYear()
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+        : monthStart;
+
+    return sortByDate(incomes)
+      .filter((item) => {
+        const dueDate = new Date(item.date || item.data);
+        return dueDate >= start && dueDate <= monthEnd;
+      })
+      .slice(0, 12)
+      .map((item) => ({
+        id: item.id,
+        title: item.name || item.titulo || "Receita",
+        value: Number(item.value || item.valor || 0),
+        categoria: item.categoria?.nome || "Sem categoria",
+        icone: item.categoria?.icone || "•",
+        dueDate: new Date(item.date || item.data),
+      }));
+  }, [incomes, selectedAno, selectedMes]);
 
   const categoryRanking = useMemo(() => {
     const grouped = expenses.reduce((acc, item) => {
@@ -920,35 +962,54 @@ const DashboardDesktopRedesignView = ({
         </section>
 
         <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden">
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-                Próximos pagamentos
+          <article className="col-span-1 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
+            <div className="sticky top-0 p-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                {showUpcomingReceipts
+                  ? "Próximas receitas"
+                  : "Próximas despesas"}
               </h3>
-              <span className="text-xs font-semibold text-slate-500">
-                {upcomingPayments.length}
-              </span>
+              <button
+                onClick={() => setShowUpcomingReceipts(!showUpcomingReceipts)}
+                className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
+                title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
+              >
+                <RefreshCw size={16} className="text-[#7f84a8]" />
+              </button>
             </div>
-            <div className="h-[calc(100%-3.1rem)] overflow-y-auto p-4 space-y-2">
-              {upcomingPayments.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  Nenhum pagamento pendente no restante do período.
+            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+              {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
+                .length === 0 ? (
+                <p className="text-xs text-[#7f84a8] text-center py-4">
+                  Nenhum item no período
                 </p>
               ) : (
-                upcomingPayments.map((item) => (
+                (showUpcomingReceipts
+                  ? upcomingReceipts
+                  : upcomingPayments
+                ).map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-slate-100 px-3 py-2"
+                    className="rounded-lg flex items-center justify-between gap-2"
                   >
-                    <p className="text-sm font-medium text-slate-700">
-                      {item.title}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {item.categoria} · {formatDateLabel(item.dueDate)}
-                    </p>
-                    <p className="text-sm font-semibold text-rose-600 mt-1">
-                      {formatCurrency(item.value)}
-                    </p>
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-base">{item.icone}</span>
+                      <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                        {formatCurrency(item.value)}
+                      </span>
+                      <span
+                        className="text-xs text-[#7f84a8] truncate"
+                        title={item.title}
+                      >
+                        {truncateWithThreeDots(
+                          item.title,
+                          UPCOMING_ITEM_TITLE_MAX_LENGTH,
+                        )}
+                      </span>
+                    </div>
+                    <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                      {formatDateLabel(item.dueDate)}
+                    </span>
                   </div>
                 ))
               )}
