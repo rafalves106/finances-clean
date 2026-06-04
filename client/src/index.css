@@ -480,6 +480,16 @@ body {
   .dashboard-desktop-redesign .text-\[24px\] {
     font-size: 20px !important;
   }
+
+  /* Texto auxiliar de KPI ("Você recebeu/gastou") em tamanho compacto sem quebrar */
+  .dashboard-desktop-redesign p.text-xs {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
 }
 
 /* ── Desktop 1366x768 ─────────────────────────────────────────
@@ -545,6 +555,8 @@ body {
 
   /* Texto auxiliar de KPI em linha única para evitar quebra em tela pequena */
   .dashboard-desktop-redesign p.text-xs {
+    font-size: 9px !important;
+    line-height: 1.2 !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
