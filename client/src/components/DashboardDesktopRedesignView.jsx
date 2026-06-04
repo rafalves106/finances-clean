@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DollarSign, Plus, RefreshCw, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  DollarSign,
+  Plus,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -494,6 +500,7 @@ const DashboardDesktopRedesignView = ({
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(null);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -1166,21 +1173,41 @@ const DashboardDesktopRedesignView = ({
       className="dashboard-desktop-redesign overflow-hidden"
       style={{ height: `${hUtil}px`, maxHeight: `${hContainerMax}px` }}
     >
-      <div
-        className="grid h-full"
-        style={{
-          rowGap: `${desktopGap}px`,
-          gridTemplateRows: `${hSecao1}px ${hSecao2}px ${hSecao3}px`,
-        }}
-      >
-        <section ref={summaryRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-2 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
+      {activeSlide === "charts" ? (
+        <div
+          className="h-full flex flex-col"
+          style={{ gap: `${desktopGap}px` }}
+        >
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveSlide(null)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              aria-label="Voltar ao dashboard"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+              Análise Gráfica
+            </h2>
+            <button
+              type="button"
+              onClick={(e) => onOpenCategoryManager(e.currentTarget)}
+              className="ml-auto text-xs font-medium text-[#7f84a8] border border-[#2a3554] rounded-lg px-3 py-1.5 hover:bg-[#1e2340] transition-colors"
+            >
+              Gerenciar Categorias
+            </button>
+          </div>
+
+          <section
+            className="border rounded-2xl p-3 shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
+            style={{ flex: "1 1 0", minHeight: 0 }}
+          >
             <div className="flex-1 min-h-0">
               {chartData.length === 0 ? (
                 <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
                   <p className="text-sm text-[#9fb0d3]">
-                    Ainda não há dados no período para montar o gráfico de
-                    monitoramento.
+                    Ainda não há dados no período para montar o gráfico.
                   </p>
                 </div>
               ) : (
@@ -1188,7 +1215,7 @@ const DashboardDesktopRedesignView = ({
                   <AreaChart data={chartData} margin={chartMargin}>
                     <defs>
                       <linearGradient
-                        id="colorReceitaRedesign"
+                        id="colorReceitaSlide"
                         x1="0"
                         y1="0"
                         x2="0"
@@ -1206,7 +1233,7 @@ const DashboardDesktopRedesignView = ({
                         />
                       </linearGradient>
                       <linearGradient
-                        id="colorDespesaRedesign"
+                        id="colorDespesaSlide"
                         x1="0"
                         y1="0"
                         x2="0"
@@ -1224,7 +1251,7 @@ const DashboardDesktopRedesignView = ({
                         />
                       </linearGradient>
                       <linearGradient
-                        id="colorSaldoRedesign"
+                        id="colorSaldoSlide"
                         x1="0"
                         y1="0"
                         x2="0"
@@ -1273,7 +1300,7 @@ const DashboardDesktopRedesignView = ({
                     <Area
                       type="monotone"
                       dataKey="entrada"
-                      fill="url(#colorReceitaRedesign)"
+                      fill="url(#colorReceitaSlide)"
                       stroke="none"
                       isAnimationActive={false}
                       name="entrada"
@@ -1281,7 +1308,7 @@ const DashboardDesktopRedesignView = ({
                     <Area
                       type="monotone"
                       dataKey="saida"
-                      fill="url(#colorDespesaRedesign)"
+                      fill="url(#colorDespesaSlide)"
                       stroke="none"
                       isAnimationActive={false}
                       name="saida"
@@ -1290,7 +1317,7 @@ const DashboardDesktopRedesignView = ({
                       type="monotone"
                       dataKey="saldo"
                       stroke="none"
-                      fill="url(#colorSaldoRedesign)"
+                      fill="url(#colorSaldoSlide)"
                       isAnimationActive={false}
                       name="saldo"
                     />
@@ -1341,436 +1368,147 @@ const DashboardDesktopRedesignView = ({
                 </ResponsiveContainer>
               )}
             </div>
-          </article>
+          </section>
 
-          <article className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3">
-            <div className="uiux-card-premium-wrap flex-1">
-              {isCardSummaryLoading ? (
-                <div
-                  className="uiux-card-state-box"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <p className="text-sm text-[#c8c5dd] font-medium">
-                    Carregando cartão...
-                  </p>
-                </div>
-              ) : !cardSummary ? (
-                <div className="uiux-card-state-box">
-                  <p className="text-sm text-[#d6d4e7] font-semibold">
-                    Nenhum cartão ativo encontrado.
-                  </p>
-                  <p className="text-xs text-[#9f9cb9] mt-1">
-                    Cadastre um cartão para visualizar limite, fechamento e
-                    vencimento.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className="uiux-card-stack"
-                  aria-label="Resumo visual do cartão"
-                >
-                  {backCardSummaries.map((item, index) => (
-                    <button
-                      key={
-                        item?.cartao?.id ||
-                        item?.cartao?.nome ||
-                        `back-card-${index}`
-                      }
-                      type="button"
-                      onClick={() => handleBringCardToFront(index + 1)}
-                      className={`uiux-card-layer uiux-card-layer-back-clickable ${index === 0 ? "uiux-card-layer-back-1" : "uiux-card-layer-back-2"}`}
-                      aria-label={`Selecionar cartão ${item?.cartao?.nome || "secundário"}`}
-                      style={getBackLayerStyle(
-                        normalizeCardTheme(item?.cartao?.corTema),
-                        index,
-                      )}
-                    >
-                      <p
-                        className="uiux-card-layer-back-name"
-                        style={{
-                          color: getThemePalette(
-                            normalizeCardTheme(item?.cartao?.corTema),
-                          ).backName,
-                        }}
-                      >
-                        {item?.cartao?.nome || ""}
-                      </p>
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={onOpenCardManagement}
-                    className="uiux-card-layer uiux-card-layer-front uiux-card-layer-front-clickable"
-                    aria-label="Abrir gestão do cartão"
-                    style={getFrontLayerStyle(activeCardTheme)}
-                  >
-                    <div className="uiux-card-top-row">
-                      <p
-                        className="uiux-card-value-used"
-                        style={{ color: activeCardPalette.usedText }}
-                      >
-                        {formatCurrency(cardLimitUsed)}
-                      </p>
-                      <p className="uiux-card-value-limit">
-                        {formatCurrency(cardLimitTotal)}
-                      </p>
-                    </div>
-
-                    <div
-                      className="uiux-card-progress-track"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round(cardUsagePercent)}
-                      aria-label="Uso do limite do cartão"
-                      style={{
-                        borderColor: activeCardPalette.progressTrackBorder,
-                        background: `linear-gradient(90deg, ${activeCardPalette.progressTrackStart} 0%, ${activeCardPalette.progressTrackEnd} 100%)`,
-                      }}
-                    >
-                      <div
-                        className={`uiux-card-progress-fill ${cardUsagePercent <= 0 ? "uiux-card-progress-fill-empty" : ""}`}
-                        style={{
-                          width: `${cardUsagePercent}%`,
-                          borderColor: activeCardPalette.progressFillBorder,
-                          background: `linear-gradient(90deg, ${activeCardPalette.progressFillStart} 0%, ${activeCardPalette.progressFillEnd} 100%)`,
-                        }}
-                      />
-                    </div>
-
-                    <div className="uiux-card-footer-row">
-                      <p
-                        className="uiux-card-name"
-                        style={{ color: activeCardPalette.cardName }}
-                      >
-                        {cardSummary.cartao?.nome || "Cartão"}
-                      </p>
-                      <div
-                        className="uiux-card-cycle"
-                        aria-label="Dados de fechamento e vencimento"
-                      >
-                        <p>
-                          Fechamento{" "}
-                          {String(
-                            cardSummary.cartao?.diaFechamento || "-",
-                          ).padStart(2, "0")}
-                        </p>
-                        <p>
-                          Vencimento{" "}
-                          {String(
-                            cardSummary.cartao?.diaVencimento || "-",
-                          ).padStart(2, "0")}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {cardSummaryError ? (
-              <p
-                className="mt-1 text-xs"
-                style={{ color: "var(--color-vermelho-text)" }}
-              >
-                {cardSummaryError}
-              </p>
-            ) : null}
-          </article>
-        </section>
-
-        <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
-            <div className="sticky top-0 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[#b9bfd8]">
-                {showUpcomingReceipts
-                  ? "Próximas receitas"
-                  : "Próximas despesas"}
-              </h3>
-              <button
-                onClick={() => setShowUpcomingReceipts(!showUpcomingReceipts)}
-                className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
-                title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
-              >
-                <RefreshCw size={16} className="text-[#7f84a8]" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto pt-2 space-y-2">
-              {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
-                .length === 0 ? (
-                <p className="text-xs text-[#7f84a8] text-center py-4">
-                  Nenhum item no período
+          <section
+            className="rounded-xl border shadow-sm flex flex-col p-4 overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
+            style={{ flex: "1 1 0", minHeight: 0 }}
+          >
+            <div className="flex-1 min-h-0">
+              {slideCategoryRanking.length === 0 ? (
+                <p className="text-sm text-[#7f84a8]">
+                  Nenhum gasto registrado neste mês
                 </p>
               ) : (
-                (showUpcomingReceipts
-                  ? upcomingReceipts
-                  : upcomingPayments
-                ).map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-lg flex items-center justify-between gap-2"
-                  >
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <span className="text-base">{item.icone}</span>
-                      <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
-                        {formatCurrency(item.value)}
-                      </span>
-                      <span
-                        className="text-xs text-[#7f84a8] truncate"
-                        title={item.title}
-                      >
-                        {truncateWithThreeDots(
-                          item.title,
-                          UPCOMING_ITEM_TITLE_MAX_LENGTH,
-                        )}
-                      </span>
-                    </div>
-                    <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
-                      {formatDateLabel(item.dueDate)}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-
-          <div className="col-span-2 grid grid-rows-[auto_auto] gap-3 min-h-0">
-            <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
-                      Receitas
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${receitasTagClassName}`}
-                    >
-                      {formatVariationPercent(monthComparison.incomePercent)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Você recebeu{" "}
-                    <span
-                      className={`font-semibold ${receitasDiffColorClassName}`}
-                    >
-                      {formatCurrency(Math.abs(monthComparison.incomeDiff))}
-                    </span>{" "}
-                    {receitasDiffDirection} este mês
-                  </p>
-                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
-                    {formatCurrency(totalIncome)}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
-                      Despesas
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${despesasTagClassName}`}
-                    >
-                      {formatVariationPercent(monthComparison.expensePercent)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Você gastou{" "}
-                    <span
-                      className={`font-semibold ${despesasDiffColorClassName}`}
-                    >
-                      {formatCurrency(Math.abs(monthComparison.expenseDiff))}
-                    </span>{" "}
-                    {despesasDiffDirection} este mês
-                  </p>
-                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
-                    {formatCurrency(totalExpense)}
-                  </p>
-                </div>
-                <div className="rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
-                      Saldo total
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${saldoTagClassName}`}
-                    >
-                      {formatVariationPercent(monthComparison.balancePercent)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Seu saldo ficou{" "}
-                    <span
-                      className={`font-semibold ${saldoDiffColorClassName}`}
-                    >
-                      {formatCurrency(Math.abs(monthComparison.balanceDiff))}
-                    </span>{" "}
-                    {saldoDiffDirection} este mês
-                  </p>
-                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
-                    {formatCurrency(monthComparison.currentBalance)}
-                  </p>
-                </div>
-              </div>
-            </article>
-
-            <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 min-h-0">
-              <div className="rounded-lg p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="text-[24px] font-light text-[#b9bfd8] leading-none">
-                      Investimentos
-                    </div>
-                    <p className="text-2xl font-bold text-slate-800 leading-none">
-                      {formatCurrency(totalInvestmentsBalance)}
-                    </p>
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${investimentosTagClassName}`}
-                    >
-                      {formatVariationPercent(
-                        monthComparison.investmentPercent,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="text-right text-xs text-slate-500">
-                    {monthComparison.currentInvestment <= 0 ? (
-                      <span
-                        className="font-semibold"
-                        style={{ color: "var(--color-vermelho-text)" }}
-                      >
-                        Você não investiu este mês
-                      </span>
-                    ) : (
-                      <span>
-                        Você investiu{" "}
-                        <span
-                          className={`font-semibold ${investimentoDiffColorClassName}`}
-                        >
-                          {formatCurrency(
-                            Math.abs(monthComparison.investmentDiff),
-                          )}
-                        </span>{" "}
-                        {investimentoDiffDirection} esse mês
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section
-          ref={reviewRef}
-          className="grid grid-cols-2 gap-3 min-h-0 self-start"
-        >
-          <div className="min-h-0 order-2">
-            <article
-              className="bg-white border border-slate-200 rounded-xl shadow-sm h-full min-h-[260px] max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
-              onClick={(event) => onOpenCategoryManager(event.currentTarget)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  onOpenCategoryManager(event.currentTarget);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Gerenciar categorias"
-            >
-              <div className="sticky top-0 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#b9bfd8]">
-                  Gastos por Categoria
-                </h3>
-              </div>
-              <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 pt-2">
-                {categoryRanking.length === 0 ? (
-                  <p className="text-sm text-slate-500 col-span-2">
-                    Nenhum gasto registrado neste mês
-                  </p>
-                ) : (
-                  <>
-                    <div className="overflow-y-auto pr-1 space-y-3">
-                      {categoryRanking.map((item) => {
-                        const standardColor = getCategoryStandardColor(
-                          item.cor,
-                        );
-                        return (
-                          <div key={item.id} className="rounded-lg space-y-1">
-                            <div
-                              className="h-5 rounded-full border overflow-hidden"
-                              style={{
-                                borderColor: "#2F2C46",
-                                background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(
-                                  standardColor.gradient2,
-                                  0.75,
-                                )} 100%)`,
-                              }}
-                            >
-                              <div
-                                className="h-full rounded-full border"
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    (item.total /
-                                      (item.limite > 0
-                                        ? item.limite
-                                        : item.total || 1)) *
-                                      100,
-                                  )}%`,
-                                  borderColor: standardColor.border,
-                                  background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
-                                }}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                              <span style={{ color: standardColor.text }}>
-                                {formatCurrency(item.total)}
-                              </span>
-                              <span className="font-semibold text-[#6A6785]">
-                                {formatCurrency(
-                                  item.limite > 0 ? item.limite : item.total,
-                                )}
-                              </span>
-                            </div>
+                <div className="h-full grid grid-cols-2 gap-4 min-h-0">
+                  <div className="min-h-0 flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3 min-h-0 flex-1">
+                      {[slideCategoryLeftColumn, slideCategoryRightColumn].map(
+                        (column, columnIndex) => (
+                          <div
+                            key={`slide-category-column-${columnIndex}`}
+                            className="overflow-y-auto pr-1 space-y-4"
+                          >
+                            {column.length === 0 ? (
+                              <p className="text-xs text-[#7f84a8]">
+                                Sem categorias nesta coluna
+                              </p>
+                            ) : (
+                              column.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <div key={item.id} className="space-y-1.5">
+                                    <div
+                                      className="h-5 rounded-full border overflow-hidden"
+                                      style={{
+                                        borderColor: "#2F2C46",
+                                        background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(standardColor.gradient2, 0.75)} 100%)`,
+                                      }}
+                                    >
+                                      <div
+                                        className="h-full rounded-full border"
+                                        style={{
+                                          width: `${Math.min(100, (item.total / (item.limite > 0 ? item.limite : item.total || 1)) * 100)}%`,
+                                          borderColor: standardColor.border,
+                                          background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs gap-2">
+                                      <div className="inline-flex items-center gap-2 min-w-0">
+                                        <span
+                                          className="font-semibold truncate"
+                                          style={{ color: standardColor.text }}
+                                        >
+                                          {item.nome}
+                                        </span>
+                                        <span
+                                          className="whitespace-nowrap"
+                                          style={{ color: standardColor.text }}
+                                        >
+                                          {formatCurrency(item.total)}
+                                        </span>
+                                      </div>
+                                      <span className="font-semibold text-[#6A6785] whitespace-nowrap">
+                                        {formatCurrency(
+                                          item.limite > 0
+                                            ? item.limite
+                                            : item.total,
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
-                        );
-                      })}
+                        ),
+                      )}
                     </div>
 
-                    <div className="min-h-0 flex items-center justify-center">
-                      {categoryPieData.length === 0 ? (
-                        <p className="text-xs text-slate-500 text-center">
+                    <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
+                      {[
+                        exceededAlertsLeftColumn,
+                        exceededAlertsRightColumn,
+                      ].map((alertsColumn, columnIndex) => (
+                        <div
+                          key={`exceeded-alerts-column-${columnIndex}`}
+                          className="space-y-2"
+                        >
+                          {alertsColumn.length === 0 ? (
+                            columnIndex === 0 ? (
+                              <p className="text-xs text-[#7f84a8]">
+                                Nenhum limite excedido.
+                              </p>
+                            ) : null
+                          ) : (
+                            alertsColumn.map((item) => (
+                              <p
+                                key={`alert-${item.id}`}
+                                className="text-xs font-medium"
+                                style={{ color: "var(--color-vermelho-text)" }}
+                              >
+                                <span
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  Limite da categoria {item.nome} excedido em
+                                </span>{" "}
+                                <span
+                                  className="font-semibold"
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  {formatCurrency(item.total - item.limite)}
+                                </span>
+                                <span
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  .
+                                </span>
+                              </p>
+                            ))
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 grid grid-cols-2 gap-3">
+                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                      {slideCategoryPieData.length === 0 ? (
+                        <p className="text-xs text-[#7f84a8] text-center pt-8">
                           Sem dados para gráfico
                         </p>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
-                            <Pie
-                              data={categoryPieData}
-                              dataKey="total"
-                              nameKey="nome"
-                              innerRadius={40}
-                              outerRadius={90}
-                              paddingAngle={8}
-                              cornerRadius={16}
-                              stroke="none"
-                            >
-                              {categoryPieData.map((item) => {
-                                const standardColor = getCategoryStandardColor(
-                                  item.cor,
-                                );
-                                return (
-                                  <Cell
-                                    key={item.id}
-                                    fill={`url(#categoriaGradient-${item.id})`}
-                                    stroke={standardColor.border}
-                                    strokeWidth={1.5}
-                                  />
-                                );
-                              })}
-                            </Pie>
                             <defs>
                               {slideCategoryPieData.map((item) => {
                                 const standardColor = getCategoryStandardColor(
@@ -1778,8 +1516,8 @@ const DashboardDesktopRedesignView = ({
                                 );
                                 return (
                                   <linearGradient
-                                    key={`categoriaGradient-${item.id}`}
-                                    id={`categoriaGradient-${item.id}`}
+                                    key={`slideGrad-${item.id}`}
+                                    id={`slideGrad-${item.id}`}
                                     x1="0"
                                     y1="0"
                                     x2="0"
@@ -1803,90 +1541,865 @@ const DashboardDesktopRedesignView = ({
                                 );
                               })}
                             </defs>
+                            <Pie
+                              data={slideCategoryPieData}
+                              dataKey="total"
+                              nameKey="nome"
+                              innerRadius="35%"
+                              outerRadius="80%"
+                              paddingAngle={8}
+                              cornerRadius={16}
+                              stroke="none"
+                              label={renderCategoryPieIconLabel}
+                              labelLine={false}
+                            >
+                              {slideCategoryPieData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={item.id}
+                                    fill={`url(#slideGrad-${item.id})`}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1.5}
+                                  />
+                                );
+                              })}
+                            </Pie>
+                            <Tooltip
+                              content={renderCategoryPieTooltip}
+                              cursor={false}
+                            />
                           </PieChart>
                         </ResponsiveContainer>
                       )}
                     </div>
-                  </>
+
+                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                      {categoryComparisonData.length === 0 ? (
+                        <p className="text-xs text-[#7f84a8] text-center pt-8">
+                          Sem histórico para comparar com{" "}
+                          {previousMonthShortLabel}
+                        </p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={categoryComparisonData}
+                            margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+                            barGap={2}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="4 10"
+                              vertical={false}
+                              stroke="#2a2f52"
+                            />
+                            <XAxis
+                              dataKey="shortName"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fontSize: 9, fill: "#7f84a8" }}
+                            />
+                            <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tickFormatter={formatChartAxisTick}
+                              tick={{ fontSize: 9, fill: "#7f84a8" }}
+                              width={26}
+                            />
+                            <Tooltip
+                              content={renderCategoryComparisonTooltip}
+                              cursor={{
+                                fill: "rgba(185, 191, 216, 0.12)",
+                              }}
+                            />
+                            <Bar
+                              dataKey="previousTotal"
+                              name={`Mês anterior (${previousMonthShortLabel})`}
+                              radius={[4, 4, 0, 0]}
+                            >
+                              {categoryComparisonData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={`previous-bar-${item.id}`}
+                                    fill={toHsla(standardColor.gradient2, 0.95)}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1}
+                                  />
+                                );
+                              })}
+                            </Bar>
+                            <Bar
+                              dataKey="currentTotal"
+                              name={`Mês atual (${currentMonthShortLabel})`}
+                              radius={[4, 4, 0, 0]}
+                            >
+                              {categoryComparisonData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={`current-bar-${item.id}`}
+                                    fill={toHsla(standardColor.gradient1, 0.95)}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1}
+                                  />
+                                );
+                              })}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div
+          className="grid h-full"
+          style={{
+            rowGap: `${desktopGap}px`,
+            gridTemplateRows: `${hSecao1}px ${hSecao2}px ${hSecao3}px`,
+          }}
+        >
+          <section ref={summaryRef} className="grid grid-cols-3 gap-3 min-h-0">
+            <article
+              className="col-span-2 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
+              onClick={() => setActiveSlide("charts")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveSlide("charts");
+                }
+              }}
+              aria-label="Ver análise gráfica detalhada"
+            >
+              <div className="flex-1 min-h-0 cursor-pointer">
+                {chartData.length === 0 ? (
+                  <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
+                    <p className="text-sm text-[#9fb0d3]">
+                      Ainda não há dados no período para montar o gráfico de
+                      monitoramento.
+                    </p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={chartMargin}>
+                      <defs>
+                        <linearGradient
+                          id="colorReceitaRedesign"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={CHART_THEME_COLORS.entrada.fill}
+                            stopOpacity={0.28}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={CHART_THEME_COLORS.entrada.fill}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorDespesaRedesign"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={CHART_THEME_COLORS.saida.fill}
+                            stopOpacity={0.24}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={CHART_THEME_COLORS.saida.fill}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorSaldoRedesign"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={CHART_THEME_COLORS.saldo.fill}
+                            stopOpacity={0.1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={CHART_THEME_COLORS.saldo.fill}
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="4 10"
+                        vertical={false}
+                        stroke="#2a2f52"
+                      />
+                      <XAxis
+                        dataKey="data"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        domain={[0, 10000]}
+                        ticks={CHART_Y_TICKS}
+                        tickFormatter={formatChartAxisTick}
+                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        width={chartYAxisWidth}
+                      />
+                      <Tooltip
+                        content={renderChartTooltip}
+                        cursor={{
+                          stroke: "#b9bfd8",
+                          strokeWidth: 2,
+                          strokeDasharray: "6 6",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="entrada"
+                        fill="url(#colorReceitaRedesign)"
+                        stroke="none"
+                        isAnimationActive={false}
+                        name="entrada"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="saida"
+                        fill="url(#colorDespesaRedesign)"
+                        stroke="none"
+                        isAnimationActive={false}
+                        name="saida"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="saldo"
+                        stroke="none"
+                        fill="url(#colorSaldoRedesign)"
+                        isAnimationActive={false}
+                        name="saldo"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="entrada"
+                        stroke={CHART_THEME_COLORS.entrada.line}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 7,
+                          fill: "#7aa8ff",
+                          stroke: "#cfd5ff",
+                          strokeWidth: 2,
+                        }}
+                        name="entrada"
+                        style={{
+                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="saida"
+                        stroke={CHART_THEME_COLORS.saida.line}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 7,
+                          fill: "#7aa8ff",
+                          stroke: "#cfd5ff",
+                          strokeWidth: 2,
+                        }}
+                        name="saida"
+                        style={{
+                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="saldo"
+                        stroke={CHART_THEME_COLORS.saldo.line}
+                        strokeWidth={2}
+                        dot={false}
+                        name="saldo"
+                        style={{ opacity: 0.6 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </article>
-          </div>
 
-          <article className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 max-h-[345px] overflow-hidden order-1 flex flex-col p-4">
-            <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="text-sm font-semibold text-[#b9bfd8]">
-                Movimentações
-              </h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar transação"
-                  className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
-                />
-                <select
-                  value={filterType}
-                  onChange={(event) => setFilterType(event.target.value)}
-                  className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
-                >
-                  <option value="todas">Todas</option>
-                  <option value="entradas">Somente entradas</option>
-                  <option value="saidas">Somente saídas</option>
-                  <option value="simuladas">Somente simuladas</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pt-2">
-              <div className="space-y-3">
-                {sortedMovimentacoes.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    Nenhuma movimentação encontrada.
-                  </p>
+            <article className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3">
+              <div className="uiux-card-premium-wrap flex-1">
+                {isCardSummaryLoading ? (
+                  <div
+                    className="uiux-card-state-box"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <p className="text-sm text-[#c8c5dd] font-medium">
+                      Carregando cartão...
+                    </p>
+                  </div>
+                ) : !cardSummary ? (
+                  <div className="uiux-card-state-box">
+                    <p className="text-sm text-[#d6d4e7] font-semibold">
+                      Nenhum cartão ativo encontrado.
+                    </p>
+                    <p className="text-xs text-[#9f9cb9] mt-1">
+                      Cadastre um cartão para visualizar limite, fechamento e
+                      vencimento.
+                    </p>
+                  </div>
                 ) : (
-                  sortedMovimentacoes.map((item) => {
-                    const isEntrada = (item.type || item.tipo) === "Entrada";
-                    const iconClassName = isEntrada
-                      ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-                      : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="rounded-lg flex items-center justify-between gap-2"
+                  <div
+                    className="uiux-card-stack"
+                    aria-label="Resumo visual do cartão"
+                  >
+                    {backCardSummaries.map((item, index) => (
+                      <button
+                        key={
+                          item?.cartao?.id ||
+                          item?.cartao?.nome ||
+                          `back-card-${index}`
+                        }
+                        type="button"
+                        onClick={() => handleBringCardToFront(index + 1)}
+                        className={`uiux-card-layer uiux-card-layer-back-clickable ${index === 0 ? "uiux-card-layer-back-1" : "uiux-card-layer-back-2"}`}
+                        aria-label={`Selecionar cartão ${item?.cartao?.nome || "secundário"}`}
+                        style={getBackLayerStyle(
+                          normalizeCardTheme(item?.cartao?.corTema),
+                          index,
+                        )}
                       >
-                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <span
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${iconClassName}`}
-                          >
-                            {isEntrada ? "↑" : "↓"}
-                          </span>
-                          <span className="text-base">
-                            {item.categoria?.icone || "•"}
-                          </span>
-                          <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
-                            {formatCurrency(item.value || item.valor || 0)}
-                          </span>
-                          <span className="text-xs text-[#7f84a8] truncate">
-                            {item.name || item.titulo}
-                          </span>
-                        </div>
-                        <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
-                          {item.date || item.data
-                            ? formatDateLabel(item.date || item.data)
-                            : "--/--"}
-                        </span>
+                        <p
+                          className="uiux-card-layer-back-name"
+                          style={{
+                            color: getThemePalette(
+                              normalizeCardTheme(item?.cartao?.corTema),
+                            ).backName,
+                          }}
+                        >
+                          {item?.cartao?.nome || ""}
+                        </p>
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={onOpenCardManagement}
+                      className="uiux-card-layer uiux-card-layer-front uiux-card-layer-front-clickable"
+                      aria-label="Abrir gestão do cartão"
+                      style={getFrontLayerStyle(activeCardTheme)}
+                    >
+                      <div className="uiux-card-top-row">
+                        <p
+                          className="uiux-card-value-used"
+                          style={{ color: activeCardPalette.usedText }}
+                        >
+                          {formatCurrency(cardLimitUsed)}
+                        </p>
+                        <p className="uiux-card-value-limit">
+                          {formatCurrency(cardLimitTotal)}
+                        </p>
                       </div>
-                    );
-                  })
+
+                      <div
+                        className="uiux-card-progress-track"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(cardUsagePercent)}
+                        aria-label="Uso do limite do cartão"
+                        style={{
+                          borderColor: activeCardPalette.progressTrackBorder,
+                          background: `linear-gradient(90deg, ${activeCardPalette.progressTrackStart} 0%, ${activeCardPalette.progressTrackEnd} 100%)`,
+                        }}
+                      >
+                        <div
+                          className={`uiux-card-progress-fill ${cardUsagePercent <= 0 ? "uiux-card-progress-fill-empty" : ""}`}
+                          style={{
+                            width: `${cardUsagePercent}%`,
+                            borderColor: activeCardPalette.progressFillBorder,
+                            background: `linear-gradient(90deg, ${activeCardPalette.progressFillStart} 0%, ${activeCardPalette.progressFillEnd} 100%)`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="uiux-card-footer-row">
+                        <p
+                          className="uiux-card-name"
+                          style={{ color: activeCardPalette.cardName }}
+                        >
+                          {cardSummary.cartao?.nome || "Cartão"}
+                        </p>
+                        <div
+                          className="uiux-card-cycle"
+                          aria-label="Dados de fechamento e vencimento"
+                        >
+                          <p>
+                            Fechamento{" "}
+                            {String(
+                              cardSummary.cartao?.diaFechamento || "-",
+                            ).padStart(2, "0")}
+                          </p>
+                          <p>
+                            Vencimento{" "}
+                            {String(
+                              cardSummary.cartao?.diaVencimento || "-",
+                            ).padStart(2, "0")}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 )}
               </div>
+
+              {cardSummaryError ? (
+                <p
+                  className="mt-1 text-xs"
+                  style={{ color: "var(--color-vermelho-text)" }}
+                >
+                  {cardSummaryError}
+                </p>
+              ) : null}
+            </article>
+          </section>
+
+          <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
+            <article className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
+              <div className="sticky top-0 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                  {showUpcomingReceipts
+                    ? "Próximas receitas"
+                    : "Próximas despesas"}
+                </h3>
+                <button
+                  onClick={() => setShowUpcomingReceipts(!showUpcomingReceipts)}
+                  className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
+                  title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
+                >
+                  <RefreshCw size={16} className="text-[#7f84a8]" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto pt-2 space-y-2">
+                {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
+                  .length === 0 ? (
+                  <p className="text-xs text-[#7f84a8] text-center py-4">
+                    Nenhum item no período
+                  </p>
+                ) : (
+                  (showUpcomingReceipts
+                    ? upcomingReceipts
+                    : upcomingPayments
+                  ).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-lg flex items-center justify-between gap-2"
+                    >
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span className="text-base">{item.icone}</span>
+                        <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                          {formatCurrency(item.value)}
+                        </span>
+                        <span
+                          className="text-xs text-[#7f84a8] truncate"
+                          title={item.title}
+                        >
+                          {truncateWithThreeDots(
+                            item.title,
+                            UPCOMING_ITEM_TITLE_MAX_LENGTH,
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                        {formatDateLabel(item.dueDate)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
+
+            <div className="col-span-2 grid grid-rows-[auto_auto] gap-3 min-h-0">
+              <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                        Receitas
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${receitasTagClassName}`}
+                      >
+                        {formatVariationPercent(monthComparison.incomePercent)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Você recebeu{" "}
+                      <span
+                        className={`font-semibold ${receitasDiffColorClassName}`}
+                      >
+                        {formatCurrency(Math.abs(monthComparison.incomeDiff))}
+                      </span>{" "}
+                      {receitasDiffDirection} este mês
+                    </p>
+                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                      {formatCurrency(totalIncome)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                        Despesas
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${despesasTagClassName}`}
+                      >
+                        {formatVariationPercent(monthComparison.expensePercent)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Você gastou{" "}
+                      <span
+                        className={`font-semibold ${despesasDiffColorClassName}`}
+                      >
+                        {formatCurrency(Math.abs(monthComparison.expenseDiff))}
+                      </span>{" "}
+                      {despesasDiffDirection} este mês
+                    </p>
+                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                      {formatCurrency(totalExpense)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                        Saldo total
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${saldoTagClassName}`}
+                      >
+                        {formatVariationPercent(monthComparison.balancePercent)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Seu saldo ficou{" "}
+                      <span
+                        className={`font-semibold ${saldoDiffColorClassName}`}
+                      >
+                        {formatCurrency(Math.abs(monthComparison.balanceDiff))}
+                      </span>{" "}
+                      {saldoDiffDirection} este mês
+                    </p>
+                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                      {formatCurrency(monthComparison.currentBalance)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 min-h-0">
+                <div className="rounded-lg p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                        Investimentos
+                      </div>
+                      <p className="text-2xl font-bold text-slate-800 leading-none">
+                        {formatCurrency(totalInvestmentsBalance)}
+                      </p>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${investimentosTagClassName}`}
+                      >
+                        {formatVariationPercent(
+                          monthComparison.investmentPercent,
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="text-right text-xs text-slate-500">
+                      {monthComparison.currentInvestment <= 0 ? (
+                        <span
+                          className="font-semibold"
+                          style={{ color: "var(--color-vermelho-text)" }}
+                        >
+                          Você não investiu este mês
+                        </span>
+                      ) : (
+                        <span>
+                          Você investiu{" "}
+                          <span
+                            className={`font-semibold ${investimentoDiffColorClassName}`}
+                          >
+                            {formatCurrency(
+                              Math.abs(monthComparison.investmentDiff),
+                            )}
+                          </span>{" "}
+                          {investimentoDiffDirection} esse mês
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </article>
             </div>
-          </article>
-        </section>
-      </div>
+          </section>
+
+          <section
+            ref={reviewRef}
+            className="grid grid-cols-2 gap-3 min-h-0 self-start"
+          >
+            <div className="min-h-0 order-2">
+              <article
+                className="bg-white border border-slate-200 rounded-xl shadow-sm h-full min-h-[260px] max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
+                onClick={() => setActiveSlide("charts")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setActiveSlide("charts");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Ver análise de categorias detalhada"
+              >
+                <div className="sticky top-0 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                    Gastos por Categoria
+                  </h3>
+                </div>
+                <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 pt-2">
+                  {categoryRanking.length === 0 ? (
+                    <p className="text-sm text-slate-500 col-span-2">
+                      Nenhum gasto registrado neste mês
+                    </p>
+                  ) : (
+                    <>
+                      <div className="overflow-y-auto pr-1 space-y-3">
+                        {categoryRanking.map((item) => {
+                          const standardColor = getCategoryStandardColor(
+                            item.cor,
+                          );
+                          return (
+                            <div key={item.id} className="rounded-lg space-y-1">
+                              <div
+                                className="h-5 rounded-full border overflow-hidden"
+                                style={{
+                                  borderColor: "#2F2C46",
+                                  background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(
+                                    standardColor.gradient2,
+                                    0.75,
+                                  )} 100%)`,
+                                }}
+                              >
+                                <div
+                                  className="h-full rounded-full border"
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      (item.total /
+                                        (item.limite > 0
+                                          ? item.limite
+                                          : item.total || 1)) *
+                                        100,
+                                    )}%`,
+                                    borderColor: standardColor.border,
+                                    background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
+                                  }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-xs">
+                                <span style={{ color: standardColor.text }}>
+                                  {formatCurrency(item.total)}
+                                </span>
+                                <span className="font-semibold text-[#6A6785]">
+                                  {formatCurrency(
+                                    item.limite > 0 ? item.limite : item.total,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="min-h-0 flex items-center justify-center cursor-pointer">
+                        {categoryPieData.length === 0 ? (
+                          <p className="text-xs text-slate-500 text-center">
+                            Sem dados para gráfico
+                          </p>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={categoryPieData}
+                                dataKey="total"
+                                nameKey="nome"
+                                innerRadius={40}
+                                outerRadius={90}
+                                paddingAngle={dashboardPiePaddingAngle}
+                                cornerRadius={dashboardPieCornerRadius}
+                                stroke="none"
+                                label={renderCategoryPieIconLabel}
+                                labelLine={false}
+                              >
+                                {categoryPieData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <Cell
+                                      key={item.id}
+                                      fill={`url(#categoriaGradient-${item.id})`}
+                                      stroke={standardColor.border}
+                                      strokeWidth={1.5}
+                                    />
+                                  );
+                                })}
+                              </Pie>
+                              <Tooltip
+                                content={renderCategoryPieTooltip}
+                                cursor={false}
+                              />
+                              <defs>
+                                {categoryPieData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <linearGradient
+                                      key={`categoriaGradient-${item.id}`}
+                                      id={`categoriaGradient-${item.id}`}
+                                      x1="0"
+                                      y1="0"
+                                      x2="0"
+                                      y2="1"
+                                    >
+                                      <stop
+                                        offset="0%"
+                                        stopColor={toHsla(
+                                          standardColor.gradient1,
+                                          0.85,
+                                        )}
+                                      />
+                                      <stop
+                                        offset="100%"
+                                        stopColor={toHsla(
+                                          standardColor.gradient2,
+                                          0.92,
+                                        )}
+                                      />
+                                    </linearGradient>
+                                  );
+                                })}
+                              </defs>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </article>
+            </div>
+
+            <article className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 max-h-[345px] overflow-hidden order-1 flex flex-col p-4">
+              <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                  Movimentações
+                </h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Buscar transação"
+                    className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
+                  />
+                  <select
+                    value={filterType}
+                    onChange={(event) => setFilterType(event.target.value)}
+                    className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
+                  >
+                    <option value="todas">Todas</option>
+                    <option value="entradas">Somente entradas</option>
+                    <option value="saidas">Somente saídas</option>
+                    <option value="simuladas">Somente simuladas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pt-2">
+                <div className="space-y-3">
+                  {sortedMovimentacoes.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma movimentação encontrada.
+                    </p>
+                  ) : (
+                    sortedMovimentacoes.map((item) => {
+                      const isEntrada = (item.type || item.tipo) === "Entrada";
+                      const iconClassName = isEntrada
+                        ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+                        : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-lg flex items-center justify-between gap-2"
+                        >
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            <span
+                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${iconClassName}`}
+                            >
+                              {isEntrada ? "↑" : "↓"}
+                            </span>
+                            <span className="text-base">
+                              {item.categoria?.icone || "•"}
+                            </span>
+                            <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                              {formatCurrency(item.value || item.valor || 0)}
+                            </span>
+                            <span className="text-xs text-[#7f84a8] truncate">
+                              {item.name || item.titulo}
+                            </span>
+                          </div>
+                          <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                            {item.date || item.data
+                              ? formatDateLabel(item.date || item.data)
+                              : "--/--"}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+      )}
 
       {simulatedTransactions.length > 0 ? (
         <div className="fixed bottom-4 left-4 z-40 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 flex items-center gap-2">
