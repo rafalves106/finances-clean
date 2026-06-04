@@ -13,7 +13,6 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
@@ -33,6 +32,105 @@ const sortByDate = (list) =>
   [...list].sort(
     (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
   );
+
+const CHART_SERIES_ORDER = ["entrada", "saida", "saldo"];
+
+const CHART_SERIES_LABEL = {
+  entrada: "Receita",
+  saida: "Despesa",
+  saldo: "Saldo",
+};
+
+const CHART_Y_TICKS = [0, 1000, 2500, 5000, 7500, 10000];
+
+const formatChartAxisTick = (value) => {
+  if (value >= 1000) {
+    const compact = value / 1000;
+    const normalized = Number.isInteger(compact)
+      ? String(compact)
+      : String(compact).replace(/\.0$/, "");
+    return `${normalized}K`;
+  }
+
+  return String(value);
+};
+
+const CHART_THEME_COLORS = {
+  entrada: {
+    line: "#2C462F",
+    fill: "#059669",
+    glow: "rgba(5, 150, 105, 0.34)",
+  },
+  saida: {
+    line: "#462C2C",
+    fill: "#E11D48",
+    glow: "rgba(225, 29, 72, 0.3)",
+  },
+  saldo: {
+    line: "#2C4246",
+    fill: "#2563EB",
+    glow: "rgba(37, 99, 235, 0.28)",
+  },
+};
+
+const getUniqueTooltipItems = (payload) => {
+  if (!Array.isArray(payload) || payload.length === 0) {
+    return [];
+  }
+
+  const uniqueByDataKey = new Map();
+
+  payload.forEach((item) => {
+    const key = item?.dataKey;
+    if (!key || uniqueByDataKey.has(key)) {
+      return;
+    }
+
+    uniqueByDataKey.set(key, item);
+  });
+
+  return CHART_SERIES_ORDER.map((key) => uniqueByDataKey.get(key)).filter(
+    Boolean,
+  );
+};
+
+const renderChartTooltip = ({ active, payload, label }) => {
+  if (!active) {
+    return null;
+  }
+
+  const items = getUniqueTooltipItems(payload);
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        background: "#15172a",
+        border: "1px solid #32375e",
+        borderRadius: "12px",
+        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
+        color: "#dbe3ff",
+        fontSize: "12px",
+        padding: "10px 12px",
+      }}
+    >
+      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+        {label}
+      </p>
+      {items.map((item) => (
+        <p
+          key={item.dataKey}
+          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
+        >
+          {CHART_SERIES_LABEL[item.dataKey] ?? item.dataKey}:{" "}
+          {formatCurrency(item.value)}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 const DEFAULT_CARD_THEME = "#271815";
 
@@ -130,7 +228,6 @@ const DashboardDesktopRedesignView = ({
   totalInvestmentsBalance = 0,
   selectedMes,
   selectedAno,
-  onChangeMonth,
   categorias = [],
   veiculos = [],
   fetchData,
@@ -317,9 +414,9 @@ const DashboardDesktopRedesignView = ({
       .sort((a, b) => new Date(a[0]) - new Date(b[0]))
       .reduce((acc, [iso, values], index) => {
         const previous = index > 0 ? acc[index - 1].saldo : saldoAnterior;
-        const [year, month, day] = iso.split("-");
+        const [, month, day] = iso.split("-");
         acc.push({
-          data: `${day}/${month}/${year.slice(2)}`,
+          data: `${day}/${month}`,
           entrada: values.entrada,
           saida: values.saida,
           saldo: previous + values.entrada - values.saida,
@@ -403,16 +500,6 @@ const DashboardDesktopRedesignView = ({
   const entradas = filteredTransactions.filter(
     (item) => (item.type || item.tipo) === "Entrada",
   );
-
-  const handlePreviousMonth = () => {
-    const previousDate = new Date(selectedAno, selectedMes - 2, 1);
-    onChangeMonth(previousDate.getMonth() + 1, previousDate.getFullYear());
-  };
-
-  const handleNextMonth = () => {
-    const nextDate = new Date(selectedAno, selectedMes, 1);
-    onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
-  };
 
   const handleOpenSimulation = () => {
     setIsSimulationModalOpen(true);
@@ -527,107 +614,175 @@ const DashboardDesktopRedesignView = ({
         }}
       >
         <section ref={summaryRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-2 bg-white border border-slate-200 rounded-xl p-4 shadow-sm min-h-0 flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="uiux-subsection-title text-sm font-semibold tracking-wide flex items-center gap-2">
-                <DollarSign size={16} className="text-[#aba8c2]" /> Evolução
-                financeira
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePreviousMonth}
-                  className="px-2.5 py-1 rounded-lg border border-[#2f2c46] text-[#aba8c2]"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="px-2.5 py-1 rounded-lg border border-[#2f2c46] text-[#aba8c2]"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-
+          <article className="col-span-2 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
             <div className="flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorSaldoRedesign"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="#3b82f6"
-                        stopOpacity={0.12}
-                      />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f1f5f9"
-                  />
-                  <XAxis
-                    dataKey="data"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "#cbd5e1" }}
-                  />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      formatCurrency(value),
-                      name === "entrada"
-                        ? "Receita"
-                        : name === "saida"
-                          ? "Despesa"
-                          : "Saldo",
-                    ]}
-                  />
-                  <Legend
-                    iconType="circle"
-                    wrapperStyle={{ fontSize: "11px" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="entrada"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={false}
-                    name="entrada"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="saida"
-                    stroke="#f43f5e"
-                    strokeWidth={2}
-                    dot={false}
-                    name="saida"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="saldo"
-                    stroke="#3b82f6"
-                    fill="url(#colorSaldoRedesign)"
-                    name="saldo"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {chartData.length === 0 ? (
+                <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
+                  <p className="text-sm text-[#9fb0d3]">
+                    Ainda não há dados no período para montar o gráfico de
+                    monitoramento.
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="colorReceitaRedesign"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={CHART_THEME_COLORS.entrada.fill}
+                          stopOpacity={0.28}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={CHART_THEME_COLORS.entrada.fill}
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                      <linearGradient
+                        id="colorDespesaRedesign"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={CHART_THEME_COLORS.saida.fill}
+                          stopOpacity={0.24}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={CHART_THEME_COLORS.saida.fill}
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                      <linearGradient
+                        id="colorSaldoRedesign"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={CHART_THEME_COLORS.saldo.fill}
+                          stopOpacity={0.1}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={CHART_THEME_COLORS.saldo.fill}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="4 10"
+                      vertical={false}
+                      stroke="#2a2f52"
+                    />
+                    <XAxis
+                      dataKey="data"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#7f84a8" }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[0, 10000]}
+                      ticks={CHART_Y_TICKS}
+                      tickFormatter={formatChartAxisTick}
+                      tick={{ fontSize: 10, fill: "#7f84a8" }}
+                      width={28}
+                    />
+                    <Tooltip
+                      content={renderChartTooltip}
+                      cursor={{
+                        stroke: "#b9bfd8",
+                        strokeWidth: 2,
+                        strokeDasharray: "6 6",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="entrada"
+                      fill="url(#colorReceitaRedesign)"
+                      stroke="none"
+                      isAnimationActive={false}
+                      name="entrada"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="saida"
+                      fill="url(#colorDespesaRedesign)"
+                      stroke="none"
+                      isAnimationActive={false}
+                      name="saida"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="saldo"
+                      stroke="none"
+                      fill="url(#colorSaldoRedesign)"
+                      isAnimationActive={false}
+                      name="saldo"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="entrada"
+                      stroke={CHART_THEME_COLORS.entrada.line}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{
+                        r: 7,
+                        fill: "#7aa8ff",
+                        stroke: "#cfd5ff",
+                        strokeWidth: 2,
+                      }}
+                      name="entrada"
+                      style={{
+                        filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="saida"
+                      stroke={CHART_THEME_COLORS.saida.line}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{
+                        r: 7,
+                        fill: "#7aa8ff",
+                        stroke: "#cfd5ff",
+                        strokeWidth: 2,
+                      }}
+                      name="saida"
+                      style={{
+                        filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="saldo"
+                      stroke={CHART_THEME_COLORS.saldo.line}
+                      strokeWidth={2}
+                      dot={false}
+                      name="saldo"
+                      style={{ opacity: 0.6 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </article>
 

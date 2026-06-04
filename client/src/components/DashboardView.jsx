@@ -1620,9 +1620,7 @@ const DashboardView = ({
 
       <div className="dashboard-control-chart-card p-6 rounded-2xl border shadow-sm flex flex-col">
         <div className="flex items-center justify-between gap-3 mb-6">
-          <h3 className="dashboard-control-chart-title">
-            Controle Financeiro
-          </h3>
+          <h3 className="dashboard-control-chart-title">Controle Financeiro</h3>
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Data início
@@ -1740,7 +1738,12 @@ const DashboardView = ({
                 fill="url(#incomeFill)"
                 fillOpacity={1}
                 dot={false}
-                activeDot={{ r: 7, fill: "#7aa8ff", stroke: "#cfd5ff", strokeWidth: 2 }}
+                activeDot={{
+                  r: 7,
+                  fill: "#7aa8ff",
+                  stroke: "#cfd5ff",
+                  strokeWidth: 2,
+                }}
                 name="entrada"
               />
               <Area
@@ -1751,7 +1754,12 @@ const DashboardView = ({
                 fill="url(#expenseFill)"
                 fillOpacity={1}
                 dot={false}
-                activeDot={{ r: 7, fill: "#7aa8ff", stroke: "#cfd5ff", strokeWidth: 2 }}
+                activeDot={{
+                  r: 7,
+                  fill: "#7aa8ff",
+                  stroke: "#cfd5ff",
+                  strokeWidth: 2,
+                }}
                 name="saida"
               />
             </AreaChart>

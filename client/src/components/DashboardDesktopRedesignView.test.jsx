@@ -139,7 +139,7 @@ describe("DashboardDesktopRedesignView", () => {
       />,
     );
 
-    expect(screen.getByText("Evolução financeira")).toBeTruthy();
+    expect(screen.getByText("Controle Financeiro")).toBeTruthy();
     expect(screen.getByText("Investimentos")).toBeTruthy();
     expect(screen.getByText("Próximos pagamentos")).toBeTruthy();
     expect(screen.getByText("Movimentações")).toBeTruthy();
