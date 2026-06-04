@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   Plus,
@@ -507,6 +507,9 @@ const DashboardDesktopRedesignView = ({
   const [cardFormById, setCardFormById] = useState({});
   const [cardFormStatusById, setCardFormStatusById] = useState({});
   const [isSavingCardById, setIsSavingCardById] = useState({});
+  const [newCardFormBySlot, setNewCardFormBySlot] = useState({});
+  const [newCardStatusBySlot, setNewCardStatusBySlot] = useState({});
+  const [isCreatingCardBySlot, setIsCreatingCardBySlot] = useState({});
   const [investmentSlideActions, setInvestmentSlideActions] = useState(null);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
@@ -521,85 +524,85 @@ const DashboardDesktopRedesignView = ({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const fetchCardSummary = async () => {
-      try {
-        setIsCardSummaryLoading(true);
-        setCardSummaryError("");
+  const loadCardSummaries = useCallback(async () => {
+    try {
+      setIsCardSummaryLoading(true);
+      setCardSummaryError("");
 
-        const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
-          method: "GET",
-          credentials: "include",
-        });
+      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
+        method: "GET",
+        credentials: "include",
+      });
 
-        if (multiResponse.ok) {
-          const multiData = await multiResponse.json();
-          const summaries = Array.isArray(multiData)
-            ? multiData
-            : Array.isArray(multiData?.resumos)
-              ? multiData.resumos
-              : Array.isArray(multiData?.data)
-                ? multiData.data
-                : [];
+      if (multiResponse.ok) {
+        const multiData = await multiResponse.json();
+        const summaries = Array.isArray(multiData)
+          ? multiData
+          : Array.isArray(multiData?.resumos)
+            ? multiData.resumos
+            : Array.isArray(multiData?.data)
+              ? multiData.data
+              : [];
 
-          const validSummaries = summaries.filter((item) => item?.cartao);
+        const validSummaries = summaries.filter((item) => item?.cartao);
 
-          if (validSummaries.length > 0) {
-            setCardSummaries(validSummaries.slice(0, 3));
-            return;
-          }
-
-          setCardSummaries([]);
+        if (validSummaries.length > 0) {
+          setCardSummaries(validSummaries.slice(0, 3));
           return;
         }
 
-        if (multiResponse.status !== 404 && multiResponse.status !== 405) {
-          const message = await extractApiErrorMessage(
-            multiResponse,
-            "Não foi possível carregar o resumo do cartão.",
-          );
-          setCardSummaryError(message);
-          setCardSummaries([]);
-          return;
-        }
-
-        const response = await fetch(`${API_CARTAO_URL}/resumo`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (response.status === 404) {
-          setCardSummaries([]);
-          return;
-        }
-
-        if (!response.ok) {
-          const message = await extractApiErrorMessage(
-            response,
-            "Não foi possível carregar o resumo do cartão.",
-          );
-          setCardSummaryError(message);
-          setCardSummaries([]);
-          return;
-        }
-
-        const data = await response.json();
-        if (data?.cartao) {
-          setCardSummaries([data]);
-        } else {
-          setCardSummaries([]);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar resumo de cartão:", error);
-        setCardSummaryError("Erro ao carregar resumo do cartão.");
         setCardSummaries([]);
-      } finally {
-        setIsCardSummaryLoading(false);
+        return;
       }
-    };
 
-    fetchCardSummary();
-  }, [selectedMes, selectedAno]);
+      if (multiResponse.status !== 404 && multiResponse.status !== 405) {
+        const message = await extractApiErrorMessage(
+          multiResponse,
+          "Não foi possível carregar o resumo do cartão.",
+        );
+        setCardSummaryError(message);
+        setCardSummaries([]);
+        return;
+      }
+
+      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.status === 404) {
+        setCardSummaries([]);
+        return;
+      }
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível carregar o resumo do cartão.",
+        );
+        setCardSummaryError(message);
+        setCardSummaries([]);
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.cartao) {
+        setCardSummaries([data]);
+      } else {
+        setCardSummaries([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar resumo de cartão:", error);
+      setCardSummaryError("Erro ao carregar resumo do cartão.");
+      setCardSummaries([]);
+    } finally {
+      setIsCardSummaryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCardSummaries();
+  }, [selectedMes, selectedAno, loadCardSummaries]);
 
   useEffect(() => {
     setCardFormById((current) => {
@@ -812,6 +815,85 @@ const DashboardDesktopRedesignView = ({
       }));
     } finally {
       setIsSavingCardById((current) => ({ ...current, [cardId]: false }));
+    }
+  };
+
+  const getInitialCardCreateForm = (slotIndex) => ({
+    nome: `Cartão ${slotIndex + 1}`,
+    limiteTotal: "",
+    diaFechamento: "",
+    diaVencimento: "",
+    corTema: DEFAULT_CARD_THEME,
+  });
+
+  const handleCreateCardFormChange = (slotIndex, field, value) => {
+    const slotKey = String(slotIndex);
+    setNewCardFormBySlot((current) => ({
+      ...current,
+      [slotKey]: {
+        ...(current[slotKey] || getInitialCardCreateForm(slotIndex)),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleCreateCardFormSubmit = async (event, slotIndex) => {
+    event.preventDefault();
+
+    const slotKey = String(slotIndex);
+    const values =
+      newCardFormBySlot[slotKey] || getInitialCardCreateForm(slotIndex);
+
+    const payload = {
+      nome: values.nome?.trim() || "",
+      limiteTotal: Number(values.limiteTotal || 0),
+      diaFechamento: Number(values.diaFechamento || 0),
+      diaVencimento: Number(values.diaVencimento || 0),
+      corTema: values.corTema || DEFAULT_CARD_THEME,
+    };
+
+    try {
+      setIsCreatingCardBySlot((current) => ({ ...current, [slotKey]: true }));
+      setNewCardStatusBySlot((current) => ({ ...current, [slotKey]: "" }));
+
+      const response = await fetch(API_CARTAO_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível criar o cartão.",
+        );
+        setNewCardStatusBySlot((current) => ({
+          ...current,
+          [slotKey]: message,
+        }));
+        return;
+      }
+
+      await loadCardSummaries();
+      setOpenCardFormId(null);
+      setNewCardFormBySlot((current) => {
+        const next = { ...current };
+        delete next[slotKey];
+        return next;
+      });
+      setNewCardStatusBySlot((current) => ({
+        ...current,
+        [slotKey]: "Cartão criado com sucesso.",
+      }));
+    } catch (error) {
+      console.error("Error creating card:", error);
+      setNewCardStatusBySlot((current) => ({
+        ...current,
+        [slotKey]: "Erro ao criar cartão.",
+      }));
+    } finally {
+      setIsCreatingCardBySlot((current) => ({ ...current, [slotKey]: false }));
     }
   };
 
@@ -1394,6 +1476,14 @@ const DashboardDesktopRedesignView = ({
           <section className="grid grid-cols-3 gap-3 min-h-0 flex-1 items-stretch overflow-hidden">
             {cardColumns.map((summary, index) => {
               if (!summary?.cartao?.id) {
+                const slotKey = String(index);
+                const createFormId = `new-${slotKey}`;
+                const isCreateOpen = openCardFormId === createFormId;
+                const createFormValues =
+                  newCardFormBySlot[slotKey] || getInitialCardCreateForm(index);
+                const createStatusMessage = newCardStatusBySlot[slotKey];
+                const isCreating = Boolean(isCreatingCardBySlot[slotKey]);
+
                 return (
                   <article
                     key={`empty-card-column-${index}`}
@@ -1402,6 +1492,127 @@ const DashboardDesktopRedesignView = ({
                     <p className="text-sm text-[#9f9cb9] text-center">
                       Sem cartão nesta coluna.
                     </p>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenCardFormId((current) =>
+                          current === createFormId ? null : createFormId,
+                        );
+                        setNewCardFormBySlot((current) => ({
+                          ...current,
+                          [slotKey]:
+                            current[slotKey] || getInitialCardCreateForm(index),
+                        }));
+                      }}
+                      className="text-xs font-semibold text-[#8ef0c6] border border-[#26513f] rounded-lg px-3 py-2 bg-[#143325] hover:bg-[#194130] transition-colors"
+                    >
+                      {isCreateOpen ? "Fechar criação" : "Criar novo cartão"}
+                    </button>
+
+                    {isCreateOpen ? (
+                      <form
+                        onSubmit={(event) =>
+                          handleCreateCardFormSubmit(event, index)
+                        }
+                        className="w-full rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
+                      >
+                        <input
+                          type="text"
+                          value={createFormValues.nome}
+                          onChange={(event) =>
+                            handleCreateCardFormChange(
+                              index,
+                              "nome",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Nome do cartão"
+                          className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                          required
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={createFormValues.limiteTotal}
+                          onChange={(event) =>
+                            handleCreateCardFormChange(
+                              index,
+                              "limiteTotal",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Limite total"
+                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                          required
+                        />
+                        <input
+                          type="color"
+                          value={createFormValues.corTema || DEFAULT_CARD_THEME}
+                          onChange={(event) =>
+                            handleCreateCardFormChange(
+                              index,
+                              "corTema",
+                              event.target.value,
+                            )
+                          }
+                          className="h-8 rounded-md border border-[#2a3554] bg-transparent"
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={createFormValues.diaFechamento}
+                          onChange={(event) =>
+                            handleCreateCardFormChange(
+                              index,
+                              "diaFechamento",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Dia fechamento"
+                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                          required
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={createFormValues.diaVencimento}
+                          onChange={(event) =>
+                            handleCreateCardFormChange(
+                              index,
+                              "diaVencimento",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Dia vencimento"
+                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                          required
+                        />
+                        <button
+                          type="submit"
+                          disabled={isCreating}
+                          className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
+                        >
+                          {isCreating ? "Criando..." : "Salvar novo cartão"}
+                        </button>
+                      </form>
+                    ) : null}
+
+                    {createStatusMessage ? (
+                      <p
+                        className="text-xs text-center"
+                        style={{
+                          color: createStatusMessage.includes("sucesso")
+                            ? "var(--color-verde-text)"
+                            : "var(--color-vermelho-text)",
+                        }}
+                      >
+                        {createStatusMessage}
+                      </p>
+                    ) : null}
                   </article>
                 );
               }
