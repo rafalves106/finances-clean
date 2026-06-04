@@ -389,12 +389,12 @@ const App = () => {
   return (
     <div className="uiux-shell flex h-screen overflow-hidden text-[#e8ebff]">
       <aside
-        className="uiux-sidebar flex flex-col text-[#aeb2d8] transition-all duration-200 ease-in-out"
+        className="uiux-sidebar uiux-sidebar-motion self-center h-full max-h-[400px] flex flex-col justify-between text-[#aeb2d8]"
         style={{ width: isSidebarExpanded ? 240 : 64 }}
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
-        <nav className="my-auto space-y-3 px-3 text-sm">
+        <nav className="space-y-3 px-3 text-sm">
           {[
             {
               id: "dashboard",
@@ -432,22 +432,30 @@ const App = () => {
               onClick={() => setActiveTab(item.id)}
               title={!isSidebarExpanded ? item.label : undefined}
               aria-label={item.label}
-              className={`group relative w-full flex items-center ${isSidebarExpanded ? "justify-start" : "justify-center"} gap-3 px-4 py-2.5 rounded-full transition-all duration-200
+              className={`group relative w-full flex items-center justify-start gap-3 px-2 rounded-full py-2.5 uiux-sidebar-item-transition
                 ${activeTab === item.id ? `${item.color} shadow-[0_0_25px_rgba(89,102,192,0.35)]` : "text-[#989fc9] hover:bg-[#171b40] hover:text-white"}`}
             >
               <span className="h-5 w-5 shrink-0 flex items-center justify-center">
                 {item.icon}
               </span>
-              {isSidebarExpanded ? (
-                <span className="font-medium">{item.label}</span>
-              ) : (
-                <span className="sr-only">{item.label}</span>
-              )}
+              <span
+                className={`font-medium whitespace-nowrap overflow-hidden uiux-sidebar-label-motion ${
+                  isSidebarExpanded
+                    ? "max-w-[180px] opacity-100 translate-x-0"
+                    : "max-w-0 opacity-0 -translate-x-1.5"
+                }`}
+              >
+                {item.label}
+              </span>
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-[#1f2553] space-y-3">
+        <div
+          className={`border-t border-[#1f2553] space-y-3 py-4 ${
+            isSidebarExpanded ? "px-4" : "px-3.5"
+          }`}
+        >
           {isSidebarExpanded ? (
             <div className="text-xs text-[#7f86b5] text-center">
               v{APP_VERSION}
@@ -461,9 +469,20 @@ const App = () => {
             }}
             aria-label="Sair"
             title={!isSidebarExpanded ? "Sair" : undefined}
-            className={`w-full flex items-center justify-center gap-2 text-sm font-medium text-[#9ea4cf] hover:text-white hover:bg-[#171b40] rounded-full py-2 transition-colors`}
+            className={`w-full flex items-center justify-start text-sm font-medium text-[#9ea4cf] hover:text-white hover:bg-[#171b40] rounded-full py-2 uiux-sidebar-item-transition ${
+              isSidebarExpanded ? "gap-2 px-2.5" : "gap-0 px-2.5"
+            }`}
           >
-            <LogOut size={16} /> {isSidebarExpanded ? <span>Sair</span> : null}
+            <LogOut size={16} className="shrink-0" />
+            <span
+              className={`whitespace-nowrap overflow-hidden uiux-sidebar-label-motion ${
+                isSidebarExpanded
+                  ? "max-w-[160px] opacity-100 translate-x-0"
+                  : "max-w-0 opacity-0 -translate-x-1.5"
+              }`}
+            >
+              Sair
+            </span>
           </button>
         </div>
       </aside>
