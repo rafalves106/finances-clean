@@ -651,7 +651,6 @@ const DashboardDesktopRedesignView = ({
   const hSecao2 = Math.floor(hConteudo * 0.28);
   const hSecao3Raw = hConteudo - hSecao1 - hSecao2;
   const hSecao3 = Math.min(hSecao3Raw, 345);
-  const hContainerMax = hSecao1 + hSecao2 + hSecao3 + 2 * desktopGap;
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
     year: "2-digit",
@@ -1303,7 +1302,7 @@ const DashboardDesktopRedesignView = ({
   return (
     <div
       className="dashboard-desktop-redesign overflow-hidden"
-      style={{ height: `${hUtil}px`, maxHeight: `${hContainerMax}px` }}
+      style={{ height: "95vh", maxHeight: "95vh" }}
     >
       {activeSlide === "cards" ? (
         <div
