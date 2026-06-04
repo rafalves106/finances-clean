@@ -207,7 +207,7 @@ describe("DashboardDesktopRedesignView", () => {
     expect(activeButton.textContent).toContain("Cartao Secundario");
   });
 
-  it("deve manter saidas a esquerda e entradas a direita na secao de movimentacoes", () => {
+  it("deve exibir movimentacoes em coluna unica com icones direcionais", () => {
     render(
       <DashboardDesktopRedesignView
         incomes={[
@@ -246,16 +246,16 @@ describe("DashboardDesktopRedesignView", () => {
     const saidaCard = screen
       .getAllByText("Conta de luz")
       .map((node) => node.closest(".rounded-lg"))
-      .find((card) => card?.className.includes("text-left"));
+      .find((card) => card?.className.includes("flex items-center"));
 
     const entradaCard = screen
       .getAllByText("Salario")
       .map((node) => node.closest(".rounded-lg"))
-      .find((card) => card?.className.includes("text-right"));
+      .find((card) => card?.className.includes("flex items-center"));
 
     expect(saidaCard).toBeTruthy();
     expect(entradaCard).toBeTruthy();
-    expect(saidaCard.className).toContain("text-left");
-    expect(entradaCard.className).toContain("text-right");
+    expect(screen.getByText("↑")).toBeTruthy();
+    expect(screen.getByText("↓")).toBeTruthy();
   });
 });

@@ -417,7 +417,9 @@ const DashboardDesktopRedesignView = ({
   const hConteudo = Math.max(220, hUtil - 2 * desktopGap);
   const hSecao1 = Math.floor(hConteudo * 0.3);
   const hSecao2 = Math.floor(hConteudo * 0.28);
-  const hSecao3 = hConteudo - hSecao1 - hSecao2;
+  const hSecao3Raw = hConteudo - hSecao1 - hSecao2;
+  const hSecao3 = Math.min(hSecao3Raw, 345);
+  const hContainerMax = hSecao1 + hSecao2 + hSecao3 + 2 * desktopGap;
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
@@ -714,11 +716,9 @@ const DashboardDesktopRedesignView = ({
     });
   }, [allTransactions, filterType, searchTerm]);
 
-  const saidas = filteredTransactions.filter(
-    (item) => (item.type || item.tipo) === "Saida",
-  );
-  const entradas = filteredTransactions.filter(
-    (item) => (item.type || item.tipo) === "Entrada",
+  const sortedMovimentacoes = useMemo(
+    () => sortByDate(filteredTransactions),
+    [filteredTransactions],
   );
 
   const handleOpenSimulation = () => {
@@ -801,7 +801,7 @@ const DashboardDesktopRedesignView = ({
   return (
     <div
       className="dashboard-desktop-redesign overflow-hidden"
-      style={{ height: `${hUtil}px` }}
+      style={{ height: `${hUtil}px`, maxHeight: `${hContainerMax}px` }}
     >
       <div
         className="grid h-full"
@@ -1119,8 +1119,8 @@ const DashboardDesktopRedesignView = ({
         </section>
 
         <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-1 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
-            <div className="sticky top-0 p-2 flex items-center justify-between">
+          <article className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
+            <div className="sticky top-0 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-[#b9bfd8]">
                 {showUpcomingReceipts
                   ? "Próximas receitas"
@@ -1134,7 +1134,7 @@ const DashboardDesktopRedesignView = ({
                 <RefreshCw size={16} className="text-[#7f84a8]" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+            <div className="flex-1 overflow-y-auto pt-2 space-y-2">
               {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
                 .length === 0 ? (
                 <p className="text-xs text-[#7f84a8] text-center py-4">
@@ -1326,63 +1326,70 @@ const DashboardDesktopRedesignView = ({
           </div>
         </section>
 
-        <section ref={reviewRef} className="grid grid-cols-3 gap-3 min-h-0">
-          <article className="col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden">
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <AlertTriangle size={14} className="text-amber-600" />{" "}
-                Categorias
-              </h3>
-              <button
-                type="button"
-                onClick={(event) => onOpenCategoryManager(event.currentTarget)}
-                className="p-1 rounded-md hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label="Gerenciar categorias"
-                title="Gerenciar categorias"
-              >
-                <Settings size={14} className="text-slate-500" />
-              </button>
-            </div>
-            <div className="h-[calc(100%-3.1rem)] overflow-y-auto p-4 space-y-2">
-              {categoryRanking.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  Nenhum gasto registrado neste mês
-                </p>
-              ) : (
-                categoryRanking.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-lg border border-slate-100 px-3 py-2"
-                  >
-                    <p className="text-sm font-medium text-slate-700">
-                      {item.icone} {item.nome}
-                    </p>
-                    <p className="text-sm font-semibold text-slate-800 mt-1">
-                      {formatCurrency(item.total)}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
+        <section
+          ref={reviewRef}
+          className="grid grid-cols-2 gap-3 min-h-0 self-start"
+        >
+          <div className="min-h-0 order-2">
+            <article className="bg-white border border-slate-200 rounded-xl shadow-sm h-full max-h-[345px] overflow-hidden flex flex-col p-4">
+              <div className="sticky top-0 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[#b9bfd8] flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-amber-600" />{" "}
+                  Categorias
+                </h3>
+                <button
+                  type="button"
+                  onClick={(event) =>
+                    onOpenCategoryManager(event.currentTarget)
+                  }
+                  className="p-1 rounded-md hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label="Gerenciar categorias"
+                  title="Gerenciar categorias"
+                >
+                  <Settings size={14} className="text-slate-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+                {categoryRanking.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Nenhum gasto registrado neste mês
+                  </p>
+                ) : (
+                  categoryRanking.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-lg flex items-center justify-between gap-2"
+                    >
+                      <p className="text-xs text-[#7f84a8] truncate">
+                        {item.icone} {item.nome}
+                      </p>
+                      <p className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                        {formatCurrency(item.total)}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
+          </div>
 
-          <article className="col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden">
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3">
-              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+          <article className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 max-h-[345px] overflow-hidden order-1 flex flex-col p-4">
+            <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-[#b9bfd8]">
                 Movimentações
               </h3>
-              <div className="mt-2 flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Buscar transação"
-                  className="w-full sm:w-64 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700"
+                  className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
                 />
                 <select
                   value={filterType}
                   onChange={(event) => setFilterType(event.target.value)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700"
+                  className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
                 >
                   <option value="todas">Todas</option>
                   <option value="entradas">Somente entradas</option>
@@ -1392,61 +1399,49 @@ const DashboardDesktopRedesignView = ({
               </div>
             </div>
 
-            <div className="h-[calc(100%-5.85rem)] overflow-y-auto p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-rose-700">Saídas</h4>
-                  {saidas.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      Nenhuma saída encontrada.
-                    </p>
-                  ) : (
-                    sortByDate(saidas).map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg border border-slate-100 px-3 py-2 text-left"
-                      >
-                        <p className="text-sm font-medium text-slate-700">
-                          {item.name || item.titulo}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.description || item.descricao}
-                        </p>
-                        <p className="text-sm font-semibold text-rose-600 mt-1">
-                          {formatCurrency(item.value || item.valor || 0)}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <div className="flex-1 overflow-y-auto pt-2">
+              <div className="space-y-3">
+                {sortedMovimentacoes.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Nenhuma movimentação encontrada.
+                  </p>
+                ) : (
+                  sortedMovimentacoes.map((item) => {
+                    const isEntrada = (item.type || item.tipo) === "Entrada";
+                    const iconClassName = isEntrada
+                      ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+                      : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-emerald-700 text-right">
-                    Entradas
-                  </h4>
-                  {entradas.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-right">
-                      Nenhuma entrada encontrada.
-                    </p>
-                  ) : (
-                    sortByDate(entradas).map((item) => (
+                    return (
                       <div
                         key={item.id}
-                        className="rounded-lg border border-slate-100 px-3 py-2 text-right"
+                        className="rounded-lg flex items-center justify-between gap-2"
                       >
-                        <p className="text-sm font-medium text-slate-700">
-                          {item.name || item.titulo}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.description || item.descricao}
-                        </p>
-                        <p className="text-sm font-semibold text-emerald-600 mt-1">
-                          {formatCurrency(item.value || item.valor || 0)}
-                        </p>
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <span
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${iconClassName}`}
+                          >
+                            {isEntrada ? "↑" : "↓"}
+                          </span>
+                          <span className="text-base">
+                            {item.categoria?.icone || "•"}
+                          </span>
+                          <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                            {formatCurrency(item.value || item.valor || 0)}
+                          </span>
+                          <span className="text-xs text-[#7f84a8] truncate">
+                            {item.name || item.titulo}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                          {item.date || item.data
+                            ? formatDateLabel(item.date || item.data)
+                            : "--/--"}
+                        </span>
                       </div>
-                    ))
-                  )}
-                </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </article>
