@@ -188,6 +188,7 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.LimiteTotal).HasPrecision(18, 2);
             entity.Property(e => e.DiaFechamento).IsRequired();
             entity.Property(e => e.DiaVencimento).IsRequired();
+            entity.Property(e => e.CorTema).HasMaxLength(7).IsRequired(false);
             entity.Property(e => e.Ativo).IsRequired();
             entity.Property(e => e.CreatedAtUtc).IsRequired();
             entity.Property(e => e.UpdatedAtUtc).IsRequired();

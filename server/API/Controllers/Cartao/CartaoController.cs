@@ -10,6 +10,8 @@ public class CartaoController(
     CadastrarCartaoManualUseCase cadastrarCartaoManualUseCase,
     EditarCartaoManualUseCase editarCartaoManualUseCase,
     InativarCartaoManualUseCase inativarCartaoManualUseCase,
+  ListarCartoesManuaisUseCase listarCartoesManuaisUseCase,
+  ListarResumosCartoesUseCase listarResumosCartoesUseCase,
     ObterResumoCartaoUseCase obterResumoCartaoUseCase,
   ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase,
   ExecutarPreviewBackfillCompetenciaCartaoUseCase executarPreviewBackfillCompetenciaCartaoUseCase,
@@ -31,7 +33,8 @@ public class CartaoController(
           dto.Nome,
           dto.LimiteTotal,
           dto.DiaFechamento,
-          dto.DiaVencimento);
+          dto.DiaVencimento,
+          dto.CorTema);
 
       return CreatedAtAction(nameof(ObterResumo), new { id = cartao.Id }, cartao);
     }
@@ -61,7 +64,8 @@ public class CartaoController(
           dto.Nome,
           dto.LimiteTotal,
           dto.DiaFechamento,
-          dto.DiaVencimento);
+          dto.DiaVencimento,
+          dto.CorTema);
 
       return NoContent();
     }
@@ -94,6 +98,20 @@ public class CartaoController(
   {
     var resumo = obterResumoCartaoUseCase.Executar(UsuarioId);
     return resumo is null ? NotFound(Erro("CARTAO_NAO_ENCONTRADO", "Cartão não encontrado.")) : Ok(resumo);
+  }
+
+  [HttpGet("resumos")]
+  public IActionResult ListarResumos()
+  {
+    var resumos = listarResumosCartoesUseCase.Executar(UsuarioId);
+    return Ok(resumos);
+  }
+
+  [HttpGet]
+  public IActionResult Listar([FromQuery] bool incluirInativos = true)
+  {
+    var cartoes = listarCartoesManuaisUseCase.Executar(UsuarioId, incluirInativos);
+    return Ok(cartoes);
   }
 
   [HttpGet("previsao")]
@@ -167,6 +185,11 @@ public class CartaoController(
         !ex.Message.Contains("menor", StringComparison.OrdinalIgnoreCase))
     {
       return Erro("CARTAO_VENCIMENTO_INVALIDO", ex.Message);
+    }
+
+    if (ex.Message.Contains("Cor tema", StringComparison.OrdinalIgnoreCase))
+    {
+      return Erro("CARTAO_COR_TEMA_INVALIDA", ex.Message);
     }
 
     return Erro("CARTAO_DADOS_INVALIDOS", ex.Message);

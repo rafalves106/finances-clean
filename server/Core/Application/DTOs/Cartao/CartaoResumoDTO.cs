@@ -12,6 +12,7 @@ public record CartaoManualResumoDTO(
     decimal LimiteTotal,
     int DiaFechamento,
     int DiaVencimento,
+    string? CorTema,
     bool Ativo,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc

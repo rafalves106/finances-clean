@@ -49,6 +49,8 @@ builder.Services.AddScoped<ExportarMovimentacoesCsvUseCase>();
 builder.Services.AddScoped<CadastrarCartaoManualUseCase>();
 builder.Services.AddScoped<EditarCartaoManualUseCase>();
 builder.Services.AddScoped<InativarCartaoManualUseCase>();
+builder.Services.AddScoped<ListarCartoesManuaisUseCase>();
+builder.Services.AddScoped<ListarResumosCartoesUseCase>();
 builder.Services.AddScoped<ObterResumoCartaoUseCase>();
 builder.Services.AddScoped<ObterPrevisaoFaturaUseCase>();
 builder.Services.AddScoped<ExecutarPreviewBackfillCompetenciaCartaoUseCase>();

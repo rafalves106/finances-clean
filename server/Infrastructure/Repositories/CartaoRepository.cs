@@ -21,7 +21,9 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
   public CartaoManual? ObterAtivoPorUsuario(Guid usuarioId)
   {
     return context.CartoesManuais
-        .FirstOrDefault(c => c.UsuarioId == usuarioId && c.Ativo);
+      .Where(c => c.UsuarioId == usuarioId && c.Ativo)
+      .OrderByDescending(c => c.UpdatedAtUtc)
+      .FirstOrDefault();
   }
 
   public CartaoManual? ObterPorId(Guid id, Guid usuarioId)

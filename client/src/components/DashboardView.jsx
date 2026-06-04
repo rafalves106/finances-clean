@@ -37,9 +37,22 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Line,
   Legend,
 } from "recharts";
+
+const CHART_Y_TICKS = [0, 1000, 2500, 5000, 7500, 10000];
+
+const formatChartAxisTick = (value) => {
+  if (value >= 1000) {
+    const compact = value / 1000;
+    const normalized = Number.isInteger(compact)
+      ? String(compact)
+      : String(compact).replace(/\.0$/, "");
+    return `${normalized}K`;
+  }
+
+  return String(value);
+};
 
 const sortTransactions = (transactions) => {
   return [...transactions].sort((a, b) => {
@@ -1605,12 +1618,9 @@ const DashboardView = ({
         </div>
       </section>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+      <div className="dashboard-control-chart-card p-6 rounded-2xl border shadow-sm flex flex-col">
         <div className="flex items-center justify-between gap-3 mb-6">
-          <h3 className="text-slate-700 font-bold flex items-center gap-2">
-            <DollarSign size={18} className="text-blue-500" /> Evolução
-            Financeira
-          </h3>
+          <h3 className="dashboard-control-chart-title">Controle Financeiro</h3>
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               Data início
@@ -1618,7 +1628,7 @@ const DashboardView = ({
                 type="date"
                 value={exportStartDate}
                 onChange={(e) => setExportStartDate(e.target.value)}
-                className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+                className="dashboard-control-chart-input px-2 py-1.5 rounded-lg border text-sm"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
@@ -1627,14 +1637,14 @@ const DashboardView = ({
                 type="date"
                 value={exportEndDate}
                 onChange={(e) => setExportEndDate(e.target.value)}
-                className="px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700"
+                className="dashboard-control-chart-input px-2 py-1.5 rounded-lg border text-sm"
               />
             </label>
             <button
               type="button"
               onClick={handleExportCsv}
               disabled={isExportingCsv}
-              className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="dashboard-control-chart-export px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               {isExportingCsv ? "Exportando..." : "Exportar CSV"}
             </button>
@@ -1645,58 +1655,74 @@ const DashboardView = ({
           <button
             type="button"
             onClick={handlePreviousMonth}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            className="dashboard-control-chart-nav px-3 py-1.5 rounded-lg border transition-colors"
           >
             ‹
           </button>
-          <span className="text-sm font-semibold text-slate-700 capitalize">
+          <span className="dashboard-control-chart-month text-sm font-semibold capitalize">
             {currentMonthLabel}
           </span>
           <button
             type="button"
             onClick={handleNextMonth}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            className="dashboard-control-chart-nav px-3 py-1.5 rounded-lg border transition-colors"
           >
             ›
           </button>
         </div>
 
-        <div className="flex-1 w-full">
-          <ResponsiveContainer width="100%" height={240}>
+        <div className="flex-1 w-full min-h-[320px]">
+          <ResponsiveContainer width="100%" height={320}>
             <AreaChart
               data={chartData}
-              margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+              margin={{ top: 18, right: 18, left: 8, bottom: 6 }}
             >
               <defs>
-                <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#57b26f" stopOpacity={0.24} />
+                  <stop offset="100%" stopColor="#57b26f" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#7a3b43" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#7a3b43" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                strokeDasharray="3 3"
+                strokeDasharray="4 10"
                 vertical={false}
-                stroke="#f1f5f9"
+                stroke="#2a2f52"
               />
               <XAxis
                 dataKey="data"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: "#94a3b8" }}
-                dy={10}
+                tick={{ fontSize: 14, fill: "#7f84a8" }}
+                dy={8}
               />
               <YAxis
-                hide={false}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: "#cbd5e1" }}
+                domain={[0, 10000]}
+                ticks={CHART_Y_TICKS}
+                tickFormatter={formatChartAxisTick}
+                tick={{ fontSize: 14, fill: "#7f84a8" }}
+                width={44}
               />
               <Tooltip
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                cursor={{
+                  stroke: "#b9bfd8",
+                  strokeWidth: 2,
+                  strokeDasharray: "6 6",
                 }}
+                contentStyle={{
+                  background: "#15172a",
+                  border: "1px solid #32375e",
+                  borderRadius: "12px",
+                  boxShadow: "0 14px 26px rgba(4, 7, 19, 0.5)",
+                  color: "#dbe3ff",
+                }}
+                itemStyle={{ color: "#dbe3ff" }}
+                labelStyle={{ color: "#b9bfd8" }}
                 formatter={(value, name) => {
                   const formattedValue = formatCurrency(value);
                   if (name === "entrada") return [formattedValue, "Receita"];
@@ -1704,39 +1730,37 @@ const DashboardView = ({
                   return [formattedValue, "Saldo"];
                 }}
               />
-              <Legend
-                iconType="circle"
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-              />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="entrada"
-                stroke="#10b981"
-                strokeWidth={2}
+                stroke="#57b26f"
+                strokeWidth={4}
+                fill="url(#incomeFill)"
+                fillOpacity={1}
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{
+                  r: 7,
+                  fill: "#7aa8ff",
+                  stroke: "#cfd5ff",
+                  strokeWidth: 2,
+                }}
                 name="entrada"
-              />
-              <Line
-                type="monotone"
-                dataKey="saida"
-                stroke="#f43f5e"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-                name="saida"
               />
               <Area
                 type="monotone"
-                dataKey="saldo"
-                stroke="#3b82f6"
-                strokeWidth={1}
-                strokeOpacity={0.5}
+                dataKey="saida"
+                stroke="#7a3b43"
+                strokeWidth={4}
+                fill="url(#expenseFill)"
                 fillOpacity={1}
-                fill="url(#colorSaldo)"
-                animationDuration={1000}
-                dot={{ r: 2, strokeWidth: 1, fill: "#3b82f6" }}
-                name="saldo"
+                dot={false}
+                activeDot={{
+                  r: 7,
+                  fill: "#7aa8ff",
+                  stroke: "#cfd5ff",
+                  strokeWidth: 2,
+                }}
+                name="saida"
               />
             </AreaChart>
           </ResponsiveContainer>
