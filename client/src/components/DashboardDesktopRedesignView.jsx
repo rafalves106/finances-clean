@@ -358,6 +358,7 @@ const DashboardDesktopRedesignView = ({
   totalInvestmentsBalance = 0,
   selectedMes,
   selectedAno,
+  onChangeMonth = () => {},
   categorias = [],
   veiculos = [],
   fetchData,
@@ -526,6 +527,20 @@ const DashboardDesktopRedesignView = ({
   const hSecao3Raw = hConteudo - hSecao1 - hSecao2;
   const hSecao3 = Math.min(hSecao3Raw, 345);
   const hContainerMax = hSecao1 + hSecao2 + hSecao3 + 2 * desktopGap;
+  const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+    year: "2-digit",
+  }).format(new Date(selectedAno, selectedMes - 1, 1));
+
+  const handlePreviousMonth = () => {
+    const previousDate = new Date(selectedAno, selectedMes - 2, 1);
+    onChangeMonth(previousDate.getMonth() + 1, previousDate.getFullYear());
+  };
+
+  const handleNextMonth = () => {
+    const nextDate = new Date(selectedAno, selectedMes, 1);
+    onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
+  };
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
@@ -547,8 +562,6 @@ const DashboardDesktopRedesignView = ({
         .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
     [allTransactions],
   );
-
-  const saldoLivre = saldoAnterior + totalIncome - totalExpense;
 
   const monthComparison = useMemo(() => {
     const previousRef = new Date(selectedAno, selectedMes - 2, 1);
@@ -732,7 +745,7 @@ const DashboardDesktopRedesignView = ({
         const dueDate = new Date(item.date || item.data);
         return dueDate >= start && dueDate <= monthEnd;
       })
-      .slice(0, 12)
+      .slice(0, 5)
       .map((item) => ({
         id: item.id,
         title: item.name || item.titulo || "Despesa",
@@ -757,7 +770,7 @@ const DashboardDesktopRedesignView = ({
         const dueDate = new Date(item.date || item.data);
         return dueDate >= start && dueDate <= monthEnd;
       })
-      .slice(0, 12)
+      .slice(0, 5)
       .map((item) => ({
         id: item.id,
         title: item.name || item.titulo || "Receita",
@@ -797,11 +810,11 @@ const DashboardDesktopRedesignView = ({
 
     return Object.values(grouped)
       .sort((a, b) => b.total - a.total)
-      .slice(0, 10);
+      .slice(0, 4);
   }, [categorias, expenses]);
 
   const categoryPieData = useMemo(
-    () => categoryRanking.filter((item) => item.total > 0).slice(0, 6),
+    () => categoryRanking.filter((item) => item.total > 0).slice(0, 4),
     [categoryRanking],
   );
 
@@ -834,7 +847,7 @@ const DashboardDesktopRedesignView = ({
   }, [allTransactions, filterType, searchTerm]);
 
   const sortedMovimentacoes = useMemo(
-    () => sortByDate(filteredTransactions),
+    () => sortByDate(filteredTransactions).slice(0, 6),
     [filteredTransactions],
   );
 
@@ -1411,35 +1424,6 @@ const DashboardDesktopRedesignView = ({
                   </div>
                 </div>
               </div>
-
-              {saldoLivre < 0 ? (
-                <div
-                  className="mt-3 rounded-lg border p-3"
-                  style={{
-                    borderColor: "var(--color-vermelho-text)",
-                    background:
-                      "linear-gradient(180deg, var(--color-vermelho-gradient-1) 0%, var(--color-vermelho-gradient-2) 100%)",
-                  }}
-                >
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--color-vermelho-text)" }}
-                  >
-                    Saldo do mês está negativo
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleOpenSimulation}
-                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border text-xs font-medium"
-                    style={{
-                      borderColor: "var(--color-vermelho-text)",
-                      color: "var(--color-vermelho-text)",
-                    }}
-                  >
-                    Simular ajuste
-                  </button>
-                </div>
-              ) : null}
             </article>
           </div>
         </section>
@@ -1450,7 +1434,7 @@ const DashboardDesktopRedesignView = ({
         >
           <div className="min-h-0 order-2">
             <article
-              className="bg-white border border-slate-200 rounded-xl shadow-sm h-full max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
+              className="bg-white border border-slate-200 rounded-xl shadow-sm h-full min-h-[260px] max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
               onClick={(event) => onOpenCategoryManager(event.currentTarget)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -1693,24 +1677,50 @@ const DashboardDesktopRedesignView = ({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={handleOpenNewTransaction}
-        className="fixed bottom-4 right-4 z-40 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-        aria-label="Adicionar nova transação"
-      >
-        <Plus size={20} />
-      </button>
+      <div className="fixed bottom-4 right-4 z-40 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={handlePreviousMonth}
+          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          aria-label="Mês anterior"
+          title="Mês anterior"
+        >
+          <span className="text-xl leading-none">‹</span>
+        </button>
 
-      <button
-        type="button"
-        onClick={handleOpenSimulation}
-        className="fixed bottom-4 right-20 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-        aria-label="Simular transação"
-        title="Simular transação"
-      >
-        <Sparkles size={18} />
-      </button>
+        <div className="h-12 min-w-[84px] px-3 bg-[#171b40] border border-[#2f355d] text-[#cfd5f3] rounded-full shadow-lg flex items-center justify-center text-xs font-semibold uppercase tracking-[0.08em] pointer-events-none select-none">
+          {currentMonthLabel}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          aria-label="Próximo mês"
+          title="Próximo mês"
+        >
+          <span className="text-xl leading-none">›</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleOpenSimulation}
+          className="bg-amber-500 hover:bg-amber-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          aria-label="Simular transação"
+          title="Simular transação"
+        >
+          <Sparkles size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleOpenNewTransaction}
+          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          aria-label="Adicionar nova transação"
+        >
+          <Plus size={20} />
+        </button>
+      </div>
 
       <TransactionModal
         isOpen={isModalOpen}
