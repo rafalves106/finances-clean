@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  CreditCard,
   DollarSign,
   Plus,
   RefreshCw,
@@ -43,6 +40,39 @@ const truncateWithThreeDots = (text, maxLength) => {
   return `${normalized.slice(0, maxLength).trimEnd()}...`;
 };
 
+const getMonthYearFromValue = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return {
+    month: date.getMonth() + 1,
+    year: date.getFullYear(),
+  };
+};
+
+const calculateVariationPercent = (currentValue, previousValue) => {
+  if (previousValue <= 0) {
+    return currentValue > 0 ? 100 : 0;
+  }
+
+  return ((currentValue - previousValue) / previousValue) * 100;
+};
+
+const formatVariationPercent = (value) => {
+  const normalized = Number.isFinite(value) ? value : 0;
+  const sign = normalized >= 0 ? "+" : "";
+  return `${sign}${normalized.toFixed(1).replace(".", ",")}%`;
+};
+
+const isInvestmentExpense = (item) => {
+  const type = item.type || item.tipo;
+  const categoryName = String(item.categoria?.nome || "").toLowerCase();
+
+  return type === "Saida" && categoryName.includes("invest");
+};
+
 const sortByDate = (list) =>
   [...list].sort(
     (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
@@ -57,6 +87,9 @@ const CHART_SERIES_LABEL = {
 };
 
 const CHART_Y_TICKS = [0, 1000, 2500, 5000, 7500, 10000];
+const RED_THEME_TEXT = "#895253";
+const RED_THEME_BORDER = "#895253";
+const RED_THEME_BG_GRADIENT = "linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)";
 
 const formatChartAxisTick = (value) => {
   if (value >= 1000) {
@@ -289,10 +322,18 @@ const DashboardDesktopRedesignView = ({
 
         if (multiResponse.ok) {
           const multiData = await multiResponse.json();
-          const summaries = Array.isArray(multiData) ? multiData : [];
+          const summaries = Array.isArray(multiData)
+            ? multiData
+            : Array.isArray(multiData?.resumos)
+              ? multiData.resumos
+              : Array.isArray(multiData?.data)
+                ? multiData.data
+                : [];
 
-          if (summaries.length > 0) {
-            setCardSummaries(summaries.slice(0, 3));
+          const validSummaries = summaries.filter((item) => item?.cartao);
+
+          if (validSummaries.length > 0) {
+            setCardSummaries(validSummaries.slice(0, 3));
             return;
           }
 
@@ -331,7 +372,7 @@ const DashboardDesktopRedesignView = ({
         }
 
         const data = await response.json();
-        if (data?.cartao && data?.limite && data?.previsaoFatura) {
+        if (data?.cartao) {
           setCardSummaries([data]);
         } else {
           setCardSummaries([]);
@@ -400,6 +441,143 @@ const DashboardDesktopRedesignView = ({
   );
 
   const saldoLivre = saldoAnterior + totalIncome - totalExpense;
+
+  const monthComparison = useMemo(() => {
+    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
+    const previousMonth = previousRef.getMonth() + 1;
+    const previousYear = previousRef.getFullYear();
+
+    const sumByTypeAndPeriod = (type, month, year) =>
+      allTransactions
+        .filter((item) => (item.type || item.tipo) === type)
+        .reduce((acc, item) => {
+          const dateInfo = getMonthYearFromValue(item.date || item.data);
+          if (!dateInfo) {
+            return acc;
+          }
+
+          if (dateInfo.month !== month || dateInfo.year !== year) {
+            return acc;
+          }
+
+          return acc + Number(item.value || item.valor || 0);
+        }, 0);
+
+    const currentIncome = sumByTypeAndPeriod(
+      "Entrada",
+      selectedMes,
+      selectedAno,
+    );
+    const previousIncome = sumByTypeAndPeriod(
+      "Entrada",
+      previousMonth,
+      previousYear,
+    );
+
+    const currentExpense = sumByTypeAndPeriod(
+      "Saida",
+      selectedMes,
+      selectedAno,
+    );
+    const previousExpense = sumByTypeAndPeriod(
+      "Saida",
+      previousMonth,
+      previousYear,
+    );
+
+    const sumInvestmentsByPeriod = (month, year) =>
+      allTransactions.filter(isInvestmentExpense).reduce((acc, item) => {
+        const dateInfo = getMonthYearFromValue(item.date || item.data);
+        if (!dateInfo) {
+          return acc;
+        }
+
+        if (dateInfo.month !== month || dateInfo.year !== year) {
+          return acc;
+        }
+
+        return acc + Number(item.value || item.valor || 0);
+      }, 0);
+
+    const currentInvestment = sumInvestmentsByPeriod(selectedMes, selectedAno);
+    const previousInvestment = sumInvestmentsByPeriod(
+      previousMonth,
+      previousYear,
+    );
+
+    return {
+      incomePercent: calculateVariationPercent(currentIncome, previousIncome),
+      expensePercent: calculateVariationPercent(
+        currentExpense,
+        previousExpense,
+      ),
+      balancePercent: calculateVariationPercent(
+        currentIncome - currentExpense,
+        previousIncome - previousExpense,
+      ),
+      incomeDiff: currentIncome - previousIncome,
+      expenseDiff: currentExpense - previousExpense,
+      balanceDiff:
+        currentIncome - currentExpense - (previousIncome - previousExpense),
+      currentBalance: currentIncome - currentExpense,
+      investmentPercent: calculateVariationPercent(
+        currentInvestment,
+        previousInvestment,
+      ),
+      investmentDiff: currentInvestment - previousInvestment,
+      currentInvestment,
+    };
+  }, [allTransactions, selectedAno, selectedMes]);
+
+  const receitasTrendIsPositive = monthComparison.incomePercent >= 0;
+  const despesasTrendIsPositive = monthComparison.expensePercent <= 0;
+
+  const receitasTagClassName = receitasTrendIsPositive
+    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+
+  const despesasTagClassName = despesasTrendIsPositive
+    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+
+  const receitasDiffColorClassName = receitasTrendIsPositive
+    ? "text-[#4A7750]"
+    : "text-[#895253]";
+
+  const despesasDiffColorClassName = despesasTrendIsPositive
+    ? "text-[#4A7750]"
+    : "text-[#895253]";
+
+  const receitasDiffDirection =
+    monthComparison.incomeDiff >= 0 ? "a mais" : "a menos";
+  const despesasDiffDirection =
+    monthComparison.expenseDiff >= 0 ? "a mais" : "a menos";
+
+  const saldoTrendIsPositive = monthComparison.balancePercent >= 0;
+  const saldoTagClassName = saldoTrendIsPositive
+    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+
+  const saldoDiffColorClassName = saldoTrendIsPositive
+    ? "text-[#4A7750]"
+    : "text-[#895253]";
+
+  const saldoDiffDirection =
+    monthComparison.balanceDiff >= 0 ? "a mais" : "a menos";
+
+  const investmentTrendIsPositive = monthComparison.investmentDiff > 0;
+
+  const investimentosTagClassName = investmentTrendIsPositive
+    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
+    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+
+  const investimentoDiffColorClassName = investmentTrendIsPositive
+    ? "text-[#4A7750]"
+    : "text-[#895253]";
+
+  const investimentoDiffDirection =
+    monthComparison.investmentDiff >= 0 ? "a mais" : "a menos";
+
   const cardLimitTotal = Number(
     cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
   );
@@ -551,29 +729,6 @@ const DashboardDesktopRedesignView = ({
     setEditingItem(null);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
-  };
-
-  const handleOpenNewCardPurchase = () => {
-    setEditingItem(null);
-    setOpenCardPurchaseMode(true);
-    setIsModalOpen(true);
-  };
-
-  const handleNavigate = (target) => {
-    if (target === "planejar") {
-      planningRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
-    }
-
-    if (target === "revisar") {
-      reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleSimulate = (formData) => {
@@ -956,7 +1111,9 @@ const DashboardDesktopRedesignView = ({
             </div>
 
             {cardSummaryError ? (
-              <p className="mt-1 text-xs text-rose-300">{cardSummaryError}</p>
+              <p className="mt-1 text-xs" style={{ color: RED_THEME_TEXT }}>
+                {cardSummaryError}
+              </p>
             ) : null}
           </article>
         </section>
@@ -1016,107 +1173,157 @@ const DashboardDesktopRedesignView = ({
             </div>
           </article>
 
-          <article className="col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-4 min-h-0">
-            <div className="grid grid-cols-4 gap-3">
-              <div className="rounded-lg border border-slate-200 p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">
-                  <ArrowUpCircle size={14} className="text-emerald-600" />{" "}
-                  Entradas
+          <div className="col-span-2 grid grid-rows-[auto_auto] gap-3 min-h-0">
+            <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      Receitas
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${receitasTagClassName}`}
+                    >
+                      {formatVariationPercent(monthComparison.incomePercent)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Você recebeu{" "}
+                    <span
+                      className={`font-semibold ${receitasDiffColorClassName}`}
+                    >
+                      {formatCurrency(Math.abs(monthComparison.incomeDiff))}
+                    </span>{" "}
+                    {receitasDiffDirection} este mês
+                  </p>
+                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    {formatCurrency(totalIncome)}
+                  </p>
                 </div>
-                <p className="text-base font-bold text-emerald-700 mt-1">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">
-                  <ArrowDownCircle size={14} className="text-rose-600" /> Saídas
+                <div className="rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      Despesas
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${despesasTagClassName}`}
+                    >
+                      {formatVariationPercent(monthComparison.expensePercent)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Você gastou{" "}
+                    <span
+                      className={`font-semibold ${despesasDiffColorClassName}`}
+                    >
+                      {formatCurrency(Math.abs(monthComparison.expenseDiff))}
+                    </span>{" "}
+                    {despesasDiffDirection} este mês
+                  </p>
+                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    {formatCurrency(totalExpense)}
+                  </p>
                 </div>
-                <p className="text-base font-bold text-rose-700 mt-1">
-                  {formatCurrency(totalExpense)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">
-                  <CreditCard size={14} className="text-teal-600" />
-                  Investimentos
+                <div className="rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      Saldo total
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${saldoTagClassName}`}
+                    >
+                      {formatVariationPercent(monthComparison.balancePercent)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Seu saldo ficou{" "}
+                    <span
+                      className={`font-semibold ${saldoDiffColorClassName}`}
+                    >
+                      {formatCurrency(Math.abs(monthComparison.balanceDiff))}
+                    </span>{" "}
+                    {saldoDiffDirection} este mês
+                  </p>
+                  <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    {formatCurrency(monthComparison.currentBalance)}
+                  </p>
                 </div>
-                <p className="text-base font-bold text-slate-800 mt-1">
-                  {formatCurrency(totalInvestmentsBalance)}
-                </p>
               </div>
-              <div className="rounded-lg border border-slate-200 p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-500 uppercase">
-                  <DollarSign size={14} className="text-blue-600" /> Saldo livre
-                </div>
-                <p className="text-base font-bold text-slate-800 mt-1">
-                  {formatCurrency(saldoLivre)}
-                </p>
-              </div>
-            </div>
+            </article>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => handleNavigate("operar")}
-                role="tab"
-                aria-selected="true"
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"
-              >
-                Operar agora
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate("planejar")}
-                role="tab"
-                aria-selected="false"
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
-              >
-                Planejar mês
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate("revisar")}
-                role="tab"
-                aria-selected="false"
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"
-              >
-                Revisar transações
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenNewCardPurchase}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-teal-600 text-white text-xs font-medium hover:bg-teal-700"
-              >
-                <Plus size={13} /> Nova compra no cartão
-              </button>
-              <button
-                type="button"
-                onClick={onOpenCardManagement}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50"
-              >
-                <Settings size={13} /> Abrir gestão
-              </button>
-            </div>
+            <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 min-h-0">
+              <div className="rounded-lg p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      Investimentos
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800 leading-none">
+                      {formatCurrency(totalInvestmentsBalance)}
+                    </p>
+                    <span
+                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${investimentosTagClassName}`}
+                    >
+                      {formatVariationPercent(
+                        monthComparison.investmentPercent,
+                      )}
+                    </span>
+                  </div>
 
-            {saldoLivre < 0 ? (
-              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                <p className="text-sm font-semibold text-rose-700">
-                  Saldo do mês está negativo
-                </p>
-                <button
-                  type="button"
-                  onClick={handleOpenSimulation}
-                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-rose-200 text-xs font-medium text-rose-700 hover:bg-rose-100"
+                  <div className="text-right text-xs text-slate-500">
+                    {monthComparison.currentInvestment <= 0 ? (
+                      <span
+                        className="font-semibold"
+                        style={{ color: RED_THEME_TEXT }}
+                      >
+                        Você não investiu este mês
+                      </span>
+                    ) : (
+                      <span>
+                        Você investiu{" "}
+                        <span
+                          className={`font-semibold ${investimentoDiffColorClassName}`}
+                        >
+                          {formatCurrency(
+                            Math.abs(monthComparison.investmentDiff),
+                          )}
+                        </span>{" "}
+                        {investimentoDiffDirection} esse mês
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {saldoLivre < 0 ? (
+                <div
+                  className="mt-3 rounded-lg border p-3"
+                  style={{
+                    borderColor: RED_THEME_BORDER,
+                    background: RED_THEME_BG_GRADIENT,
+                  }}
                 >
-                  Simular ajuste
-                </button>
-              </div>
-            ) : null}
-
-            {cardSummaryError ? (
-              <p className="mt-2 text-xs text-rose-600">{cardSummaryError}</p>
-            ) : null}
-          </article>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: RED_THEME_TEXT }}
+                  >
+                    Saldo do mês está negativo
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenSimulation}
+                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border text-xs font-medium"
+                    style={{
+                      borderColor: RED_THEME_BORDER,
+                      color: RED_THEME_TEXT,
+                    }}
+                  >
+                    Simular ajuste
+                  </button>
+                </div>
+              ) : null}
+            </article>
+          </div>
         </section>
 
         <section ref={reviewRef} className="grid grid-cols-3 gap-3 min-h-0">
