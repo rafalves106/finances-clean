@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronLeft,
-  DollarSign,
-  Plus,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+import { ChevronLeft, Plus, RefreshCw, Sparkles } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -480,7 +474,6 @@ const DashboardDesktopRedesignView = ({
   loading,
   saldoAnterior = 0,
   onOpenCategoryManager,
-  onOpenCardManagement,
   headerHeight = 96,
 }) => {
   const [viewportHeight, setViewportHeight] = useState(
@@ -501,6 +494,10 @@ const DashboardDesktopRedesignView = ({
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
+  const [openCardFormId, setOpenCardFormId] = useState(null);
+  const [cardFormById, setCardFormById] = useState({});
+  const [cardFormStatusById, setCardFormStatusById] = useState({});
+  const [isSavingCardById, setIsSavingCardById] = useState({});
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -594,21 +591,33 @@ const DashboardDesktopRedesignView = ({
     fetchCardSummary();
   }, [selectedMes, selectedAno]);
 
-  const cardSummary = cardSummaries[0] || null;
-  const backCardSummaries = cardSummaries.slice(1, 3);
-  const activeCardTheme = normalizeCardTheme(cardSummary?.cartao?.corTema);
-  const activeCardPalette = getThemePalette(activeCardTheme);
+  useEffect(() => {
+    setCardFormById((current) => {
+      const next = { ...current };
 
-  const handleBringCardToFront = (cardIndex) => {
-    setCardSummaries((current) => {
-      if (cardIndex <= 0 || cardIndex >= current.length) {
-        return current;
-      }
+      cardSummaries.forEach((summary) => {
+        const card = summary?.cartao;
+        if (!card?.id) {
+          return;
+        }
 
-      const selected = current[cardIndex];
-      return [selected, ...current.filter((_, index) => index !== cardIndex)];
+        const cardId = String(card.id);
+        if (next[cardId]) {
+          return;
+        }
+
+        next[cardId] = {
+          nome: card.nome || "",
+          limiteTotal: String(card.limiteTotal ?? ""),
+          diaFechamento: String(card.diaFechamento ?? ""),
+          diaVencimento: String(card.diaVencimento ?? ""),
+          corTema: normalizeCardTheme(card.corTema),
+        };
+      });
+
+      return next;
     });
-  };
+  }, [cardSummaries]);
 
   const viewportTier =
     viewportWidth >= 1920 || viewportHeight >= 1080
@@ -662,6 +671,140 @@ const DashboardDesktopRedesignView = ({
     () => [...incomes, ...expenses, ...simulatedTransactions],
     [expenses, incomes, simulatedTransactions],
   );
+
+  const cardTransactionsById = useMemo(() => {
+    const grouped = new Map();
+
+    sortByDate(allTransactions).forEach((item) => {
+      if (!item?.cartaoId) {
+        return;
+      }
+
+      const key = String(item.cartaoId);
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+
+      grouped.get(key).push(item);
+    });
+
+    return grouped;
+  }, [allTransactions]);
+
+  const cardColumns = useMemo(
+    () => Array.from({ length: 3 }, (_, index) => cardSummaries[index] || null),
+    [cardSummaries],
+  );
+
+  const cardSummary = cardSummaries[0] || null;
+  const backCardSummaries = cardSummaries.slice(1, 3);
+  const activeCardTheme = normalizeCardTheme(cardSummary?.cartao?.corTema);
+  const activeCardPalette = getThemePalette(activeCardTheme);
+  const cardLimitTotal = Number(
+    cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
+  );
+  const cardLimitUsed = Number(
+    cardSummary?.limite?.limiteUtilizado ||
+      cardSummary?.limite?.utilizado ||
+      cardSummary?.limite?.Utilizado ||
+      0,
+  );
+  const cardUsagePercent =
+    cardLimitTotal > 0
+      ? Math.min(100, Math.max(0, (cardLimitUsed / cardLimitTotal) * 100))
+      : 0;
+
+  const handleBringCardToFront = (cardIndex) => {
+    setCardSummaries((current) => {
+      if (cardIndex <= 0 || cardIndex >= current.length) {
+        return current;
+      }
+
+      const selected = current[cardIndex];
+      return [selected, ...current.filter((_, index) => index !== cardIndex)];
+    });
+  };
+
+  const handleCardFormChange = (cardId, field, value) => {
+    setCardFormById((current) => ({
+      ...current,
+      [cardId]: {
+        ...(current[cardId] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleCardFormSubmit = async (event, cardId) => {
+    event.preventDefault();
+
+    const values = cardFormById[cardId];
+    if (!values) {
+      return;
+    }
+
+    const payload = {
+      nome: values.nome?.trim() || "",
+      limiteTotal: Number(values.limiteTotal || 0),
+      diaFechamento: Number(values.diaFechamento || 0),
+      diaVencimento: Number(values.diaVencimento || 0),
+      corTema: values.corTema || DEFAULT_CARD_THEME,
+    };
+
+    try {
+      setIsSavingCardById((current) => ({ ...current, [cardId]: true }));
+      setCardFormStatusById((current) => ({ ...current, [cardId]: "" }));
+
+      const response = await fetch(`${API_CARTAO_URL}/${cardId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível salvar o cartão.",
+        );
+        setCardFormStatusById((current) => ({ ...current, [cardId]: message }));
+        return;
+      }
+
+      setCardSummaries((current) =>
+        current.map((summary) => {
+          if (String(summary?.cartao?.id) !== cardId) {
+            return summary;
+          }
+
+          return {
+            ...summary,
+            cartao: {
+              ...summary.cartao,
+              nome: payload.nome,
+              limiteTotal: payload.limiteTotal,
+              diaFechamento: payload.diaFechamento,
+              diaVencimento: payload.diaVencimento,
+              corTema: payload.corTema,
+            },
+          };
+        }),
+      );
+
+      setCardFormStatusById((current) => ({
+        ...current,
+        [cardId]: "Cartão atualizado com sucesso.",
+      }));
+    } catch (error) {
+      console.error("Error saving card:", error);
+      setCardFormStatusById((current) => ({
+        ...current,
+        [cardId]: "Erro ao salvar cartão.",
+      }));
+    } finally {
+      setIsSavingCardById((current) => ({ ...current, [cardId]: false }));
+    }
+  };
 
   const totalIncome = useMemo(
     () =>
@@ -805,17 +948,6 @@ const DashboardDesktopRedesignView = ({
     monthComparison.balanceDiff >= 0 ? "a mais" : "a menos";
   const investimentoDiffDirection =
     monthComparison.investmentDiff >= 0 ? "a mais" : "a menos";
-
-  const cardLimitTotal = Number(
-    cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
-  );
-  const cardLimitUsed = Number(
-    cardSummary?.limite?.limiteUtilizado || cardSummary?.limite?.utilizado || 0,
-  );
-  const cardUsagePercent =
-    cardLimitTotal > 0
-      ? Math.min(100, Math.max(0, (cardLimitUsed / cardLimitTotal) * 100))
-      : 0;
 
   const chartData = useMemo(() => {
     const grouped = allTransactions.reduce((acc, item) => {
@@ -1173,7 +1305,304 @@ const DashboardDesktopRedesignView = ({
       className="dashboard-desktop-redesign overflow-hidden"
       style={{ height: `${hUtil}px`, maxHeight: `${hContainerMax}px` }}
     >
-      {activeSlide === "charts" ? (
+      {activeSlide === "cards" ? (
+        <div
+          className="h-full min-h-0 flex flex-col"
+          style={{ gap: `${desktopGap}px`, paddingBottom: "88px" }}
+        >
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveSlide(null)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              aria-label="Voltar ao dashboard"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+              Gestão dos Cartões
+            </h2>
+          </div>
+
+          {cardSummaryError ? (
+            <p
+              className="text-xs"
+              style={{ color: "var(--color-vermelho-text)" }}
+            >
+              {cardSummaryError}
+            </p>
+          ) : null}
+
+          <section className="grid grid-cols-3 gap-3 min-h-0 flex-1 items-stretch overflow-hidden">
+            {cardColumns.map((summary, index) => {
+              if (!summary?.cartao?.id) {
+                return (
+                  <article
+                    key={`empty-card-column-${index}`}
+                    className="rounded-xl border border-dashed border-[#324066] bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.22)_0%,rgba(18,24,40,0.95)_45%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] p-4 min-h-0 max-h-full overflow-y-auto flex flex-col items-center justify-center gap-3 shadow-[0_16px_30px_rgba(6,10,22,0.38)]"
+                  >
+                    <p className="text-sm text-[#9f9cb9] text-center">
+                      Sem cartão nesta coluna.
+                    </p>
+                  </article>
+                );
+              }
+
+              const card = summary.cartao;
+              const cardId = String(card.id);
+              const themeColor = normalizeCardTheme(card.corTema);
+              const palette = getThemePalette(themeColor);
+              const cardLimitTotal = Number(
+                summary?.limite?.limiteTotal || card.limiteTotal || 0,
+              );
+              const cardLimitUsed = Number(
+                summary?.limite?.limiteUtilizado ||
+                  summary?.limite?.utilizado ||
+                  summary?.limite?.Utilizado ||
+                  0,
+              );
+              const cardUsagePercent =
+                cardLimitTotal > 0
+                  ? Math.min(
+                      100,
+                      Math.max(0, (cardLimitUsed / cardLimitTotal) * 100),
+                    )
+                  : 0;
+
+              const cardMovements = (
+                cardTransactionsById.get(cardId) || []
+              ).slice(0, 8);
+
+              const formValues = cardFormById[cardId] || {
+                nome: card.nome || "",
+                limiteTotal: String(card.limiteTotal || ""),
+                diaFechamento: String(card.diaFechamento || ""),
+                diaVencimento: String(card.diaVencimento || ""),
+                corTema: normalizeCardTheme(card.corTema),
+              };
+
+              const statusMessage = cardFormStatusById[cardId];
+              const isSaving = Boolean(isSavingCardById[cardId]);
+
+              return (
+                <article
+                  key={cardId}
+                  className="rounded-xl border border-[#324066] shadow-[0_16px_30px_rgba(6,10,22,0.45)] p-3 min-h-0 max-h-full overflow-y-auto flex flex-col gap-3 bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.24)_0%,rgba(18,24,40,0.92)_42%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)]"
+                >
+                  <div
+                    className="rounded-xl border p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                    style={getFrontLayerStyle(themeColor)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p
+                        className="text-sm font-semibold truncate"
+                        style={{ color: palette.cardName }}
+                      >
+                        {card.nome || "Cartão"}
+                      </p>
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: palette.usedText }}
+                      >
+                        {Math.round(cardUsagePercent)}%
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                      <span style={{ color: palette.usedText }}>
+                        Utilizado {formatCurrency(cardLimitUsed)}
+                      </span>
+                      <span style={{ color: palette.usedText }}>
+                        Limite {formatCurrency(cardLimitTotal)}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-2 rounded-full border border-[#2a3554] overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${cardUsagePercent}%`,
+                          background: `linear-gradient(90deg, ${palette.progressFillStart} 0%, ${palette.progressFillEnd} 100%)`,
+                        }}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-[#9f9cb9]">
+                      <span>
+                        Fechamento {String(card.diaFechamento).padStart(2, "0")}
+                      </span>
+                      <span>
+                        Vencimento {String(card.diaVencimento).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.88)_0%,rgba(15,20,36,0.9)_100%)] p-3 min-h-0 flex-1 flex flex-col">
+                    <h3 className="text-xs font-semibold text-[#b9bfd8] mb-2">
+                      Movimentações do Cartão
+                    </h3>
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
+                      {cardMovements.length === 0 ? (
+                        <p className="text-xs text-[#7f84a8]">
+                          Nenhuma movimentação vinculada.
+                        </p>
+                      ) : (
+                        cardMovements.map((item) => {
+                          const isEntrada =
+                            (item.type || item.tipo) === "Entrada";
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-xs text-[#dbe3ff] truncate">
+                                  {item.name || item.titulo || "Movimentação"}
+                                </p>
+                                <p className="text-[11px] text-[#7f84a8]">
+                                  {item.date || item.data
+                                    ? formatDateLabel(item.date || item.data)
+                                    : "--/--"}
+                                </p>
+                              </div>
+                              <span
+                                className="text-xs font-semibold whitespace-nowrap"
+                                style={{
+                                  color: isEntrada
+                                    ? "var(--color-verde-text)"
+                                    : "var(--color-vermelho-text)",
+                                }}
+                              >
+                                {isEntrada ? "+" : "-"}
+                                {formatCurrency(item.value || item.valor || 0)}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenCardFormId((current) =>
+                          current === cardId ? null : cardId,
+                        )
+                      }
+                      className="w-full text-xs font-medium text-[#cfd5f3] border border-[#2a3554] rounded-lg px-3 py-2 hover:bg-[#1e2340] transition-colors"
+                    >
+                      {openCardFormId === cardId
+                        ? "Fechar Formulário"
+                        : "Editar Cartão"}
+                    </button>
+                  </div>
+
+                  {openCardFormId === cardId ? (
+                    <form
+                      onSubmit={(event) => handleCardFormSubmit(event, cardId)}
+                      className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={formValues.nome}
+                        onChange={(event) =>
+                          handleCardFormChange(
+                            cardId,
+                            "nome",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Nome do cartão"
+                        className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                        required
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formValues.limiteTotal}
+                        onChange={(event) =>
+                          handleCardFormChange(
+                            cardId,
+                            "limiteTotal",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Limite total"
+                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                        required
+                      />
+                      <input
+                        type="color"
+                        value={formValues.corTema || DEFAULT_CARD_THEME}
+                        onChange={(event) =>
+                          handleCardFormChange(
+                            cardId,
+                            "corTema",
+                            event.target.value,
+                          )
+                        }
+                        className="h-8 rounded-md border border-[#2a3554] bg-transparent"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={formValues.diaFechamento}
+                        onChange={(event) =>
+                          handleCardFormChange(
+                            cardId,
+                            "diaFechamento",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Dia fechamento"
+                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                        required
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={formValues.diaVencimento}
+                        onChange={(event) =>
+                          handleCardFormChange(
+                            cardId,
+                            "diaVencimento",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Dia vencimento"
+                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
+                      >
+                        {isSaving ? "Salvando..." : "Salvar alterações"}
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {statusMessage ? (
+                    <p
+                      className="text-xs"
+                      style={{
+                        color: statusMessage.includes("sucesso")
+                          ? "var(--color-verde-text)"
+                          : "var(--color-vermelho-text)",
+                      }}
+                    >
+                      {statusMessage}
+                    </p>
+                  ) : null}
+                </article>
+              );
+            })}
+          </section>
+        </div>
+      ) : activeSlide === "charts" ? (
         <div
           className="h-full flex flex-col"
           style={{ gap: `${desktopGap}px` }}
@@ -1851,7 +2280,19 @@ const DashboardDesktopRedesignView = ({
               </div>
             </article>
 
-            <article className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3">
+            <article
+              className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3 cursor-pointer"
+              onClick={() => setActiveSlide("cards")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveSlide("cards");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Abrir slide de gestão dos cartões"
+            >
               <div className="uiux-card-premium-wrap flex-1">
                 {isCardSummaryLoading ? (
                   <div
@@ -1886,7 +2327,10 @@ const DashboardDesktopRedesignView = ({
                           `back-card-${index}`
                         }
                         type="button"
-                        onClick={() => handleBringCardToFront(index + 1)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleBringCardToFront(index + 1);
+                        }}
                         className={`uiux-card-layer uiux-card-layer-back-clickable ${index === 0 ? "uiux-card-layer-back-1" : "uiux-card-layer-back-2"}`}
                         aria-label={`Selecionar cartão ${item?.cartao?.nome || "secundário"}`}
                         style={getBackLayerStyle(
@@ -1909,7 +2353,10 @@ const DashboardDesktopRedesignView = ({
 
                     <button
                       type="button"
-                      onClick={onOpenCardManagement}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveSlide("cards");
+                      }}
                       className="uiux-card-layer uiux-card-layer-front uiux-card-layer-front-clickable"
                       aria-label="Abrir gestão do cartão"
                       style={getFrontLayerStyle(activeCardTheme)}
