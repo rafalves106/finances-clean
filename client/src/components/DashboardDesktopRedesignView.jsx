@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  DollarSign,
-  Plus,
-  RefreshCw,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import { DollarSign, Plus, RefreshCw, Sparkles } from "lucide-react";
 import {
   Area,
   AreaChart,
+  Cell,
   CartesianGrid,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -87,9 +83,6 @@ const CHART_SERIES_LABEL = {
 };
 
 const CHART_Y_TICKS = [0, 1000, 2500, 5000, 7500, 10000];
-const RED_THEME_TEXT = "#895253";
-const RED_THEME_BORDER = "#895253";
-const RED_THEME_BG_GRADIENT = "linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)";
 
 const formatChartAxisTick = (value) => {
   if (value >= 1000) {
@@ -204,9 +197,65 @@ const hexToRgb = (hexColor) => {
   };
 };
 
+const rgbToHsl = (r, g, b) => {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+};
+
+const hexToHsl = (hexColor) => {
+  const { r, g, b } = hexToRgb(hexColor);
+  return rgbToHsl(r, g, b);
+};
+
 const toRgba = (hexColor, alpha) => {
   const { r, g, b } = hexToRgb(hexColor);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const toHsla = (hslColor, alpha) => {
+  if (!hslColor || typeof hslColor !== "string") {
+    return `hsla(0, 0%, 0%, ${alpha})`;
+  }
+
+  const hslMatch = hslColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!hslMatch) {
+    return hslColor;
+  }
+
+  const [, h, s, l] = hslMatch;
+  return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
 };
 
 const clampRatio = (value) => Math.min(1, Math.max(0, value));
@@ -269,6 +318,39 @@ const getFrontLayerStyle = (themeColor) => ({
     linear-gradient(145deg, ${toRgba(themeColor, 0.96)} 0%, rgba(29, 17, 16, 0.92) 52%, #191026 100%)
   `,
 });
+
+const getCategoryStandardColor = (categoryColor) => {
+  if (!categoryColor || typeof categoryColor !== "string") {
+    // Fallback: cor padrão cinza
+    return {
+      gradient1: "hsl(0, 0%, 20%)",
+      gradient2: "hsl(0, 0%, 12%)",
+      border: "hsl(0, 0%, 16%)",
+      text: "hsl(0, 0%, 38%)",
+    };
+  }
+
+  try {
+    const hsl = hexToHsl(categoryColor);
+    const hue = hsl.h;
+
+    // Aplica o padrão: HUE fixo, S e L padronizados
+    return {
+      gradient1: `hsl(${hue}, 25%, 15%)`,
+      gradient2: `hsl(${hue}, 28%, 9%)`,
+      border: `hsl(${hue}, 23%, 22%)`,
+      text: `hsl(${hue}, 23%, 38%)`,
+    };
+  } catch {
+    // Fallback se houver erro na conversão
+    return {
+      gradient1: "hsl(0, 0%, 20%)",
+      gradient2: "hsl(0, 0%, 12%)",
+      border: "hsl(0, 0%, 16%)",
+      text: "hsl(0, 0%, 38%)",
+    };
+  }
+};
 
 const DashboardDesktopRedesignView = ({
   incomes = [],
@@ -533,50 +615,41 @@ const DashboardDesktopRedesignView = ({
 
   const receitasTrendIsPositive = monthComparison.incomePercent >= 0;
   const despesasTrendIsPositive = monthComparison.expensePercent <= 0;
+  const saldoTrendIsPositive = monthComparison.balancePercent >= 0;
+  const investmentTrendIsPositive = monthComparison.investmentDiff > 0;
 
   const receitasTagClassName = receitasTrendIsPositive
-    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
-
+    ? "tag-positive"
+    : "tag-negative";
   const despesasTagClassName = despesasTrendIsPositive
-    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+    ? "tag-positive"
+    : "tag-negative";
+  const saldoTagClassName = saldoTrendIsPositive
+    ? "tag-positive"
+    : "tag-negative";
+  const investimentosTagClassName = investmentTrendIsPositive
+    ? "tag-positive"
+    : "tag-negative";
 
   const receitasDiffColorClassName = receitasTrendIsPositive
-    ? "text-[#4A7750]"
-    : "text-[#895253]";
-
+    ? "text-positive"
+    : "text-negative";
   const despesasDiffColorClassName = despesasTrendIsPositive
-    ? "text-[#4A7750]"
-    : "text-[#895253]";
+    ? "text-positive"
+    : "text-negative";
+  const saldoDiffColorClassName = saldoTrendIsPositive
+    ? "text-positive"
+    : "text-negative";
+  const investimentoDiffColorClassName = investmentTrendIsPositive
+    ? "text-positive"
+    : "text-negative";
 
   const receitasDiffDirection =
     monthComparison.incomeDiff >= 0 ? "a mais" : "a menos";
   const despesasDiffDirection =
     monthComparison.expenseDiff >= 0 ? "a mais" : "a menos";
-
-  const saldoTrendIsPositive = monthComparison.balancePercent >= 0;
-  const saldoTagClassName = saldoTrendIsPositive
-    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
-
-  const saldoDiffColorClassName = saldoTrendIsPositive
-    ? "text-[#4A7750]"
-    : "text-[#895253]";
-
   const saldoDiffDirection =
     monthComparison.balanceDiff >= 0 ? "a mais" : "a menos";
-
-  const investmentTrendIsPositive = monthComparison.investmentDiff > 0;
-
-  const investimentosTagClassName = investmentTrendIsPositive
-    ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-    : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
-
-  const investimentoDiffColorClassName = investmentTrendIsPositive
-    ? "text-[#4A7750]"
-    : "text-[#895253]";
-
   const investimentoDiffDirection =
     monthComparison.investmentDiff >= 0 ? "a mais" : "a menos";
 
@@ -672,12 +745,27 @@ const DashboardDesktopRedesignView = ({
   }, [incomes, selectedAno, selectedMes]);
 
   const categoryRanking = useMemo(() => {
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
+
     const grouped = expenses.reduce((acc, item) => {
       const key = item.categoriaId || "sem-categoria";
-      const nome = item.categoria?.nome || "Sem categoria";
-      const icone = item.categoria?.icone || "";
+      const categoriaRef = categoriaById.get(String(key));
+      const nome =
+        item.categoria?.nome || categoriaRef?.nome || "Sem categoria";
+      const icone = item.categoria?.icone || categoriaRef?.icone || "";
+      const cor = item.categoria?.cor || categoriaRef?.cor || "#6A6785";
+      const limite = Number(
+        item.categoria?.orcamentoMensal ||
+          categoriaRef?.orcamentoMensal ||
+          item.categoria?.limiteMensal ||
+          categoriaRef?.limiteMensal ||
+          0,
+      );
+
       if (!acc[key]) {
-        acc[key] = { id: key, nome, icone, total: 0 };
+        acc[key] = { id: key, nome, icone, cor, limite, total: 0 };
       }
       acc[key].total += Number(item.value || item.valor || 0);
       return acc;
@@ -686,7 +774,12 @@ const DashboardDesktopRedesignView = ({
     return Object.values(grouped)
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-  }, [expenses]);
+  }, [categorias, expenses]);
+
+  const categoryPieData = useMemo(
+    () => categoryRanking.filter((item) => item.total > 0).slice(0, 6),
+    [categoryRanking],
+  );
 
   const filteredTransactions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -1111,7 +1204,10 @@ const DashboardDesktopRedesignView = ({
             </div>
 
             {cardSummaryError ? (
-              <p className="mt-1 text-xs" style={{ color: RED_THEME_TEXT }}>
+              <p
+                className="mt-1 text-xs"
+                style={{ color: "var(--color-vermelho-text)" }}
+              >
                 {cardSummaryError}
               </p>
             ) : null}
@@ -1274,7 +1370,7 @@ const DashboardDesktopRedesignView = ({
                     {monthComparison.currentInvestment <= 0 ? (
                       <span
                         className="font-semibold"
-                        style={{ color: RED_THEME_TEXT }}
+                        style={{ color: "var(--color-vermelho-text)" }}
                       >
                         Você não investiu este mês
                       </span>
@@ -1299,13 +1395,14 @@ const DashboardDesktopRedesignView = ({
                 <div
                   className="mt-3 rounded-lg border p-3"
                   style={{
-                    borderColor: RED_THEME_BORDER,
-                    background: RED_THEME_BG_GRADIENT,
+                    borderColor: "var(--color-vermelho-text)",
+                    background:
+                      "linear-gradient(180deg, var(--color-vermelho-gradient-1) 0%, var(--color-vermelho-gradient-2) 100%)",
                   }}
                 >
                   <p
                     className="text-sm font-semibold"
-                    style={{ color: RED_THEME_TEXT }}
+                    style={{ color: "var(--color-vermelho-text)" }}
                   >
                     Saldo do mês está negativo
                   </p>
@@ -1314,8 +1411,8 @@ const DashboardDesktopRedesignView = ({
                     onClick={handleOpenSimulation}
                     className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border text-xs font-medium"
                     style={{
-                      borderColor: RED_THEME_BORDER,
-                      color: RED_THEME_TEXT,
+                      borderColor: "var(--color-vermelho-text)",
+                      color: "var(--color-vermelho-text)",
                     }}
                   >
                     Simular ajuste
@@ -1331,43 +1428,148 @@ const DashboardDesktopRedesignView = ({
           className="grid grid-cols-2 gap-3 min-h-0 self-start"
         >
           <div className="min-h-0 order-2">
-            <article className="bg-white border border-slate-200 rounded-xl shadow-sm h-full max-h-[345px] overflow-hidden flex flex-col p-4">
+            <article
+              className="bg-white border border-slate-200 rounded-xl shadow-sm h-full max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
+              onClick={(event) => onOpenCategoryManager(event.currentTarget)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onOpenCategoryManager(event.currentTarget);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Gerenciar categorias"
+            >
               <div className="sticky top-0 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#b9bfd8] flex items-center gap-2">
-                  <AlertTriangle size={14} className="text-amber-600" />{" "}
-                  Categorias
+                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                  Gastos por Categoria
                 </h3>
-                <button
-                  type="button"
-                  onClick={(event) =>
-                    onOpenCategoryManager(event.currentTarget)
-                  }
-                  className="p-1 rounded-md hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label="Gerenciar categorias"
-                  title="Gerenciar categorias"
-                >
-                  <Settings size={14} className="text-slate-500" />
-                </button>
               </div>
-              <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+              <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 pt-2">
                 {categoryRanking.length === 0 ? (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 col-span-2">
                     Nenhum gasto registrado neste mês
                   </p>
                 ) : (
-                  categoryRanking.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg flex items-center justify-between gap-2"
-                    >
-                      <p className="text-xs text-[#7f84a8] truncate">
-                        {item.icone} {item.nome}
-                      </p>
-                      <p className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
-                        {formatCurrency(item.total)}
-                      </p>
+                  <>
+                    <div className="overflow-y-auto pr-1 space-y-3">
+                      {categoryRanking.map((item) => {
+                        const standardColor = getCategoryStandardColor(
+                          item.cor,
+                        );
+                        return (
+                          <div key={item.id} className="rounded-lg space-y-1">
+                            <div
+                              className="h-5 rounded-full border overflow-hidden"
+                              style={{
+                                borderColor: "#2F2C46",
+                                background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(
+                                  standardColor.gradient2,
+                                  0.75,
+                                )} 100%)`,
+                              }}
+                            >
+                              <div
+                                className="h-full rounded-full border"
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    (item.total /
+                                      (item.limite > 0
+                                        ? item.limite
+                                        : item.total || 1)) *
+                                      100,
+                                  )}%`,
+                                  borderColor: standardColor.border,
+                                  background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span style={{ color: standardColor.text }}>
+                                {formatCurrency(item.total)}
+                              </span>
+                              <span className="font-semibold text-[#6A6785]">
+                                {formatCurrency(
+                                  item.limite > 0 ? item.limite : item.total,
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))
+
+                    <div className="min-h-0 flex items-center justify-center">
+                      {categoryPieData.length === 0 ? (
+                        <p className="text-xs text-slate-500 text-center">
+                          Sem dados para gráfico
+                        </p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={categoryPieData}
+                              dataKey="total"
+                              nameKey="nome"
+                              innerRadius={40}
+                              outerRadius={90}
+                              paddingAngle={8}
+                              cornerRadius={16}
+                              stroke="none"
+                            >
+                              {categoryPieData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={item.id}
+                                    fill={`url(#categoriaGradient-${item.id})`}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1.5}
+                                  />
+                                );
+                              })}
+                            </Pie>
+                            <defs>
+                              {categoryPieData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <linearGradient
+                                    key={`categoriaGradient-${item.id}`}
+                                    id={`categoriaGradient-${item.id}`}
+                                    x1="0"
+                                    y1="0"
+                                    x2="0"
+                                    y2="1"
+                                  >
+                                    <stop
+                                      offset="0%"
+                                      stopColor={toHsla(
+                                        standardColor.gradient1,
+                                        0.85,
+                                      )}
+                                    />
+                                    <stop
+                                      offset="100%"
+                                      stopColor={toHsla(
+                                        standardColor.gradient2,
+                                        0.92,
+                                      )}
+                                    />
+                                  </linearGradient>
+                                );
+                              })}
+                            </defs>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </article>

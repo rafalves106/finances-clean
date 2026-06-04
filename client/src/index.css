@@ -14,6 +14,43 @@
   --uiux-text-body: #6a6785;
   --uiux-red-border: #462c2c;
   --uiux-red-panel: linear-gradient(180deg, #2f1c1d 0%, #1d1011 100%);
+
+  /* Color System - Gradients and Text/Border colors */
+  /* Verde */
+  --color-verde-gradient-1: hsl(128, 25%, 15%);
+  --color-verde-gradient-2: hsl(128, 28%, 9%);
+  --color-verde-border: hsl(128, 23%, 22%);
+  --color-verde-text: hsl(128, 23%, 38%);
+
+  /* Vermelho */
+  --color-vermelho-gradient-1: hsl(359, 25%, 15%);
+  --color-vermelho-gradient-2: hsl(359, 28%, 9%);
+  --color-vermelho-border: hsl(359, 23%, 22%);
+  --color-vermelho-text: hsl(359, 23%, 38%);
+
+  /* Azul */
+  --color-azul-gradient-1: hsl(189, 25%, 15%);
+  --color-azul-gradient-2: hsl(189, 28%, 9%);
+  --color-azul-border: hsl(189, 23%, 22%);
+  --color-azul-text: hsl(189, 23%, 38%);
+
+  /* Amarelo */
+  --color-amarelo-gradient-1: hsl(52, 25%, 15%);
+  --color-amarelo-gradient-2: hsl(52, 28%, 9%);
+  --color-amarelo-border: hsl(52, 23%, 22%);
+  --color-amarelo-text: hsl(52, 23%, 38%);
+
+  /* Rosa */
+  --color-rosa-gradient-1: hsl(311, 25%, 15%);
+  --color-rosa-gradient-2: hsl(311, 28%, 9%);
+  --color-rosa-border: hsl(311, 23%, 22%);
+  --color-rosa-text: hsl(311, 23%, 38%);
+
+  /* Laranja */
+  --color-laranja-gradient-1: hsl(20, 25%, 15%);
+  --color-laranja-gradient-2: hsl(20, 28%, 9%);
+  --color-laranja-border: hsl(20, 23%, 22%);
+  --color-laranja-text: hsl(20, 23%, 38%);
 }
 
 html,
@@ -357,4 +394,36 @@ body {
 
 .uiux-card-cycle p {
   margin: 0;
+}
+
+/* Dashboard Tags - Positive Trend (Green/Verde) */
+.tag-positive {
+  border: 1px solid var(--color-verde-border);
+  background: linear-gradient(
+    180deg,
+    var(--color-verde-gradient-1) 0%,
+    var(--color-verde-gradient-2) 100%
+  );
+  color: var(--color-verde-text);
+}
+
+/* Dashboard Tags - Negative Trend (Red/Vermelho) */
+.tag-negative {
+  border: 1px solid var(--color-vermelho-border);
+  background: linear-gradient(
+    180deg,
+    var(--color-vermelho-gradient-1) 0%,
+    var(--color-vermelho-gradient-2) 100%
+  );
+  color: var(--color-vermelho-text);
+}
+
+/* Text color for positive trend */
+.text-positive {
+  color: var(--color-verde-text);
+}
+
+/* Text color for negative trend */
+.text-negative {
+  color: var(--color-vermelho-text);
 }
