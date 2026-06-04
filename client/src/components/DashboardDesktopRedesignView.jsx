@@ -9,6 +9,8 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   Cell,
   CartesianGrid,
   Line,
@@ -176,6 +178,113 @@ const renderChartTooltip = ({ active, payload, label }) => {
         </p>
       ))}
     </div>
+  );
+};
+
+const renderCategoryComparisonTooltip = ({ active, payload }) => {
+  if (!active || !Array.isArray(payload) || payload.length === 0) {
+    return null;
+  }
+
+  const rawCategoryName = payload[0]?.payload?.nome;
+  const categoryName =
+    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
+      ? rawCategoryName
+      : "Categoria";
+
+  return (
+    <div
+      style={{
+        background: "#15172a",
+        border: "1px solid #32375e",
+        borderRadius: "12px",
+        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
+        color: "#dbe3ff",
+        fontSize: "12px",
+        padding: "10px 12px",
+      }}
+    >
+      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+        {categoryName}
+      </p>
+      {payload.map((item) => (
+        <p
+          key={item.dataKey}
+          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
+        >
+          {item.name}: {formatCurrency(item.value)}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const renderCategoryPieTooltip = ({ active, payload }) => {
+  if (!active || !Array.isArray(payload) || payload.length === 0) {
+    return null;
+  }
+
+  const firstItem = payload[0];
+  const rawCategoryName = firstItem?.payload?.nome;
+  const categoryName =
+    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
+      ? rawCategoryName
+      : "Categoria";
+
+  return (
+    <div
+      style={{
+        background: "#15172a",
+        border: "1px solid #32375e",
+        borderRadius: "12px",
+        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
+        color: "#dbe3ff",
+        fontSize: "12px",
+        padding: "10px 12px",
+      }}
+    >
+      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+        {categoryName}
+      </p>
+      <p style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}>
+        Gasto no mês: {formatCurrency(firstItem?.value || 0)}
+      </p>
+    </div>
+  );
+};
+
+const renderCategoryPieIconLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+  payload,
+}) => {
+  if (!payload?.icone || (Number.isFinite(percent) && percent < 0.06)) {
+    return null;
+  }
+
+  const centerX = Number(cx);
+  const centerY = Number(cy);
+  const inner = Number(innerRadius);
+  const outer = Number(outerRadius);
+  const radius = inner + (outer - inner) * 0.5;
+  const angleInRad = (-Number(midAngle) * Math.PI) / 180;
+  const x = centerX + radius * Math.cos(angleInRad);
+  const y = centerY + radius * Math.sin(angleInRad);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="central"
+      style={{ fontSize: 12 }}
+    >
+      {payload.icone}
+    </text>
   );
 };
 
@@ -788,7 +897,7 @@ const DashboardDesktopRedesignView = ({
       }));
   }, [incomes, selectedAno, selectedMes]);
 
-  const categoryRanking = useMemo(() => {
+  const categoryRankingAll = useMemo(() => {
     const categoriaById = new Map(
       categorias.map((categoria) => [String(categoria.id), categoria]),
     );
@@ -815,15 +924,139 @@ const DashboardDesktopRedesignView = ({
       return acc;
     }, {});
 
-    return Object.values(grouped)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 4);
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
   }, [categorias, expenses]);
 
-  const categoryPieData = useMemo(
-    () => categoryRanking.filter((item) => item.total > 0).slice(0, 4),
-    [categoryRanking],
+  const categoryRanking = useMemo(
+    () => categoryRankingAll.slice(0, 4),
+    [categoryRankingAll],
   );
+
+  const slideCategoryRanking = useMemo(
+    () => categoryRankingAll.slice(0, 8),
+    [categoryRankingAll],
+  );
+
+  const slideCategoryLeftColumn = useMemo(
+    () => slideCategoryRanking.slice(0, 4),
+    [slideCategoryRanking],
+  );
+
+  const slideCategoryRightColumn = useMemo(
+    () => slideCategoryRanking.slice(4, 8),
+    [slideCategoryRanking],
+  );
+
+  const exceededCategoryAlerts = useMemo(
+    () =>
+      categoryRankingAll
+        .filter((item) => item.limite > 0 && item.total > item.limite)
+        .slice(0, 8),
+    [categoryRankingAll],
+  );
+
+  const exceededAlertsLeftColumn = useMemo(
+    () => exceededCategoryAlerts.slice(0, 4),
+    [exceededCategoryAlerts],
+  );
+
+  const exceededAlertsRightColumn = useMemo(
+    () => exceededCategoryAlerts.slice(4, 8),
+    [exceededCategoryAlerts],
+  );
+
+  const categoryComparisonData = useMemo(() => {
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
+    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
+    const previousMonth = previousRef.getMonth() + 1;
+    const previousYear = previousRef.getFullYear();
+
+    const grouped = allTransactions.reduce((acc, item) => {
+      if ((item.type || item.tipo) !== "Saida") {
+        return acc;
+      }
+
+      const dateInfo = getMonthYearFromValue(item.date || item.data);
+      if (!dateInfo) {
+        return acc;
+      }
+
+      const isCurrentPeriod =
+        dateInfo.month === selectedMes && dateInfo.year === selectedAno;
+      const isPreviousPeriod =
+        dateInfo.month === previousMonth && dateInfo.year === previousYear;
+
+      if (!isCurrentPeriod && !isPreviousPeriod) {
+        return acc;
+      }
+
+      const key = String(
+        item.categoriaId || item.categoria?.id || "sem-categoria",
+      );
+      const categoriaRef = categoriaById.get(key);
+      const nome =
+        item.categoria?.nome || categoriaRef?.nome || "Sem categoria";
+      const cor = item.categoria?.cor || categoriaRef?.cor || "#6A6785";
+
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          nome,
+          cor,
+          currentTotal: 0,
+          previousTotal: 0,
+        };
+      }
+
+      const value = Number(item.value || item.valor || 0);
+      if (isCurrentPeriod) {
+        acc[key].currentTotal += value;
+      }
+      if (isPreviousPeriod) {
+        acc[key].previousTotal += value;
+      }
+
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .filter((item) => item.currentTotal > 0 || item.previousTotal > 0)
+      .sort((a, b) => {
+        if (b.currentTotal !== a.currentTotal) {
+          return b.currentTotal - a.currentTotal;
+        }
+
+        return b.previousTotal - a.previousTotal;
+      })
+      .slice(0, 8)
+      .map((item) => ({
+        ...item,
+        shortName: truncateWithThreeDots(item.nome, 10),
+      }));
+  }, [allTransactions, categorias, selectedAno, selectedMes]);
+
+  const currentMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+  }).format(new Date(selectedAno, selectedMes - 1, 1));
+
+  const previousMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+  }).format(new Date(selectedAno, selectedMes - 2, 1));
+
+  const categoryPieData = useMemo(
+    () => categoryRankingAll.filter((item) => item.total > 0),
+    [categoryRankingAll],
+  );
+
+  const slideCategoryPieData = useMemo(
+    () => slideCategoryRanking.filter((item) => item.total > 0),
+    [slideCategoryRanking],
+  );
+
+  const dashboardPiePaddingAngle = categoryPieData.length > 8 ? 2 : 6;
+  const dashboardPieCornerRadius = categoryPieData.length > 8 ? 8 : 14;
 
   const filteredTransactions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -968,28 +1201,8 @@ const DashboardDesktopRedesignView = ({
 
           <section
             className="border rounded-2xl p-3 shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
-            style={{ flex: "6 0 0", minHeight: 0 }}
+            style={{ flex: "1 1 0", minHeight: 0 }}
           >
-            <div className="flex items-center justify-between mb-2 flex-shrink-0">
-              <h3 className="text-sm font-semibold text-[#b9bfd8]">
-                Gráfico Mensal
-              </h3>
-              <div className="flex items-center gap-4">
-                {CHART_SERIES_ORDER.map((key) => (
-                  <span
-                    key={key}
-                    className="flex items-center gap-1.5 text-xs"
-                    style={{ color: CHART_THEME_COLORS[key].line }}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: CHART_THEME_COLORS[key].fill }}
-                    />
-                    {CHART_SERIES_LABEL[key]}
-                  </span>
-                ))}
-              </div>
-            </div>
             <div className="flex-1 min-h-0">
               {chartData.length === 0 ? (
                 <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
@@ -1158,74 +1371,146 @@ const DashboardDesktopRedesignView = ({
           </section>
 
           <section
-            className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col p-4 overflow-hidden"
-            style={{ flex: "4 0 0", minHeight: 0 }}
+            className="rounded-xl border shadow-sm flex flex-col p-4 overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
+            style={{ flex: "1 1 0", minHeight: 0 }}
           >
-            <h3 className="text-sm font-semibold text-[#b9bfd8] mb-3 flex-shrink-0">
-              Gastos por Categoria
-            </h3>
             <div className="flex-1 min-h-0">
-              {categoryRanking.length === 0 ? (
-                <p className="text-sm text-slate-500">
+              {slideCategoryRanking.length === 0 ? (
+                <p className="text-sm text-[#7f84a8]">
                   Nenhum gasto registrado neste mês
                 </p>
               ) : (
-                <div className="h-full grid grid-cols-2 gap-6">
-                  <div className="overflow-y-auto pr-1 space-y-4">
-                    {categoryRanking.map((item) => {
-                      const standardColor = getCategoryStandardColor(item.cor);
-                      return (
-                        <div key={item.id} className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{item.icone}</span>
-                            <span
-                              className="text-xs font-semibold"
-                              style={{ color: standardColor.text }}
-                            >
-                              {item.nome}
-                            </span>
-                          </div>
+                <div className="h-full grid grid-cols-2 gap-4 min-h-0">
+                  <div className="min-h-0 flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3 min-h-0 flex-1">
+                      {[slideCategoryLeftColumn, slideCategoryRightColumn].map(
+                        (column, columnIndex) => (
                           <div
-                            className="h-5 rounded-full border overflow-hidden"
-                            style={{
-                              borderColor: "#2F2C46",
-                              background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(standardColor.gradient2, 0.75)} 100%)`,
-                            }}
+                            key={`slide-category-column-${columnIndex}`}
+                            className="overflow-y-auto pr-1 space-y-4"
                           >
-                            <div
-                              className="h-full rounded-full border"
-                              style={{
-                                width: `${Math.min(100, (item.total / (item.limite > 0 ? item.limite : item.total || 1)) * 100)}%`,
-                                borderColor: standardColor.border,
-                                background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
-                              }}
-                            />
+                            {column.length === 0 ? (
+                              <p className="text-xs text-[#7f84a8]">
+                                Sem categorias nesta coluna
+                              </p>
+                            ) : (
+                              column.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <div key={item.id} className="space-y-1.5">
+                                    <div
+                                      className="h-5 rounded-full border overflow-hidden"
+                                      style={{
+                                        borderColor: "#2F2C46",
+                                        background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(standardColor.gradient2, 0.75)} 100%)`,
+                                      }}
+                                    >
+                                      <div
+                                        className="h-full rounded-full border"
+                                        style={{
+                                          width: `${Math.min(100, (item.total / (item.limite > 0 ? item.limite : item.total || 1)) * 100)}%`,
+                                          borderColor: standardColor.border,
+                                          background: `linear-gradient(180deg, ${standardColor.gradient1} 0%, ${standardColor.gradient2} 100%)`,
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs gap-2">
+                                      <div className="inline-flex items-center gap-2 min-w-0">
+                                        <span
+                                          className="font-semibold truncate"
+                                          style={{ color: standardColor.text }}
+                                        >
+                                          {item.nome}
+                                        </span>
+                                        <span
+                                          className="whitespace-nowrap"
+                                          style={{ color: standardColor.text }}
+                                        >
+                                          {formatCurrency(item.total)}
+                                        </span>
+                                      </div>
+                                      <span className="font-semibold text-[#6A6785] whitespace-nowrap">
+                                        {formatCurrency(
+                                          item.limite > 0
+                                            ? item.limite
+                                            : item.total,
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span style={{ color: standardColor.text }}>
-                              {formatCurrency(item.total)}
-                            </span>
-                            <span className="font-semibold text-[#6A6785]">
-                              {formatCurrency(
-                                item.limite > 0 ? item.limite : item.total,
-                              )}
-                            </span>
-                          </div>
+                        ),
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
+                      {[
+                        exceededAlertsLeftColumn,
+                        exceededAlertsRightColumn,
+                      ].map((alertsColumn, columnIndex) => (
+                        <div
+                          key={`exceeded-alerts-column-${columnIndex}`}
+                          className="space-y-2"
+                        >
+                          {alertsColumn.length === 0 ? (
+                            columnIndex === 0 ? (
+                              <p className="text-xs text-[#7f84a8]">
+                                Nenhum limite excedido.
+                              </p>
+                            ) : null
+                          ) : (
+                            alertsColumn.map((item) => (
+                              <p
+                                key={`alert-${item.id}`}
+                                className="text-xs font-medium"
+                                style={{ color: "var(--color-vermelho-text)" }}
+                              >
+                                <span
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  Limite da categoria {item.nome} excedido em
+                                </span>{" "}
+                                <span
+                                  className="font-semibold"
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  {formatCurrency(item.total - item.limite)}
+                                </span>
+                                <span
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  .
+                                </span>
+                              </p>
+                            ))
+                          )}
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-3 min-h-0">
-                    <div className="flex-1 min-h-0">
-                      {categoryPieData.length === 0 ? (
-                        <p className="text-xs text-slate-500 text-center pt-8">
+
+                  <div className="min-h-0 grid grid-cols-2 gap-3">
+                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                      {slideCategoryPieData.length === 0 ? (
+                        <p className="text-xs text-[#7f84a8] text-center pt-8">
                           Sem dados para gráfico
                         </p>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <defs>
-                              {categoryPieData.map((item) => {
+                              {slideCategoryPieData.map((item) => {
                                 const standardColor = getCategoryStandardColor(
                                   item.cor,
                                 );
@@ -1257,7 +1542,7 @@ const DashboardDesktopRedesignView = ({
                               })}
                             </defs>
                             <Pie
-                              data={categoryPieData}
+                              data={slideCategoryPieData}
                               dataKey="total"
                               nameKey="nome"
                               innerRadius="35%"
@@ -1265,8 +1550,10 @@ const DashboardDesktopRedesignView = ({
                               paddingAngle={8}
                               cornerRadius={16}
                               stroke="none"
+                              label={renderCategoryPieIconLabel}
+                              labelLine={false}
                             >
-                              {categoryPieData.map((item) => {
+                              {slideCategoryPieData.map((item) => {
                                 const standardColor = getCategoryStandardColor(
                                   item.cor,
                                 );
@@ -1280,35 +1567,93 @@ const DashboardDesktopRedesignView = ({
                                 );
                               })}
                             </Pie>
+                            <Tooltip
+                              content={renderCategoryPieTooltip}
+                              cursor={false}
+                            />
                           </PieChart>
                         </ResponsiveContainer>
                       )}
                     </div>
-                    <div className="flex flex-col gap-1.5 flex-shrink-0">
-                      {categoryPieData.map((item) => {
-                        const standardColor = getCategoryStandardColor(
-                          item.cor,
-                        );
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between text-xs"
+
+                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                      {categoryComparisonData.length === 0 ? (
+                        <p className="text-xs text-[#7f84a8] text-center pt-8">
+                          Sem histórico para comparar com{" "}
+                          {previousMonthShortLabel}
+                        </p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={categoryComparisonData}
+                            margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+                            barGap={2}
                           >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                style={{ background: standardColor.gradient1 }}
-                              />
-                              <span style={{ color: standardColor.text }}>
-                                {item.icone} {item.nome}
-                              </span>
-                            </div>
-                            <span className="font-semibold text-[#6A6785]">
-                              {formatCurrency(item.total)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                            <CartesianGrid
+                              strokeDasharray="4 10"
+                              vertical={false}
+                              stroke="#2a2f52"
+                            />
+                            <XAxis
+                              dataKey="shortName"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fontSize: 9, fill: "#7f84a8" }}
+                            />
+                            <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tickFormatter={formatChartAxisTick}
+                              tick={{ fontSize: 9, fill: "#7f84a8" }}
+                              width={26}
+                            />
+                            <Tooltip
+                              content={renderCategoryComparisonTooltip}
+                              cursor={{
+                                fill: "rgba(185, 191, 216, 0.12)",
+                              }}
+                            />
+                            <Bar
+                              dataKey="previousTotal"
+                              name={`Mês anterior (${previousMonthShortLabel})`}
+                              radius={[4, 4, 0, 0]}
+                            >
+                              {categoryComparisonData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={`previous-bar-${item.id}`}
+                                    fill={toHsla(standardColor.gradient2, 0.95)}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1}
+                                  />
+                                );
+                              })}
+                            </Bar>
+                            <Bar
+                              dataKey="currentTotal"
+                              name={`Mês atual (${currentMonthShortLabel})`}
+                              radius={[4, 4, 0, 0]}
+                            >
+                              {categoryComparisonData.map((item) => {
+                                const standardColor = getCategoryStandardColor(
+                                  item.cor,
+                                );
+                                return (
+                                  <Cell
+                                    key={`current-bar-${item.id}`}
+                                    fill={toHsla(standardColor.gradient1, 0.95)}
+                                    stroke={standardColor.border}
+                                    strokeWidth={1}
+                                  />
+                                );
+                              })}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1338,7 +1683,7 @@ const DashboardDesktopRedesignView = ({
               }}
               aria-label="Ver análise gráfica detalhada"
             >
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 cursor-pointer">
                 {chartData.length === 0 ? (
                   <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
                     <p className="text-sm text-[#9fb0d3]">
@@ -1902,7 +2247,7 @@ const DashboardDesktopRedesignView = ({
                         })}
                       </div>
 
-                      <div className="min-h-0 flex items-center justify-center">
+                      <div className="min-h-0 flex items-center justify-center cursor-pointer">
                         {categoryPieData.length === 0 ? (
                           <p className="text-xs text-slate-500 text-center">
                             Sem dados para gráfico
@@ -1916,9 +2261,11 @@ const DashboardDesktopRedesignView = ({
                                 nameKey="nome"
                                 innerRadius={40}
                                 outerRadius={90}
-                                paddingAngle={8}
-                                cornerRadius={16}
+                                paddingAngle={dashboardPiePaddingAngle}
+                                cornerRadius={dashboardPieCornerRadius}
                                 stroke="none"
+                                label={renderCategoryPieIconLabel}
+                                labelLine={false}
                               >
                                 {categoryPieData.map((item) => {
                                   const standardColor =
@@ -1933,6 +2280,10 @@ const DashboardDesktopRedesignView = ({
                                   );
                                 })}
                               </Pie>
+                              <Tooltip
+                                content={renderCategoryPieTooltip}
+                                cursor={false}
+                              />
                               <defs>
                                 {categoryPieData.map((item) => {
                                   const standardColor =
