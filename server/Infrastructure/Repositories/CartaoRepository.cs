@@ -32,29 +32,6 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
         .FirstOrDefault(c => c.Id == id && c.UsuarioId == usuarioId);
   }
 
-  public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true)
-  {
-    var query = context.CartoesManuais.Where(c => c.UsuarioId == usuarioId);
-
-    if (!incluirInativos)
-    {
-      query = query.Where(c => c.Ativo);
-    }
-
-    return query
-      .OrderByDescending(c => c.Ativo)
-      .ThenByDescending(c => c.UpdatedAtUtc)
-      .ToList();
-  }
-
-  public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId)
-  {
-    return context.CartoesManuais
-      .Where(c => c.UsuarioId == usuarioId && c.Ativo)
-      .OrderByDescending(c => c.UpdatedAtUtc)
-      .ToList();
-  }
-
   public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null)
   {
     var query = context.CartoesManuais
