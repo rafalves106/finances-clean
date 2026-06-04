@@ -89,6 +89,56 @@ body {
   color: var(--uiux-text-subsection) !important;
 }
 
+.dashboard-control-chart-card {
+  background: linear-gradient(
+    145deg,
+    rgba(18, 24, 40, 0.98) 0%,
+    rgba(17, 22, 38, 0.95) 55%,
+    rgba(14, 19, 34, 0.98) 100%
+  );
+  border-color: #2f2c46;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 26px rgba(8, 12, 24, 0.34);
+}
+
+.dashboard-control-chart-title {
+  margin: 0;
+  color: #e8ebff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.dashboard-control-chart-month {
+  color: #cfd5f3;
+}
+
+.dashboard-control-chart-input {
+  border-color: #32375e;
+  color: #dbe3ff;
+  background: rgba(21, 24, 43, 0.84);
+}
+
+.dashboard-control-chart-export {
+  background: #2f4fa0;
+  color: #eef2ff;
+}
+
+.dashboard-control-chart-export:hover {
+  background: #3c64c2;
+}
+
+.dashboard-control-chart-nav {
+  border-color: #32375e;
+  color: #b9bfd8;
+  background: rgba(17, 22, 38, 0.44);
+}
+
+.dashboard-control-chart-nav:hover {
+  background: rgba(47, 56, 93, 0.52);
+}
+
 .uiux-card-premium-wrap {
   min-height: 0;
   display: flex;

@@ -5,16 +5,111 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 vi.mock("recharts", () => {
   const Mock = ({ children }) => <div>{children}</div>;
 
+  const ResponsiveContainer = ({ children, width, height }) => (
+    <div
+      data-testid="recharts-responsive-container"
+      data-width={String(width)}
+      data-height={String(height)}
+    >
+      {children}
+    </div>
+  );
+
+  const XAxis = ({ children, dataKey, axisLine, tickLine, tick }) => (
+    <div
+      data-testid="recharts-x-axis"
+      data-datakey={dataKey}
+      data-axis-line={String(axisLine)}
+      data-tick-line={String(tickLine)}
+      data-tick-font-size={String(tick?.fontSize)}
+      data-tick-fill={tick?.fill}
+    >
+      {children}
+    </div>
+  );
+
+  const YAxis = ({
+    children,
+    axisLine,
+    tickLine,
+    domain,
+    ticks,
+    tick,
+    tickFormatter,
+  }) => (
+    <div
+      data-testid="recharts-y-axis"
+      data-axis-line={String(axisLine)}
+      data-tick-line={String(tickLine)}
+      data-domain={JSON.stringify(domain)}
+      data-ticks={JSON.stringify(ticks)}
+      data-tick-font-size={String(tick?.fontSize)}
+      data-tick-fill={tick?.fill}
+      data-format-10000={tickFormatter ? tickFormatter(10000) : ""}
+      data-format-2500={tickFormatter ? tickFormatter(2500) : ""}
+    >
+      {children}
+    </div>
+  );
+
+  const CartesianGrid = ({ children, vertical, stroke, strokeDasharray }) => (
+    <div
+      data-testid="recharts-grid"
+      data-vertical={String(vertical)}
+      data-stroke={stroke}
+      data-dash={strokeDasharray}
+    >
+      {children}
+    </div>
+  );
+
+  const Tooltip = ({ children, contentStyle, cursor }) => (
+    <div
+      data-testid="recharts-tooltip"
+      data-bg={contentStyle?.background || ""}
+      data-border={contentStyle?.border || ""}
+      data-radius={contentStyle?.borderRadius || ""}
+      data-cursor-dash={cursor?.strokeDasharray || ""}
+      data-cursor-stroke={cursor?.stroke || ""}
+    >
+      {children}
+    </div>
+  );
+
+  const Area = ({
+    children,
+    dataKey,
+    type,
+    stroke,
+    strokeWidth,
+    fill,
+    dot,
+    activeDot,
+  }) => (
+    <div
+      data-testid="recharts-area"
+      data-datakey={dataKey}
+      data-type={type}
+      data-stroke={stroke}
+      data-stroke-width={String(strokeWidth)}
+      data-fill={fill}
+      data-dot={String(dot)}
+      data-active-dot-radius={String(activeDot?.r || "")}
+    >
+      {children}
+    </div>
+  );
+
   return {
-    ResponsiveContainer: Mock,
+    ResponsiveContainer,
     AreaChart: Mock,
-    Area: Mock,
+    Area,
     BarChart: Mock,
     Bar: Mock,
-    XAxis: Mock,
-    YAxis: Mock,
-    CartesianGrid: Mock,
-    Tooltip: Mock,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
     Line: Mock,
     Legend: Mock,
   };
@@ -596,5 +691,112 @@ describe("DashboardView ciclo 011", () => {
     expect(
       screen.getByLabelText("Marcar como compra no cartão ativo").checked,
     ).toBe(true);
+  });
+});
+
+describe("DashboardView ciclo 013 uiux group 14", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.alert = vi.fn();
+    window.confirm = vi.fn(() => true);
+
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes("/api/v1/cartao/resumo")) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({}),
+        });
+      }
+
+      if (String(url).includes("comparativo-categorias")) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+
+      if (String(url).includes("alertas-orcamento")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ totalCategoriasEmAlerta: 0, categorias: [] }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+  });
+
+  it("deve renderizar grafico com altura, eixos, areas e tooltip premium", async () => {
+    render(
+      <DashboardView
+        totalInvestmentsBalance={0}
+        fetchData={vi.fn()}
+        loading={false}
+        selectedMes={1}
+        selectedAno={2026}
+        onChangeMonth={() => {}}
+        categorias={[]}
+        veiculos={[]}
+        onOpenCategoryManager={() => {}}
+        incomes={[
+          {
+            id: "in-1",
+            titulo: "Salario",
+            valor: 6200,
+            tipo: "Entrada",
+            data: "2026-01-01T12:00:00Z",
+          },
+        ]}
+        expenses={[
+          {
+            id: "out-1",
+            titulo: "Mercado",
+            valor: 1200,
+            tipo: "Saida",
+            data: "2026-01-03T12:00:00Z",
+          },
+        ]}
+        saldoAnterior={0}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Controle Financeiro")).toBeTruthy(),
+    );
+
+    const container = screen.getByTestId("recharts-responsive-container");
+    expect(container.getAttribute("data-height")).toBe("320");
+
+    const yAxis = screen.getByTestId("recharts-y-axis");
+    expect(yAxis.getAttribute("data-domain")).toBe("[0,10000]");
+    expect(yAxis.getAttribute("data-ticks")).toBe(
+      "[0,1000,2500,5000,7500,10000]",
+    );
+    expect(yAxis.getAttribute("data-format-10000")).toBe("10K");
+    expect(yAxis.getAttribute("data-format-2500")).toBe("2.5K");
+
+    const xAxis = screen.getByTestId("recharts-x-axis");
+    expect(xAxis.getAttribute("data-datakey")).toBe("data");
+
+    const grid = screen.getByTestId("recharts-grid");
+    expect(grid.getAttribute("data-vertical")).toBe("false");
+    expect(grid.getAttribute("data-dash")).toBe("4 10");
+    expect(grid.getAttribute("data-stroke")).toBe("#2a2f52");
+
+    const areas = screen.getAllByTestId("recharts-area");
+    const entrada = areas.find(
+      (item) => item.getAttribute("data-datakey") === "entrada",
+    );
+    const saida = areas.find(
+      (item) => item.getAttribute("data-datakey") === "saida",
+    );
+
+    expect(entrada).toBeTruthy();
+    expect(saida).toBeTruthy();
+    expect(entrada?.getAttribute("data-fill")).toBe("url(#incomeFill)");
+    expect(saida?.getAttribute("data-fill")).toBe("url(#expenseFill)");
+
+    const tooltip = screen.getByTestId("recharts-tooltip");
+    expect(tooltip.getAttribute("data-bg")).toBe("#15172a");
+    expect(tooltip.getAttribute("data-border")).toBe("1px solid #32375e");
+    expect(tooltip.getAttribute("data-cursor-dash")).toBe("6 6");
   });
 });
