@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { LayoutDashboard, Target, Bike, LogOut } from "lucide-react";
+import { LayoutDashboard, Target, Car, LogOut } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import InvestmentsView from "./components/InvestmentsView";
@@ -403,7 +403,7 @@ const App = () => {
             {
               id: "vehicle",
               label: "Manutenção Veicular",
-              icon: <Bike size={20} />,
+              icon: <Car size={20} />,
               color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
           ].map((item) => (
@@ -473,7 +473,9 @@ const App = () => {
         {activeTab !== "dashboard" ? (
           <header
             ref={headerRef}
-            className="uiux-header p-6 flex justify-between items-center sticky top-0 z-10 border-b border-[#2c315f]"
+            className={`uiux-header p-6 flex justify-between items-center sticky top-0 z-10 ${
+              activeTab === "investments" ? "border-b border-[#2c315f]" : ""
+            }`}
           >
             <h1 className="text-2xl font-semibold tracking-wide capitalize text-[#ecefff]">
               {activeTab === "investments" && "Planejador de Futuro"}

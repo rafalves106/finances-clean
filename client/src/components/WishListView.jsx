@@ -79,38 +79,38 @@ const WishListView = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="bg-indigo-600 text-white p-6 rounded-xl shadow-lg">
+      <div className="rounded-2xl border border-[#39508a] bg-[radial-gradient(circle_at_14%_14%,rgba(113,145,242,0.22)_0%,rgba(46,60,105,0.16)_34%,rgba(18,25,47,0.94)_100%)] p-6 text-[#e7edff] shadow-[0_18px_44px_rgba(7,12,26,0.42)]">
         <h2 className="text-xl font-bold flex items-center gap-2">
-          <Briefcase className="text-indigo-200" /> Calculadora de Esforço
+          <Briefcase className="text-[#9ec2ff]" /> Calculadora de Esforço
         </h2>
         <div className="mt-4 flex flex-col md:flex-row gap-8">
           <div>
-            <p className="text-indigo-200 text-sm">Sua Renda Total</p>
+            <p className="text-[#9f9cb9] text-sm">Sua Renda Total</p>
             <p className="text-2xl font-bold">{formatCurrency(totalIncome)}</p>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-indigo-200 text-sm">Horas trabalhadas/mês</p>
+              <p className="text-[#9f9cb9] text-sm">Horas trabalhadas/mês</p>
               <label htmlFor="wish-hours-per-month" className="sr-only">
                 Horas trabalhadas por mês
               </label>
               <input
                 id="wish-hours-per-month"
                 type="number"
-                className="w-16 text-black text-sm p-1 rounded"
+                className="w-16 text-[#dbe3ff] text-sm p-1 rounded border border-[#2a3554] bg-[#10152d]"
                 value={workHoursPerMonth}
                 onChange={(e) => setWorkHoursPerMonth(Number(e.target.value))}
               />
             </div>
-            <p className="text-xs text-indigo-300 mt-1">
+            <p className="text-xs text-[#7f84a8] mt-1">
               (Padrão estágio: 120h)
             </p>
           </div>
-          <div className="bg-indigo-800 p-3 rounded-lg border border-indigo-500">
-            <p className="text-indigo-200 text-xs uppercase font-bold">
+          <div className="p-3 rounded-lg border border-[#4460a3] bg-[linear-gradient(135deg,rgba(53,76,134,0.7)_0%,rgba(24,34,63,0.9)_100%)]">
+            <p className="text-[#b9bfd8] text-xs uppercase font-bold">
               Seu valor hora
             </p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-[#e7edff]">
               {formatCurrency(hourlyRate)}
               <span className="text-sm font-normal">/h</span>
             </p>
@@ -119,8 +119,8 @@ const WishListView = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-          <h3 className="font-bold mb-4">Adicionar Meta</h3>
+        <div className="md:col-span-1 p-6 rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] shadow-sm h-fit">
+          <h3 className="font-bold mb-4 text-[#dbe3ff]">Adicionar Meta</h3>
           <form onSubmit={addWish} className="space-y-4">
             <label htmlFor="wish-name" className="sr-only">
               Nome da meta
@@ -129,7 +129,7 @@ const WishListView = ({
               id="wish-name"
               type="text"
               placeholder="Ex: Viagem"
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
               value={wishName}
               onChange={(e) => setWishName(e.target.value)}
             />
@@ -140,11 +140,11 @@ const WishListView = ({
               id="wish-price"
               type="number"
               placeholder="Preço (R$)"
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
               value={wishPrice}
               onChange={(e) => setWishPrice(e.target.value)}
             />
-            <button className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700">
+            <button className="w-full border border-[#2f4566] bg-[#151f34] text-[#9ec2ff] py-2 rounded-lg font-medium hover:bg-[#1a2842] transition-colors">
               Adicionar à Lista
             </button>
           </form>
@@ -158,32 +158,34 @@ const WishListView = ({
             return (
               <div
                 key={wish.id}
-                className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4"
+                className="p-4 rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4"
               >
                 <div className="flex-1">
-                  <h4 className="font-bold text-lg">{wish.name}</h4>
-                  <p className="text-slate-500 font-medium">
+                  <h4 className="font-bold text-lg text-[#dbe3ff]">
+                    {wish.name}
+                  </h4>
+                  <p className="text-[#9f9cb9] font-medium">
                     {formatCurrency(wish.price)}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-xs text-slate-400 uppercase font-bold">
+                    <p className="text-xs text-[#7f84a8] uppercase font-bold">
                       Custo em Tempo
                     </p>
-                    <div className="flex items-center gap-2 text-indigo-700 font-bold text-xl">
+                    <div className="flex items-center gap-2 text-[#9ec2ff] font-bold text-xl">
                       <Clock size={20} />
                       {formatHours(hoursNeeded)}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[#7f84a8]">
                       ~{daysNeeded.toFixed(1)} dias de trabalho
                     </p>
                   </div>
                   <button
                     onClick={() => deleteWish(wish.id)}
                     aria-label={`Excluir meta ${wish.name}`}
-                    className="text-slate-300 hover:text-red-500"
+                    className="text-[#8f94b4] hover:text-[#f08f9f]"
                   >
                     <Trash2 />
                   </button>
