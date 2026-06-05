@@ -638,32 +638,109 @@ const DashboardDesktopRedesignView = ({
       : viewportWidth >= 1440 || viewportHeight >= 900
         ? "lg"
         : "md";
-  const desktopGap =
-    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 9;
-  const mainPaddingTop =
-    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 10;
-  const mainPaddingBottom =
-    viewportTier === "xl" ? 16 : viewportTier === "lg" ? 12 : 10;
-  const chartMargin =
-    viewportTier === "xl"
-      ? { top: 8, right: 8, left: 8, bottom: 8 }
-      : viewportTier === "lg"
-        ? { top: 6, right: 6, left: 4, bottom: 6 }
-        : { top: 4, right: 4, left: 2, bottom: 4 };
-  const chartTickFontSize = viewportTier === "md" ? 9 : 10;
-  const chartYAxisWidth =
-    viewportTier === "xl" ? 28 : viewportTier === "lg" ? 26 : 24;
+  const responsiveDensity = useMemo(() => {
+    if (viewportTier === "xl") {
+      return {
+        dashboardGap: 16,
+        mainPaddingTop: 16,
+        mainPaddingBottom: 16,
+        slideGap: 16,
+        slideHeaderHeight: 60,
+        slideBottomSafeArea: 88,
+        slideInnerPadding: 12,
+        sectionGap: 12,
+        sectionThreeMaxHeight: 345,
+        sectionThreeCardMinHeight: 260,
+        chartMargin: { top: 8, right: 8, left: 8, bottom: 8 },
+        chartTickFontSize: 10,
+        chartYAxisWidth: 28,
+        chartYTicks: CHART_Y_TICKS,
+      };
+    }
+
+    if (viewportTier === "lg") {
+      return {
+        dashboardGap: 12,
+        mainPaddingTop: 12,
+        mainPaddingBottom: 12,
+        slideGap: 12,
+        slideHeaderHeight: 56,
+        slideBottomSafeArea: 64,
+        slideInnerPadding: 10,
+        sectionGap: 10,
+        sectionThreeMaxHeight: 330,
+        sectionThreeCardMinHeight: 244,
+        chartMargin: { top: 6, right: 6, left: 4, bottom: 6 },
+        chartTickFontSize: 10,
+        chartYAxisWidth: 26,
+        chartYTicks: CHART_Y_TICKS,
+      };
+    }
+
+    return {
+      dashboardGap: 9,
+      mainPaddingTop: 10,
+      mainPaddingBottom: 10,
+      slideGap: 9,
+      slideHeaderHeight: 52,
+      slideBottomSafeArea: 48,
+      slideInnerPadding: 8,
+      sectionGap: 8,
+      sectionThreeMaxHeight: 305,
+      sectionThreeCardMinHeight: 220,
+      chartMargin: { top: 4, right: 4, left: 2, bottom: 4 },
+      chartTickFontSize: 9,
+      chartYAxisWidth: 24,
+      chartYTicks: [0, 2500, 5000, 7500, 10000],
+    };
+  }, [viewportTier]);
+
+  const {
+    dashboardGap,
+    mainPaddingTop,
+    mainPaddingBottom,
+    slideGap,
+    slideHeaderHeight,
+    slideBottomSafeArea,
+    slideInnerPadding,
+    sectionGap,
+    sectionThreeMaxHeight,
+    sectionThreeCardMinHeight,
+    chartMargin,
+    chartTickFontSize,
+    chartYAxisWidth,
+    chartYTicks,
+  } = responsiveDensity;
+
   const hUtil = Math.max(
     380,
     Math.floor(
       viewportHeight - headerHeight - mainPaddingTop - mainPaddingBottom,
     ),
   );
-  const hConteudo = Math.max(220, hUtil - 2 * desktopGap);
+  const slideContentHeight = Math.max(
+    220,
+    hUtil - slideHeaderHeight - slideBottomSafeArea - slideGap,
+  );
+  const hConteudo = Math.max(220, hUtil - 2 * dashboardGap);
   const hSecao1 = Math.floor(hConteudo * 0.3);
   const hSecao2 = Math.floor(hConteudo * 0.28);
   const hSecao3Raw = hConteudo - hSecao1 - hSecao2;
-  const hSecao3 = Math.min(hSecao3Raw, 345);
+  const hSecao3 = Math.min(hSecao3Raw, sectionThreeMaxHeight);
+  const kpiTitleClassName =
+    viewportTier === "xl"
+      ? "text-[24px]"
+      : viewportTier === "lg"
+        ? "text-[22px]"
+        : "text-[20px]";
+  const kpiValueClassName =
+    viewportTier === "xl"
+      ? "text-2xl"
+      : viewportTier === "lg"
+        ? "text-[22px]"
+        : "text-[20px]";
+  const kpiHelperClampClassName =
+    viewportTier === "xl" ? "" : "dashboard-kpi-helper-clamp";
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
     year: "2-digit",
@@ -1394,12 +1471,15 @@ const DashboardDesktopRedesignView = ({
   return (
     <div
       className="dashboard-desktop-redesign overflow-hidden"
-      style={{ height: "95vh", maxHeight: "95vh" }}
+      style={{ height: `${hUtil}px`, maxHeight: `${hUtil}px` }}
     >
       {activeSlide === "investments" ? (
         <div
           className="h-full min-h-0 flex flex-col"
-          style={{ gap: `${desktopGap}px`, paddingBottom: "88px" }}
+          style={{
+            gap: `${slideGap}px`,
+            paddingBottom: `${slideBottomSafeArea}px`,
+          }}
         >
           <div className="flex items-center justify-between gap-3 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -1435,7 +1515,14 @@ const DashboardDesktopRedesignView = ({
             </div>
           </div>
 
-          <section className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-3 gap-4 overflow-hidden rounded-2xl border border-[#33457a] bg-[radial-gradient(circle_at_12%_8%,rgba(90,118,199,0.2)_0%,rgba(33,44,78,0.16)_36%,rgba(16,23,44,0.88)_100%)] p-3 shadow-[inset_0_1px_0_rgba(163,182,255,0.05)]">
+          <section
+            className="min-h-0 grid grid-cols-1 xl:grid-cols-3 overflow-hidden rounded-2xl border border-[#33457a] bg-[radial-gradient(circle_at_12%_8%,rgba(90,118,199,0.2)_0%,rgba(33,44,78,0.16)_36%,rgba(16,23,44,0.88)_100%)] shadow-[inset_0_1px_0_rgba(163,182,255,0.05)]"
+            style={{
+              height: `${slideContentHeight}px`,
+              gap: `${sectionGap}px`,
+              padding: `${slideInnerPadding}px`,
+            }}
+          >
             <InvestmentsView
               investmentAmount={investmentAmount}
               investments={investments}
@@ -1448,7 +1535,10 @@ const DashboardDesktopRedesignView = ({
       ) : activeSlide === "cards" ? (
         <div
           className="h-full min-h-0 flex flex-col"
-          style={{ gap: `${desktopGap}px`, paddingBottom: "88px" }}
+          style={{
+            gap: `${slideGap}px`,
+            paddingBottom: `${slideBottomSafeArea}px`,
+          }}
         >
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
@@ -1473,7 +1563,13 @@ const DashboardDesktopRedesignView = ({
             </p>
           ) : null}
 
-          <section className="grid grid-cols-3 gap-3 min-h-0 flex-1 items-stretch overflow-hidden">
+          <section
+            className="grid grid-cols-3 min-h-0 items-stretch overflow-hidden"
+            style={{
+              gap: `${sectionGap}px`,
+              height: `${slideContentHeight}px`,
+            }}
+          >
             {cardColumns.map((summary, index) => {
               if (!summary?.cartao?.id) {
                 const slotKey = String(index);
@@ -1873,8 +1969,11 @@ const DashboardDesktopRedesignView = ({
         </div>
       ) : activeSlide === "charts" ? (
         <div
-          className="h-full flex flex-col"
-          style={{ gap: `${desktopGap}px` }}
+          className="h-full min-h-0 flex flex-col"
+          style={{
+            gap: `${slideGap}px`,
+            paddingBottom: `${slideBottomSafeArea}px`,
+          }}
         >
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
@@ -1897,192 +1996,209 @@ const DashboardDesktopRedesignView = ({
             </button>
           </div>
 
-          <section
-            className="border rounded-2xl p-3 shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
-            style={{ flex: "1 1 0", minHeight: 0 }}
+          <div
+            className="min-h-0 flex flex-col"
+            style={{
+              gap: `${sectionGap}px`,
+              height: `${slideContentHeight}px`,
+            }}
           >
-            <div className="flex-1 min-h-0">
-              {chartData.length === 0 ? (
-                <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
-                  <p className="text-sm text-[#9fb0d3]">
-                    Ainda não há dados no período para montar o gráfico.
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={chartMargin}>
-                    <defs>
-                      <linearGradient
-                        id="colorReceitaSlide"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_THEME_COLORS.entrada.fill}
-                          stopOpacity={0.28}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_THEME_COLORS.entrada.fill}
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorDespesaSlide"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_THEME_COLORS.saida.fill}
-                          stopOpacity={0.24}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_THEME_COLORS.saida.fill}
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorSaldoSlide"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={CHART_THEME_COLORS.saldo.fill}
-                          stopOpacity={0.1}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={CHART_THEME_COLORS.saldo.fill}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="4 10"
-                      vertical={false}
-                      stroke="#2a2f52"
-                    />
-                    <XAxis
-                      dataKey="data"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      domain={[0, 10000]}
-                      ticks={CHART_Y_TICKS}
-                      tickFormatter={formatChartAxisTick}
-                      tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
-                      width={chartYAxisWidth}
-                    />
-                    <Tooltip
-                      content={renderChartTooltip}
-                      cursor={{
-                        stroke: "#b9bfd8",
-                        strokeWidth: 2,
-                        strokeDasharray: "6 6",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="entrada"
-                      fill="url(#colorReceitaSlide)"
-                      stroke="none"
-                      isAnimationActive={false}
-                      name="entrada"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="saida"
-                      fill="url(#colorDespesaSlide)"
-                      stroke="none"
-                      isAnimationActive={false}
-                      name="saida"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="saldo"
-                      stroke="none"
-                      fill="url(#colorSaldoSlide)"
-                      isAnimationActive={false}
-                      name="saldo"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="entrada"
-                      stroke={CHART_THEME_COLORS.entrada.line}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{
-                        r: 7,
-                        fill: "#7aa8ff",
-                        stroke: "#cfd5ff",
-                        strokeWidth: 2,
-                      }}
-                      name="entrada"
-                      style={{
-                        filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="saida"
-                      stroke={CHART_THEME_COLORS.saida.line}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{
-                        r: 7,
-                        fill: "#7aa8ff",
-                        stroke: "#cfd5ff",
-                        strokeWidth: 2,
-                      }}
-                      name="saida"
-                      style={{
-                        filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="saldo"
-                      stroke={CHART_THEME_COLORS.saldo.line}
-                      strokeWidth={2}
-                      dot={false}
-                      name="saldo"
-                      style={{ opacity: 0.6 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </section>
+            <section
+              className="border rounded-2xl shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
+              style={{
+                flex: "1 1 0",
+                minHeight: 0,
+                padding: `${slideInnerPadding}px`,
+              }}
+            >
+              <div className="flex-1 min-h-0">
+                {chartData.length === 0 ? (
+                  <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
+                    <p className="text-sm text-[#9fb0d3]">
+                      Ainda não há dados no período para montar o gráfico.
+                    </p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={chartMargin}>
+                      <defs>
+                        <linearGradient
+                          id="colorReceitaSlide"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={CHART_THEME_COLORS.entrada.fill}
+                            stopOpacity={0.28}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={CHART_THEME_COLORS.entrada.fill}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorDespesaSlide"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={CHART_THEME_COLORS.saida.fill}
+                            stopOpacity={0.24}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={CHART_THEME_COLORS.saida.fill}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorSaldoSlide"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={CHART_THEME_COLORS.saldo.fill}
+                            stopOpacity={0.1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={CHART_THEME_COLORS.saldo.fill}
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="4 10"
+                        vertical={false}
+                        stroke="#2a2f52"
+                      />
+                      <XAxis
+                        dataKey="data"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        domain={[0, 10000]}
+                        ticks={chartYTicks}
+                        tickFormatter={formatChartAxisTick}
+                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        width={chartYAxisWidth}
+                      />
+                      <Tooltip
+                        content={renderChartTooltip}
+                        cursor={{
+                          stroke: "#b9bfd8",
+                          strokeWidth: 2,
+                          strokeDasharray: "6 6",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="entrada"
+                        fill="url(#colorReceitaSlide)"
+                        stroke="none"
+                        isAnimationActive={false}
+                        name="entrada"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="saida"
+                        fill="url(#colorDespesaSlide)"
+                        stroke="none"
+                        isAnimationActive={false}
+                        name="saida"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="saldo"
+                        stroke="none"
+                        fill="url(#colorSaldoSlide)"
+                        isAnimationActive={false}
+                        name="saldo"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="entrada"
+                        stroke={CHART_THEME_COLORS.entrada.line}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 7,
+                          fill: "#7aa8ff",
+                          stroke: "#cfd5ff",
+                          strokeWidth: 2,
+                        }}
+                        name="entrada"
+                        style={{
+                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="saida"
+                        stroke={CHART_THEME_COLORS.saida.line}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 7,
+                          fill: "#7aa8ff",
+                          stroke: "#cfd5ff",
+                          strokeWidth: 2,
+                        }}
+                        name="saida"
+                        style={{
+                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="saldo"
+                        stroke={CHART_THEME_COLORS.saldo.line}
+                        strokeWidth={2}
+                        dot={false}
+                        name="saldo"
+                        style={{ opacity: 0.6 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>
 
-          <section
-            className="rounded-xl border shadow-sm flex flex-col p-4 overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
-            style={{ flex: "1 1 0", minHeight: 0 }}
-          >
-            <div className="flex-1 min-h-0">
-              {slideCategoryRanking.length === 0 ? (
-                <p className="text-sm text-[#7f84a8]">
-                  Nenhum gasto registrado neste mês
-                </p>
-              ) : (
-                <div className="h-full grid grid-cols-2 gap-4 min-h-0">
-                  <div className="min-h-0 flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-3 min-h-0 flex-1">
-                      {[slideCategoryLeftColumn, slideCategoryRightColumn].map(
-                        (column, columnIndex) => (
+            <section
+              className="rounded-xl border shadow-sm flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
+              style={{
+                flex: "1 1 0",
+                minHeight: 0,
+                padding: `${Math.max(10, slideInnerPadding + 2)}px`,
+              }}
+            >
+              <div className="flex-1 min-h-0">
+                {slideCategoryRanking.length === 0 ? (
+                  <p className="text-sm text-[#7f84a8]">
+                    Nenhum gasto registrado neste mês
+                  </p>
+                ) : (
+                  <div className="h-full grid grid-cols-2 gap-4 min-h-0">
+                    <div className="min-h-0 flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-3 min-h-0 flex-1">
+                        {[
+                          slideCategoryLeftColumn,
+                          slideCategoryRightColumn,
+                        ].map((column, columnIndex) => (
                           <div
                             key={`slide-category-column-${columnIndex}`}
                             className="overflow-y-auto pr-1 space-y-4"
@@ -2142,232 +2258,240 @@ const DashboardDesktopRedesignView = ({
                               })
                             )}
                           </div>
-                        ),
-                      )}
-                    </div>
+                        ))}
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
-                      {[
-                        exceededAlertsLeftColumn,
-                        exceededAlertsRightColumn,
-                      ].map((alertsColumn, columnIndex) => (
-                        <div
-                          key={`exceeded-alerts-column-${columnIndex}`}
-                          className="space-y-2"
-                        >
-                          {alertsColumn.length === 0 ? (
-                            columnIndex === 0 ? (
-                              <p className="text-xs text-[#7f84a8]">
-                                Nenhum limite excedido.
-                              </p>
-                            ) : null
-                          ) : (
-                            alertsColumn.map((item) => (
-                              <p
-                                key={`alert-${item.id}`}
-                                className="text-xs font-medium"
-                                style={{ color: "var(--color-vermelho-text)" }}
-                              >
-                                <span
-                                  style={{
-                                    color: "var(--color-vermelho-text)",
-                                  }}
-                                >
-                                  Limite da categoria {item.nome} excedido em
-                                </span>{" "}
-                                <span
-                                  className="font-semibold"
-                                  style={{
-                                    color: "var(--color-vermelho-text)",
-                                  }}
-                                >
-                                  {formatCurrency(item.total - item.limite)}
-                                </span>
-                                <span
-                                  style={{
-                                    color: "var(--color-vermelho-text)",
-                                  }}
-                                >
-                                  .
-                                </span>
-                              </p>
-                            ))
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="min-h-0 grid grid-cols-2 gap-3">
-                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
-                      {slideCategoryPieData.length === 0 ? (
-                        <p className="text-xs text-[#7f84a8] text-center pt-8">
-                          Sem dados para gráfico
-                        </p>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <defs>
-                              {slideCategoryPieData.map((item) => {
-                                const standardColor = getCategoryStandardColor(
-                                  item.cor,
-                                );
-                                return (
-                                  <linearGradient
-                                    key={`slideGrad-${item.id}`}
-                                    id={`slideGrad-${item.id}`}
-                                    x1="0"
-                                    y1="0"
-                                    x2="0"
-                                    y2="1"
-                                  >
-                                    <stop
-                                      offset="0%"
-                                      stopColor={toHsla(
-                                        standardColor.gradient1,
-                                        0.85,
-                                      )}
-                                    />
-                                    <stop
-                                      offset="100%"
-                                      stopColor={toHsla(
-                                        standardColor.gradient2,
-                                        0.92,
-                                      )}
-                                    />
-                                  </linearGradient>
-                                );
-                              })}
-                            </defs>
-                            <Pie
-                              data={slideCategoryPieData}
-                              dataKey="total"
-                              nameKey="nome"
-                              innerRadius="35%"
-                              outerRadius="80%"
-                              paddingAngle={8}
-                              cornerRadius={16}
-                              stroke="none"
-                              label={renderCategoryPieIconLabel}
-                              labelLine={false}
-                            >
-                              {slideCategoryPieData.map((item) => {
-                                const standardColor = getCategoryStandardColor(
-                                  item.cor,
-                                );
-                                return (
-                                  <Cell
-                                    key={item.id}
-                                    fill={`url(#slideGrad-${item.id})`}
-                                    stroke={standardColor.border}
-                                    strokeWidth={1.5}
-                                  />
-                                );
-                              })}
-                            </Pie>
-                            <Tooltip
-                              content={renderCategoryPieTooltip}
-                              cursor={false}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-
-                    <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
-                      {categoryComparisonData.length === 0 ? (
-                        <p className="text-xs text-[#7f84a8] text-center pt-8">
-                          Sem histórico para comparar com{" "}
-                          {previousMonthShortLabel}
-                        </p>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={categoryComparisonData}
-                            margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
-                            barGap={2}
+                      <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
+                        {[
+                          exceededAlertsLeftColumn,
+                          exceededAlertsRightColumn,
+                        ].map((alertsColumn, columnIndex) => (
+                          <div
+                            key={`exceeded-alerts-column-${columnIndex}`}
+                            className="space-y-2"
                           >
-                            <CartesianGrid
-                              strokeDasharray="4 10"
-                              vertical={false}
-                              stroke="#2a2f52"
-                            />
-                            <XAxis
-                              dataKey="shortName"
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{ fontSize: 9, fill: "#7f84a8" }}
-                            />
-                            <YAxis
-                              axisLine={false}
-                              tickLine={false}
-                              tickFormatter={formatChartAxisTick}
-                              tick={{ fontSize: 9, fill: "#7f84a8" }}
-                              width={26}
-                            />
-                            <Tooltip
-                              content={renderCategoryComparisonTooltip}
-                              cursor={{
-                                fill: "rgba(185, 191, 216, 0.12)",
-                              }}
-                            />
-                            <Bar
-                              dataKey="previousTotal"
-                              name={`Mês anterior (${previousMonthShortLabel})`}
-                              radius={[4, 4, 0, 0]}
+                            {alertsColumn.length === 0 ? (
+                              columnIndex === 0 ? (
+                                <p className="text-xs text-[#7f84a8]">
+                                  Nenhum limite excedido.
+                                </p>
+                              ) : null
+                            ) : (
+                              alertsColumn.map((item) => (
+                                <p
+                                  key={`alert-${item.id}`}
+                                  className="text-xs font-medium"
+                                  style={{
+                                    color: "var(--color-vermelho-text)",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "var(--color-vermelho-text)",
+                                    }}
+                                  >
+                                    Limite da categoria {item.nome} excedido em
+                                  </span>{" "}
+                                  <span
+                                    className="font-semibold"
+                                    style={{
+                                      color: "var(--color-vermelho-text)",
+                                    }}
+                                  >
+                                    {formatCurrency(item.total - item.limite)}
+                                  </span>
+                                  <span
+                                    style={{
+                                      color: "var(--color-vermelho-text)",
+                                    }}
+                                  >
+                                    .
+                                  </span>
+                                </p>
+                              ))
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="min-h-0 grid grid-cols-2 gap-3">
+                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                        {slideCategoryPieData.length === 0 ? (
+                          <p className="text-xs text-[#7f84a8] text-center pt-8">
+                            Sem dados para gráfico
+                          </p>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <defs>
+                                {slideCategoryPieData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <linearGradient
+                                      key={`slideGrad-${item.id}`}
+                                      id={`slideGrad-${item.id}`}
+                                      x1="0"
+                                      y1="0"
+                                      x2="0"
+                                      y2="1"
+                                    >
+                                      <stop
+                                        offset="0%"
+                                        stopColor={toHsla(
+                                          standardColor.gradient1,
+                                          0.85,
+                                        )}
+                                      />
+                                      <stop
+                                        offset="100%"
+                                        stopColor={toHsla(
+                                          standardColor.gradient2,
+                                          0.92,
+                                        )}
+                                      />
+                                    </linearGradient>
+                                  );
+                                })}
+                              </defs>
+                              <Pie
+                                data={slideCategoryPieData}
+                                dataKey="total"
+                                nameKey="nome"
+                                innerRadius="35%"
+                                outerRadius="80%"
+                                paddingAngle={8}
+                                cornerRadius={16}
+                                stroke="none"
+                                label={renderCategoryPieIconLabel}
+                                labelLine={false}
+                              >
+                                {slideCategoryPieData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <Cell
+                                      key={item.id}
+                                      fill={`url(#slideGrad-${item.id})`}
+                                      stroke={standardColor.border}
+                                      strokeWidth={1.5}
+                                    />
+                                  );
+                                })}
+                              </Pie>
+                              <Tooltip
+                                content={renderCategoryPieTooltip}
+                                cursor={false}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+
+                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                        {categoryComparisonData.length === 0 ? (
+                          <p className="text-xs text-[#7f84a8] text-center pt-8">
+                            Sem histórico para comparar com{" "}
+                            {previousMonthShortLabel}
+                          </p>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={categoryComparisonData}
+                              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+                              barGap={2}
                             >
-                              {categoryComparisonData.map((item) => {
-                                const standardColor = getCategoryStandardColor(
-                                  item.cor,
-                                );
-                                return (
-                                  <Cell
-                                    key={`previous-bar-${item.id}`}
-                                    fill={toHsla(standardColor.gradient2, 0.95)}
-                                    stroke={standardColor.border}
-                                    strokeWidth={1}
-                                  />
-                                );
-                              })}
-                            </Bar>
-                            <Bar
-                              dataKey="currentTotal"
-                              name={`Mês atual (${currentMonthShortLabel})`}
-                              radius={[4, 4, 0, 0]}
-                            >
-                              {categoryComparisonData.map((item) => {
-                                const standardColor = getCategoryStandardColor(
-                                  item.cor,
-                                );
-                                return (
-                                  <Cell
-                                    key={`current-bar-${item.id}`}
-                                    fill={toHsla(standardColor.gradient1, 0.95)}
-                                    stroke={standardColor.border}
-                                    strokeWidth={1}
-                                  />
-                                );
-                              })}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
+                              <CartesianGrid
+                                strokeDasharray="4 10"
+                                vertical={false}
+                                stroke="#2a2f52"
+                              />
+                              <XAxis
+                                dataKey="shortName"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 9, fill: "#7f84a8" }}
+                              />
+                              <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={formatChartAxisTick}
+                                tick={{ fontSize: 9, fill: "#7f84a8" }}
+                                width={26}
+                              />
+                              <Tooltip
+                                content={renderCategoryComparisonTooltip}
+                                cursor={{
+                                  fill: "rgba(185, 191, 216, 0.12)",
+                                }}
+                              />
+                              <Bar
+                                dataKey="previousTotal"
+                                name={`Mês anterior (${previousMonthShortLabel})`}
+                                radius={[4, 4, 0, 0]}
+                              >
+                                {categoryComparisonData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <Cell
+                                      key={`previous-bar-${item.id}`}
+                                      fill={toHsla(
+                                        standardColor.gradient2,
+                                        0.95,
+                                      )}
+                                      stroke={standardColor.border}
+                                      strokeWidth={1}
+                                    />
+                                  );
+                                })}
+                              </Bar>
+                              <Bar
+                                dataKey="currentTotal"
+                                name={`Mês atual (${currentMonthShortLabel})`}
+                                radius={[4, 4, 0, 0]}
+                              >
+                                {categoryComparisonData.map((item) => {
+                                  const standardColor =
+                                    getCategoryStandardColor(item.cor);
+                                  return (
+                                    <Cell
+                                      key={`current-bar-${item.id}`}
+                                      fill={toHsla(
+                                        standardColor.gradient1,
+                                        0.95,
+                                      )}
+                                      stroke={standardColor.border}
+                                      strokeWidth={1}
+                                    />
+                                  );
+                                })}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </section>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       ) : (
         <div
           className="grid h-full"
           style={{
-            rowGap: `${desktopGap}px`,
+            rowGap: `${dashboardGap}px`,
             gridTemplateRows: `${hSecao1}px ${hSecao2}px ${hSecao3}px`,
           }}
         >
-          <section ref={summaryRef} className="grid grid-cols-3 gap-3 min-h-0">
+          <section
+            ref={summaryRef}
+            className="grid grid-cols-3 min-h-0"
+            style={{ columnGap: `${sectionGap}px` }}
+          >
             <article
               className="col-span-2 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
               onClick={() => setActiveSlide("charts")}
@@ -2463,7 +2587,7 @@ const DashboardDesktopRedesignView = ({
                         axisLine={false}
                         tickLine={false}
                         domain={[0, 10000]}
-                        ticks={CHART_Y_TICKS}
+                        ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
                         tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
                         width={chartYAxisWidth}
@@ -2705,7 +2829,11 @@ const DashboardDesktopRedesignView = ({
             </article>
           </section>
 
-          <section ref={planningRef} className="grid grid-cols-3 gap-3 min-h-0">
+          <section
+            ref={planningRef}
+            className="grid grid-cols-3 min-h-0"
+            style={{ columnGap: `${sectionGap}px` }}
+          >
             <article className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
               <div className="sticky top-0 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[#b9bfd8]">
@@ -2760,12 +2888,20 @@ const DashboardDesktopRedesignView = ({
               </div>
             </article>
 
-            <div className="col-span-2 grid grid-rows-[auto_auto] gap-3 min-h-0">
+            <div
+              className="col-span-2 grid grid-rows-[auto_auto] min-h-0"
+              style={{ rowGap: `${sectionGap}px` }}
+            >
               <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div
+                  className="grid grid-cols-3"
+                  style={{ columnGap: `${sectionGap}px` }}
+                >
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      <span
+                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                      >
                         Receitas
                       </span>
                       <span
@@ -2774,7 +2910,9 @@ const DashboardDesktopRedesignView = ({
                         {formatVariationPercent(monthComparison.incomePercent)}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p
+                      className={`text-xs text-slate-500 mt-1 ${kpiHelperClampClassName}`}
+                    >
                       Você recebeu{" "}
                       <span
                         className={`font-semibold ${receitasDiffColorClassName}`}
@@ -2783,13 +2921,17 @@ const DashboardDesktopRedesignView = ({
                       </span>{" "}
                       {receitasDiffDirection} este mês
                     </p>
-                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    <p
+                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                    >
                       {formatCurrency(totalIncome)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      <span
+                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                      >
                         Despesas
                       </span>
                       <span
@@ -2798,7 +2940,9 @@ const DashboardDesktopRedesignView = ({
                         {formatVariationPercent(monthComparison.expensePercent)}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p
+                      className={`text-xs text-slate-500 mt-1 ${kpiHelperClampClassName}`}
+                    >
                       Você gastou{" "}
                       <span
                         className={`font-semibold ${despesasDiffColorClassName}`}
@@ -2807,13 +2951,17 @@ const DashboardDesktopRedesignView = ({
                       </span>{" "}
                       {despesasDiffDirection} este mês
                     </p>
-                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    <p
+                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                    >
                       {formatCurrency(totalExpense)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      <span
+                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                      >
                         Saldo total
                       </span>
                       <span
@@ -2822,7 +2970,9 @@ const DashboardDesktopRedesignView = ({
                         {formatVariationPercent(monthComparison.balancePercent)}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p
+                      className={`text-xs text-slate-500 mt-1 ${kpiHelperClampClassName}`}
+                    >
                       Seu saldo ficou{" "}
                       <span
                         className={`font-semibold ${saldoDiffColorClassName}`}
@@ -2831,7 +2981,9 @@ const DashboardDesktopRedesignView = ({
                       </span>{" "}
                       {saldoDiffDirection} este mês
                     </p>
-                    <p className="text-2xl font-bold text-[#ABA8C2] mt-1">
+                    <p
+                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                    >
                       {formatCurrency(monthComparison.currentBalance)}
                     </p>
                   </div>
@@ -2854,10 +3006,14 @@ const DashboardDesktopRedesignView = ({
                 <div className="rounded-lg p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <div className="text-[24px] font-light text-[#b9bfd8] leading-none">
+                      <div
+                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                      >
                         Investimentos
                       </div>
-                      <p className="text-2xl font-bold text-slate-800 leading-none">
+                      <p
+                        className={`${kpiValueClassName} font-bold text-slate-800 leading-none`}
+                      >
                         {formatCurrency(totalInvestmentsBalance)}
                       </p>
                       <span
@@ -2869,7 +3025,9 @@ const DashboardDesktopRedesignView = ({
                       </span>
                     </div>
 
-                    <div className="text-right text-xs text-slate-500">
+                    <div
+                      className={`text-right text-xs text-slate-500 ${kpiHelperClampClassName}`}
+                    >
                       {monthComparison.currentInvestment <= 0 ? (
                         <span
                           className="font-semibold"
@@ -2899,11 +3057,16 @@ const DashboardDesktopRedesignView = ({
 
           <section
             ref={reviewRef}
-            className="grid grid-cols-2 gap-3 min-h-0 self-start"
+            className="grid grid-cols-2 min-h-0 self-start"
+            style={{ columnGap: `${sectionGap}px` }}
           >
             <div className="min-h-0 order-2">
               <article
-                className="bg-white border border-slate-200 rounded-xl shadow-sm h-full min-h-[260px] max-h-[345px] overflow-hidden flex flex-col p-4 cursor-pointer"
+                className="bg-white border border-slate-200 rounded-xl shadow-sm h-full overflow-hidden flex flex-col p-4 cursor-pointer"
+                style={{
+                  minHeight: `${sectionThreeCardMinHeight}px`,
+                  maxHeight: `${sectionThreeMaxHeight}px`,
+                }}
                 onClick={() => setActiveSlide("charts")}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -3053,7 +3216,10 @@ const DashboardDesktopRedesignView = ({
               </article>
             </div>
 
-            <article className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 max-h-[345px] overflow-hidden order-1 flex flex-col p-4">
+            <article
+              className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4"
+              style={{ maxHeight: `${sectionThreeMaxHeight}px` }}
+            >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
                 <h3 className="text-sm font-semibold text-[#b9bfd8]">
                   Movimentações

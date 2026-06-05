@@ -51,6 +51,30 @@
   --color-laranja-gradient-2: hsl(20, 28%, 9%);
   --color-laranja-border: hsl(20, 23%, 22%);
   --color-laranja-text: hsl(20, 23%, 38%);
+
+  /* Desktop Density Tokens (1366x768 base) */
+  --dashboard-shell-padding: 10px;
+  --dashboard-shell-gap: 10px;
+  --dashboard-panel-padding: 10px;
+  --dashboard-slide-safe-area: 48px;
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --dashboard-shell-padding: 12px;
+    --dashboard-shell-gap: 12px;
+    --dashboard-panel-padding: 12px;
+    --dashboard-slide-safe-area: 64px;
+  }
+}
+
+@media (min-width: 1900px) {
+  :root {
+    --dashboard-shell-padding: 14px;
+    --dashboard-shell-gap: 14px;
+    --dashboard-panel-padding: 14px;
+    --dashboard-slide-safe-area: 88px;
+  }
 }
 
 html,
@@ -67,8 +91,8 @@ body {
 
 .uiux-shell {
   background: var(--uiux-bg-a);
-  padding: 14px;
-  gap: 14px;
+  padding: var(--dashboard-shell-padding);
+  gap: var(--dashboard-shell-gap);
 }
 
 .uiux-sidebar {
@@ -122,7 +146,13 @@ body {
     rgba(16, 14, 28, 0.95) 100%
   );
   box-shadow: 0 0 36px rgba(32, 28, 54, 0.3);
-  padding: 14px;
+  padding: var(--dashboard-panel-padding);
+}
+
+.dashboard-kpi-helper-clamp {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-desktop-redesign article {
