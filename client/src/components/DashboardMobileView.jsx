@@ -22,7 +22,11 @@ import {
   PieChart as RechartsPieChart,
 } from "recharts";
 
-import { API_CARTAO_URL, extractApiErrorMessage } from "../services/api";
+import {
+  API_CARTAO_URL,
+  API_URL,
+  extractApiErrorMessage,
+} from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
 
@@ -67,6 +71,7 @@ const DashboardMobileView = ({
   const [cardSummaries, setCardSummaries] = useState([]);
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState(null);
   const [isSimulatorExpanded, setIsSimulatorExpanded] = useState(false);
@@ -388,6 +393,51 @@ const DashboardMobileView = ({
     year: "numeric",
   }).format(new Date(selectedAno, selectedMes - 1, 1));
 
+  const handleOpenNewTransaction = () => {
+    setEditingItem(null);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditTransaction = (transaction) => {
+    setEditingItem(transaction);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTransaction = async (transaction) => {
+    const transactionId = transaction?.id;
+    if (!transactionId) {
+      return;
+    }
+
+    const title = transaction.name || transaction.titulo || "esta transação";
+    if (!window.confirm(`Deseja excluir ${title}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/${transactionId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível excluir a transação.",
+        );
+        alert(message);
+        return;
+      }
+
+      await fetchData?.({ silent: true });
+    } catch (error) {
+      console.error("Erro ao excluir transação:", error);
+      alert("Erro ao excluir transação. Verifique o console.");
+    }
+  };
+
   const screenMinHeight = `calc(100dvh - ${headerHeight}px - ${bottomNavHeight}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`;
 
   const renderHomeScreen = () => (
@@ -557,31 +607,50 @@ const DashboardMobileView = ({
               return (
                 <article
                   key={item.id}
-                  className="flex items-center justify-between rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
+                  className="rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#8fa2cf]">
-                      {isEntrada ? (
-                        <ArrowUpRight size={14} />
-                      ) : (
-                        <ArrowDownRight size={14} />
-                      )}
-                    </span>
-                    <div>
-                      <p className="m-0 text-xs text-[#d5ddf8]">
-                        {item.name || item.titulo || "Movimentação"}
-                      </p>
-                      <p className="m-0 text-[11px] text-[#8f97b8]">
-                        {formatDateLabel(item.date || item.data)}
-                      </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#8fa2cf]">
+                        {isEntrada ? (
+                          <ArrowUpRight size={14} />
+                        ) : (
+                          <ArrowDownRight size={14} />
+                        )}
+                      </span>
+                      <div>
+                        <p className="m-0 text-xs text-[#d5ddf8]">
+                          {item.name || item.titulo || "Movimentação"}
+                        </p>
+                        <p className="m-0 text-[11px] text-[#8f97b8]">
+                          {formatDateLabel(item.date || item.data)}
+                        </p>
+                      </div>
                     </div>
+                    <p
+                      className={`m-0 text-xs font-semibold whitespace-nowrap ${isEntrada ? "text-emerald-300" : "text-rose-300"}`}
+                    >
+                      {isEntrada ? "+" : "-"}
+                      {formatCurrency(item.value || item.valor || 0)}
+                    </p>
                   </div>
-                  <p
-                    className={`m-0 text-xs font-semibold ${isEntrada ? "text-emerald-300" : "text-rose-300"}`}
-                  >
-                    {isEntrada ? "+" : "-"}
-                    {formatCurrency(item.value || item.valor || 0)}
-                  </p>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditTransaction(item)}
+                      className="h-11 rounded-lg border border-[#35517a] text-[#a5c4ff] text-xs font-semibold"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTransaction(item)}
+                      className="h-11 rounded-lg border border-[#6b3040] text-[#f5a3b2] text-xs font-semibold"
+                    >
+                      Excluir
+                    </button>
+                  </div>
                 </article>
               );
             })
@@ -978,10 +1047,7 @@ const DashboardMobileView = ({
             type="button"
             className="h-11 rounded-xl text-white bg-[#1f8b63] border border-[#2aa174] flex items-center justify-center"
             aria-label="Nova movimentação"
-            onClick={() => {
-              setOpenCardPurchaseMode(false);
-              setIsModalOpen(true);
-            }}
+            onClick={handleOpenNewTransaction}
           >
             <Plus size={18} />
           </button>
@@ -1022,16 +1088,19 @@ const DashboardMobileView = ({
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
+          setEditingItem(null);
           setOpenCardPurchaseMode(false);
         }}
         onSuccess={async () => {
           await fetchData?.({ silent: true });
           await loadCardSummaries();
           setIsModalOpen(false);
+          setEditingItem(null);
           setOpenCardPurchaseMode(false);
         }}
         categorias={categorias}
         veiculos={veiculos}
+        editingItem={editingItem}
         initialCardPurchaseMode={openCardPurchaseMode}
       />
     </div>
