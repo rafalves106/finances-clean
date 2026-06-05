@@ -3,17 +3,28 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
   CreditCard,
   Home,
   PieChart,
   Plus,
 } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  PieChart as RechartsPieChart,
+} from "recharts";
 
 import { API_CARTAO_URL, extractApiErrorMessage } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
-
-const MOBILE_SCREENS = ["home", "charts", "cards", "investments"];
 
 const sortByDate = (list) =>
   [...list].sort(
@@ -27,6 +38,8 @@ const formatDateLabel = (dateInput) => {
     month: "2-digit",
   });
 };
+
+const CHART_COLORS = ["#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
 const DashboardMobileView = ({
   totalInvestmentsBalance = 0,
@@ -48,10 +61,18 @@ const DashboardMobileView = ({
   const [cardSummaries, setCardSummaries] = useState([]);
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState(null);
+  const [isSimulatorExpanded, setIsSimulatorExpanded] = useState(false);
+  const [simulatorForm, setSimulatorForm] = useState({
+    aporteMensal: "500",
+    taxaAnual: "12",
+    periodoAnos: "10",
+  });
 
   const mobileTier =
     viewportWidth >= 412 ? "lg" : viewportWidth >= 390 ? "md" : "sm";
-  const mobileTokens =
+  const tokens =
     mobileTier === "lg"
       ? {
           shellPadding: 14,
@@ -60,7 +81,8 @@ const DashboardMobileView = ({
           cardRadius: 18,
           bottomNavHeight: 72,
           headerHeight: 60,
-          kpiHelperSize: "text-xs",
+          chartMinHeight: 240,
+          kpiHelperClassName: "text-xs",
         }
       : mobileTier === "md"
         ? {
@@ -70,7 +92,8 @@ const DashboardMobileView = ({
             cardRadius: 16,
             bottomNavHeight: 68,
             headerHeight: 58,
-            kpiHelperSize: "text-xs",
+            chartMinHeight: 210,
+            kpiHelperClassName: "text-xs",
           }
         : {
             shellPadding: 10,
@@ -79,7 +102,8 @@ const DashboardMobileView = ({
             cardRadius: 14,
             bottomNavHeight: 64,
             headerHeight: 56,
-            kpiHelperSize: "text-[11px]",
+            chartMinHeight: 180,
+            kpiHelperClassName: "text-[11px]",
           };
 
   const {
@@ -89,8 +113,9 @@ const DashboardMobileView = ({
     cardRadius,
     bottomNavHeight,
     headerHeight,
-    kpiHelperSize,
-  } = mobileTokens;
+    chartMinHeight,
+    kpiHelperClassName,
+  } = tokens;
 
   const loadCardSummaries = useCallback(async () => {
     try {
@@ -238,6 +263,96 @@ const DashboardMobileView = ({
     [allTransactions],
   );
 
+  const chartSeriesData = useMemo(() => {
+    const keyToData = new Map();
+
+    [...incomes, ...expenses].forEach((item) => {
+      const rawDate = item.date || item.data;
+      if (!rawDate) {
+        return;
+      }
+
+      const date = new Date(rawDate);
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
+
+      const day = String(date.getDate()).padStart(2, "0");
+      const current = keyToData.get(day) || {
+        day,
+        entrada: 0,
+        saida: 0,
+      };
+
+      const value = Number(item.value || item.valor || 0);
+      const itemType = item.type || item.tipo;
+
+      if (itemType === "Entrada") {
+        current.entrada += value;
+      } else {
+        current.saida += value;
+      }
+
+      keyToData.set(day, current);
+    });
+
+    const sorted = Array.from(keyToData.values()).sort(
+      (a, b) => Number(a.day) - Number(b.day),
+    );
+
+    return sorted.map((item, index) => {
+      const saldo =
+        saldoAnterior +
+        sorted
+          .slice(0, index + 1)
+          .reduce((acc, row) => acc + row.entrada - row.saida, 0);
+
+      return {
+        ...item,
+        saldo,
+      };
+    });
+  }, [expenses, incomes, saldoAnterior]);
+
+  const categorySpendChartData = useMemo(() => {
+    const byCategory = new Map();
+
+    expenses.forEach((item) => {
+      const key = String(item.categoriaId || item.categoria?.id || "sem");
+      const current = byCategory.get(key) || {
+        id: key,
+        nome: item.categoria?.nome || "Sem categoria",
+        total: 0,
+      };
+
+      current.total += Number(item.value || 0);
+      byCategory.set(key, current);
+    });
+
+    return Array.from(byCategory.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [expenses]);
+
+  const simulatorResult = useMemo(() => {
+    const aporte = Number(simulatorForm.aporteMensal || 0);
+    const taxa = Number(simulatorForm.taxaAnual || 0) / 100;
+    const anos = Number(simulatorForm.periodoAnos || 0);
+
+    if (aporte <= 0 || anos <= 0) {
+      return 0;
+    }
+
+    const totalMeses = anos * 12;
+    const taxaMensal = taxa / 12;
+
+    if (taxaMensal === 0) {
+      return aporte * totalMeses;
+    }
+
+    return aporte * ((Math.pow(1 + taxaMensal, totalMeses) - 1) / taxaMensal);
+  }, [simulatorForm]);
+
   const activeCardSummary = cardSummaries[0] || null;
   const activeCardName = activeCardSummary?.cartao?.nome || "Sem cartão ativo";
   const activeCardLimit = Number(
@@ -281,7 +396,7 @@ const DashboardMobileView = ({
         <p className="text-[26px] font-semibold text-[#eef3ff] m-0 mt-1">
           {formatCurrency(finalBalance)}
         </p>
-        <p className={`m-0 mt-1 text-[#aeb9db] ${kpiHelperSize}`}>
+        <p className={`m-0 mt-1 text-[#aeb9db] ${kpiHelperClassName}`}>
           Receitas {formatCurrency(totalIncome)} · Despesas {formatCurrency(totalExpenses)}
         </p>
       </section>
@@ -325,7 +440,7 @@ const DashboardMobileView = ({
       >
         <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Cartão ativo</p>
         <p className="m-0 mt-1 text-sm text-[#cdd6f4]">{activeCardName}</p>
-        <p className={`m-0 mt-1 text-[#98a4c6] ${kpiHelperSize}`}>
+        <p className={`m-0 mt-1 text-[#98a4c6] ${kpiHelperClassName}`}>
           Limite {formatCurrency(activeCardLimit)} · Utilizado {formatCurrency(activeCardUsed)}
         </p>
         {cardSummaryError ? (
@@ -340,7 +455,7 @@ const DashboardMobileView = ({
         <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Próximos itens</p>
         <div className="mt-2 space-y-2">
           {upcomingItems.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperSize}`}>
+            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
               Sem próximas movimentações.
             </p>
           ) : (
@@ -380,7 +495,7 @@ const DashboardMobileView = ({
         <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Categorias</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {categoriesTop.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperSize}`}>
+            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
               Sem categorias no período.
             </p>
           ) : (
@@ -409,7 +524,7 @@ const DashboardMobileView = ({
         <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Movimentações</p>
         <div className="mt-2 space-y-2">
           {latestTransactions.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperSize}`}>
+            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
               Sem movimentações cadastradas.
             </p>
           ) : (
@@ -449,6 +564,289 @@ const DashboardMobileView = ({
     </div>
   );
 
+  const renderChartsScreen = () => (
+    <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
+      <section
+        className="border border-[#2a3554] bg-[#101a31]"
+        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Fluxo do mês</h2>
+          <p className="m-0 text-[11px] text-[#8f97b8]">Toque para leitura</p>
+        </div>
+        <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
+          {chartSeriesData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-[#8f97b8]">
+              Sem dados para o período.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartSeriesData}>
+                <XAxis dataKey="day" stroke="#8f97b8" fontSize={10} />
+                <YAxis stroke="#8f97b8" fontSize={10} width={36} />
+                <Tooltip
+                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  contentStyle={{
+                    background: "#15172a",
+                    border: "1px solid #32375e",
+                    borderRadius: "10px",
+                    color: "#dbe3ff",
+                    fontSize: "12px",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="entrada"
+                  stroke="#00b884"
+                  fill="rgba(0,184,132,0.32)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="saida"
+                  stroke="#ff5c77"
+                  fill="rgba(255,92,119,0.26)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      <section
+        className="border border-[#2a3554] bg-[#101a31]"
+        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
+            Despesas por categoria
+          </h2>
+          <p className="m-0 text-[11px] text-[#8f97b8]">Toque para leitura</p>
+        </div>
+        <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
+          {categorySpendChartData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-[#8f97b8]">
+              Sem dados para o período.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsPieChart>
+                <Pie
+                  data={categorySpendChartData}
+                  dataKey="total"
+                  nameKey="nome"
+                  innerRadius={38}
+                  outerRadius={72}
+                  paddingAngle={3}
+                >
+                  {categorySpendChartData.map((entry, index) => (
+                    <Cell key={entry.id} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  contentStyle={{
+                    background: "#15172a",
+                    border: "1px solid #32375e",
+                    borderRadius: "10px",
+                    color: "#dbe3ff",
+                    fontSize: "12px",
+                  }}
+                />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderCardsScreen = () => (
+    <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
+      <section
+        className="border border-[#2a3554] bg-[#101a31]"
+        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Cartões</h2>
+          <p className="m-0 text-[11px] text-[#8f97b8]">Carrossel horizontal</p>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {(cardSummaries.length > 0 ? cardSummaries : [null]).map((summary, index) => {
+            const cardId = String(summary?.cartao?.id || `empty-${index}`);
+            const cardName = summary?.cartao?.nome || "Sem cartão";
+            const cardLimitTotal = Number(
+              summary?.limite?.limiteTotal || summary?.cartao?.limiteTotal || 0,
+            );
+            const cardLimitUsed = Number(
+              summary?.limite?.limiteUtilizado ||
+                summary?.limite?.utilizado ||
+                summary?.limite?.Utilizado ||
+                0,
+            );
+
+            return (
+              <article
+                key={cardId}
+                className="min-w-[280px] max-w-[300px] rounded-2xl border border-[#304161] bg-[linear-gradient(145deg,rgba(28,38,70,0.95)_0%,rgba(17,26,49,0.94)_70%,rgba(14,21,42,0.98)_100%)] p-3"
+              >
+                <p className="m-0 text-xs text-[#dbe3ff] font-semibold">{cardName}</p>
+                <p className="m-0 mt-1 text-[11px] text-[#9aa8cc]">
+                  Limite {formatCurrency(cardLimitTotal)}
+                </p>
+                <p className="m-0 mt-0.5 text-[11px] text-[#9aa8cc]">
+                  Utilizado {formatCurrency(cardLimitUsed)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedCardId((current) =>
+                      current === cardId ? null : cardId,
+                    )
+                  }
+                  className="mt-3 h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-medium flex items-center justify-center gap-1"
+                >
+                  Ações
+                  {expandedCardId === cardId ? (
+                    <ChevronUp size={14} />
+                  ) : (
+                    <ChevronDown size={14} />
+                  )}
+                </button>
+                {expandedCardId === cardId ? (
+                  <div className="mt-2 space-y-2 rounded-xl border border-[#32486d] bg-[#0f1a31] p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenCardPurchaseMode(true);
+                        setIsModalOpen(true);
+                      }}
+                      className="h-11 w-full rounded-lg border border-[#356150] text-[#8fe7c4] text-xs font-semibold"
+                    >
+                      Nova compra no cartão
+                    </button>
+                    <p className="m-0 text-[11px] text-[#8f97b8]">
+                      A compra será vinculada ao cartão ativo no lançamento.
+                    </p>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderInvestmentsScreen = () => (
+    <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
+      <section
+        className="border border-[#2a3554] bg-[#101a31]"
+        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      >
+        <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Investimentos ativos</h2>
+        <div className="mt-2 space-y-2">
+          {investments.length === 0 ? (
+            <p className="m-0 text-xs text-[#8f97b8]">Nenhum investimento ativo.</p>
+          ) : (
+            investments.map((investment) => (
+              <article
+                key={investment.id}
+                className="rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
+              >
+                <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+                  {investment.nome}
+                </p>
+                <p className="m-0 mt-1 text-[11px] text-[#94a3cb]">
+                  Saldo {formatCurrency(Number(investment.saldoAtual || 0))}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section
+        className="border border-[#2a3554] bg-[#101a31]"
+        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      >
+        <button
+          type="button"
+          onClick={() => setIsSimulatorExpanded((value) => !value)}
+          className="h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-semibold flex items-center justify-between px-3"
+        >
+          Simulador de patrimônio
+          {isSimulatorExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {isSimulatorExpanded ? (
+          <div className="mt-3 space-y-2">
+            <label className="block text-xs text-[#a4b1d6]">
+              Aporte mensal
+              <input
+                type="number"
+                value={simulatorForm.aporteMensal}
+                onChange={(event) =>
+                  setSimulatorForm((current) => ({
+                    ...current,
+                    aporteMensal: event.target.value,
+                  }))
+                }
+                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
+              />
+            </label>
+            <label className="block text-xs text-[#a4b1d6]">
+              Taxa anual (%)
+              <input
+                type="number"
+                value={simulatorForm.taxaAnual}
+                onChange={(event) =>
+                  setSimulatorForm((current) => ({
+                    ...current,
+                    taxaAnual: event.target.value,
+                  }))
+                }
+                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
+              />
+            </label>
+            <label className="block text-xs text-[#a4b1d6]">
+              Período (anos)
+              <input
+                type="number"
+                value={simulatorForm.periodoAnos}
+                onChange={(event) =>
+                  setSimulatorForm((current) => ({
+                    ...current,
+                    periodoAnos: event.target.value,
+                  }))
+                }
+                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
+              />
+            </label>
+            <p className="m-0 rounded-xl border border-[#2f4566] bg-[#111c34] px-3 py-2 text-sm font-semibold text-[#8fe7c4]">
+              Resultado estimado: {formatCurrency(simulatorResult)}
+            </p>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+
+  const renderActiveScreen = () => {
+    if (activeScreen === "home") {
+      return renderHomeScreen();
+    }
+
+    if (activeScreen === "charts") {
+      return renderChartsScreen();
+    }
+
+    if (activeScreen === "cards") {
+      return renderCardsScreen();
+    }
+
+    return renderInvestmentsScreen();
+  };
+
   return (
     <div className="min-h-[100dvh] flex flex-col">
       <header
@@ -485,21 +883,9 @@ const DashboardMobileView = ({
           paddingBottom: `${shellPadding + bottomNavHeight + 10}px`,
         }}
       >
-        {activeScreen === "home" ? (
-          renderHomeScreen()
-        ) : (
-          <section
-            className="border border-[#2a3554] bg-[#101a31]"
-            style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
-          >
-            <h2 className="m-0 text-sm font-semibold text-[#dbe3ff] capitalize">
-              {activeScreen}
-            </h2>
-            <p className="m-0 mt-2 text-xs text-[#8f97b8]">
-              Contrato mobile ativo: {MOBILE_SCREENS.join(" | ")}.
-            </p>
-          </section>
-        )}
+        <div className="transition-opacity duration-200 ease-out opacity-100">
+          {renderActiveScreen()}
+        </div>
       </main>
 
       <nav
@@ -535,7 +921,10 @@ const DashboardMobileView = ({
             type="button"
             className="h-11 rounded-xl text-white bg-[#1f8b63] border border-[#2aa174] flex items-center justify-center"
             aria-label="Nova movimentação"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setOpenCardPurchaseMode(false);
+              setIsModalOpen(true);
+            }}
           >
             <Plus size={18} />
           </button>
@@ -568,13 +957,19 @@ const DashboardMobileView = ({
 
       <TransactionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setOpenCardPurchaseMode(false);
+        }}
         onSuccess={async () => {
           await fetchData?.({ silent: true });
+          await loadCardSummaries();
           setIsModalOpen(false);
+          setOpenCardPurchaseMode(false);
         }}
         categorias={categorias}
         veiculos={veiculos}
+        initialCardPurchaseMode={openCardPurchaseMode}
       />
     </div>
   );
