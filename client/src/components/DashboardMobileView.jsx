@@ -403,14 +403,18 @@ const DashboardMobileView = ({
           {formatCurrency(finalBalance)}
         </p>
         <p className={`m-0 mt-1 text-[#aeb9db] ${kpiHelperClassName}`}>
-          Receitas {formatCurrency(totalIncome)} · Despesas {formatCurrency(totalExpenses)}
+          Receitas {formatCurrency(totalIncome)} · Despesas{" "}
+          {formatCurrency(totalExpenses)}
         </p>
       </section>
 
       <section className="grid grid-cols-3 gap-2">
         <article
           className="border border-[#2f4566] bg-[#101a31]"
-          style={{ borderRadius: `${cardRadius - 2}px`, padding: `${cardPadding - 2}px` }}
+          style={{
+            borderRadius: `${cardRadius - 2}px`,
+            padding: `${cardPadding - 2}px`,
+          }}
         >
           <p className="m-0 text-[11px] text-[#8f97b8]">Receitas</p>
           <p className="m-0 mt-1 text-sm font-semibold text-emerald-300">
@@ -419,7 +423,10 @@ const DashboardMobileView = ({
         </article>
         <article
           className="border border-[#5a2f3f] bg-[#1f1524]"
-          style={{ borderRadius: `${cardRadius - 2}px`, padding: `${cardPadding - 2}px` }}
+          style={{
+            borderRadius: `${cardRadius - 2}px`,
+            padding: `${cardPadding - 2}px`,
+          }}
         >
           <p className="m-0 text-[11px] text-[#c3a2ad]">Despesas</p>
           <p className="m-0 mt-1 text-sm font-semibold text-rose-300">
@@ -428,7 +435,10 @@ const DashboardMobileView = ({
         </article>
         <article
           className="border border-[#334b68] bg-[#111a2f]"
-          style={{ borderRadius: `${cardRadius - 2}px`, padding: `${cardPadding - 2}px` }}
+          style={{
+            borderRadius: `${cardRadius - 2}px`,
+            padding: `${cardPadding - 2}px`,
+          }}
         >
           <p className="m-0 text-[11px] text-[#9fb1cb]">Investimentos</p>
           <p className="m-0 mt-1 text-sm font-semibold text-sky-300">
@@ -447,10 +457,13 @@ const DashboardMobileView = ({
         <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Cartão ativo</p>
         <p className="m-0 mt-1 text-sm text-[#cdd6f4]">{activeCardName}</p>
         <p className={`m-0 mt-1 text-[#98a4c6] ${kpiHelperClassName}`}>
-          Limite {formatCurrency(activeCardLimit)} · Utilizado {formatCurrency(activeCardUsed)}
+          Limite {formatCurrency(activeCardLimit)} · Utilizado{" "}
+          {formatCurrency(activeCardUsed)}
         </p>
         {cardSummaryError ? (
-          <p className="m-0 mt-1 text-[11px] text-rose-300">{cardSummaryError}</p>
+          <p className="m-0 mt-1 text-[11px] text-rose-300">
+            {cardSummaryError}
+          </p>
         ) : null}
       </section>
 
@@ -458,7 +471,9 @@ const DashboardMobileView = ({
         className="border border-[#2a3554] bg-[#101a31]"
         style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Próximos itens</p>
+        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+          Próximos itens
+        </p>
         <div className="mt-2 space-y-2">
           {upcomingItems.length === 0 ? (
             <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
@@ -527,7 +542,9 @@ const DashboardMobileView = ({
         className="border border-[#2a3554] bg-[#101a31]"
         style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Movimentações</p>
+        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+          Movimentações
+        </p>
         <div className="mt-2 space-y-2">
           {latestTransactions.length === 0 ? (
             <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
@@ -544,7 +561,11 @@ const DashboardMobileView = ({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[#8fa2cf]">
-                      {isEntrada ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                      {isEntrada ? (
+                        <ArrowUpRight size={14} />
+                      ) : (
+                        <ArrowDownRight size={14} />
+                      )}
                     </span>
                     <div>
                       <p className="m-0 text-xs text-[#d5ddf8]">
@@ -577,7 +598,9 @@ const DashboardMobileView = ({
         style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Fluxo do mês</h2>
+          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
+            Fluxo do mês
+          </h2>
           <p className="m-0 text-[11px] text-[#8f97b8]">Toque para leitura</p>
         </div>
         <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
@@ -645,7 +668,10 @@ const DashboardMobileView = ({
                   paddingAngle={3}
                 >
                   {categorySpendChartData.map((entry, index) => (
-                    <Cell key={entry.id} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    <Cell
+                      key={entry.id}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -677,67 +703,73 @@ const DashboardMobileView = ({
           <p className="m-0 text-[11px] text-[#8f97b8]">Carrossel horizontal</p>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {(cardSummaries.length > 0 ? cardSummaries : [null]).map((summary, index) => {
-            const cardId = String(summary?.cartao?.id || `empty-${index}`);
-            const cardName = summary?.cartao?.nome || "Sem cartão";
-            const cardLimitTotal = Number(
-              summary?.limite?.limiteTotal || summary?.cartao?.limiteTotal || 0,
-            );
-            const cardLimitUsed = Number(
-              summary?.limite?.limiteUtilizado ||
-                summary?.limite?.utilizado ||
-                summary?.limite?.Utilizado ||
-                0,
-            );
+          {(cardSummaries.length > 0 ? cardSummaries : [null]).map(
+            (summary, index) => {
+              const cardId = String(summary?.cartao?.id || `empty-${index}`);
+              const cardName = summary?.cartao?.nome || "Sem cartão";
+              const cardLimitTotal = Number(
+                summary?.limite?.limiteTotal ||
+                  summary?.cartao?.limiteTotal ||
+                  0,
+              );
+              const cardLimitUsed = Number(
+                summary?.limite?.limiteUtilizado ||
+                  summary?.limite?.utilizado ||
+                  summary?.limite?.Utilizado ||
+                  0,
+              );
 
-            return (
-              <article
-                key={cardId}
-                className="min-w-[280px] max-w-[300px] rounded-2xl border border-[#304161] bg-[linear-gradient(145deg,rgba(28,38,70,0.95)_0%,rgba(17,26,49,0.94)_70%,rgba(14,21,42,0.98)_100%)] p-3"
-              >
-                <p className="m-0 text-xs text-[#dbe3ff] font-semibold">{cardName}</p>
-                <p className="m-0 mt-1 text-[11px] text-[#9aa8cc]">
-                  Limite {formatCurrency(cardLimitTotal)}
-                </p>
-                <p className="m-0 mt-0.5 text-[11px] text-[#9aa8cc]">
-                  Utilizado {formatCurrency(cardLimitUsed)}
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpandedCardId((current) =>
-                      current === cardId ? null : cardId,
-                    )
-                  }
-                  className="mt-3 h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-medium flex items-center justify-center gap-1"
+              return (
+                <article
+                  key={cardId}
+                  className="min-w-[280px] max-w-[300px] rounded-2xl border border-[#304161] bg-[linear-gradient(145deg,rgba(28,38,70,0.95)_0%,rgba(17,26,49,0.94)_70%,rgba(14,21,42,0.98)_100%)] p-3"
                 >
-                  Ações
+                  <p className="m-0 text-xs text-[#dbe3ff] font-semibold">
+                    {cardName}
+                  </p>
+                  <p className="m-0 mt-1 text-[11px] text-[#9aa8cc]">
+                    Limite {formatCurrency(cardLimitTotal)}
+                  </p>
+                  <p className="m-0 mt-0.5 text-[11px] text-[#9aa8cc]">
+                    Utilizado {formatCurrency(cardLimitUsed)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedCardId((current) =>
+                        current === cardId ? null : cardId,
+                      )
+                    }
+                    className="mt-3 h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-medium flex items-center justify-center gap-1"
+                  >
+                    Ações
+                    {expandedCardId === cardId ? (
+                      <ChevronUp size={14} />
+                    ) : (
+                      <ChevronDown size={14} />
+                    )}
+                  </button>
                   {expandedCardId === cardId ? (
-                    <ChevronUp size={14} />
-                  ) : (
-                    <ChevronDown size={14} />
-                  )}
-                </button>
-                {expandedCardId === cardId ? (
-                  <div className="mt-2 space-y-2 rounded-xl border border-[#32486d] bg-[#0f1a31] p-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenCardPurchaseMode(true);
-                        setIsModalOpen(true);
-                      }}
-                      className="h-11 w-full rounded-lg border border-[#356150] text-[#8fe7c4] text-xs font-semibold"
-                    >
-                      Nova compra no cartão
-                    </button>
-                    <p className="m-0 text-[11px] text-[#8f97b8]">
-                      A compra será vinculada ao cartão ativo no lançamento.
-                    </p>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
+                    <div className="mt-2 space-y-2 rounded-xl border border-[#32486d] bg-[#0f1a31] p-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenCardPurchaseMode(true);
+                          setIsModalOpen(true);
+                        }}
+                        className="h-11 w-full rounded-lg border border-[#356150] text-[#8fe7c4] text-xs font-semibold"
+                      >
+                        Nova compra no cartão
+                      </button>
+                      <p className="m-0 text-[11px] text-[#8f97b8]">
+                        A compra será vinculada ao cartão ativo no lançamento.
+                      </p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            },
+          )}
         </div>
       </section>
     </div>
@@ -749,10 +781,14 @@ const DashboardMobileView = ({
         className="border border-[#2a3554] bg-[#101a31]"
         style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
       >
-        <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Investimentos ativos</h2>
+        <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
+          Investimentos ativos
+        </h2>
         <div className="mt-2 space-y-2">
           {investments.length === 0 ? (
-            <p className="m-0 text-xs text-[#8f97b8]">Nenhum investimento ativo.</p>
+            <p className="m-0 text-xs text-[#8f97b8]">
+              Nenhum investimento ativo.
+            </p>
           ) : (
             investments.map((investment) => (
               <article
@@ -781,7 +817,11 @@ const DashboardMobileView = ({
           className="h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-semibold flex items-center justify-between px-3"
         >
           Simulador de patrimônio
-          {isSimulatorExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {isSimulatorExpanded ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </button>
 
         {isSimulatorExpanded ? (
