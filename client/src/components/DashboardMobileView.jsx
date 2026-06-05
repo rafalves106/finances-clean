@@ -40,6 +40,12 @@ const formatDateLabel = (dateInput) => {
 };
 
 const CHART_COLORS = ["#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
+const MOBILE_SCREEN_LABELS = {
+  home: "Home",
+  charts: "Gráficos",
+  cards: "Cartões",
+  investments: "Investimentos",
+};
 
 const DashboardMobileView = ({
   totalInvestmentsBalance = 0,
@@ -883,6 +889,11 @@ const DashboardMobileView = ({
           paddingBottom: `${shellPadding + bottomNavHeight + 10}px`,
         }}
       >
+        <div className="mb-2 px-1">
+          <p className="m-0 text-[11px] tracking-wide uppercase text-[#8f97b8]">
+            {MOBILE_SCREEN_LABELS[activeScreen]}
+          </p>
+        </div>
         <div className="transition-opacity duration-200 ease-out opacity-100">
           {renderActiveScreen()}
         </div>
@@ -903,7 +914,10 @@ const DashboardMobileView = ({
             aria-label="Home"
             onClick={() => setActiveScreen("home")}
           >
-            <Home size={18} />
+            <span className="flex flex-col items-center leading-none gap-0.5">
+              <Home size={16} />
+              <span className="text-[10px]">Home</span>
+            </span>
           </button>
           <button
             type="button"
@@ -915,7 +929,10 @@ const DashboardMobileView = ({
             aria-label="Gráficos"
             onClick={() => setActiveScreen("charts")}
           >
-            <BarChart3 size={18} />
+            <span className="flex flex-col items-center leading-none gap-0.5">
+              <BarChart3 size={16} />
+              <span className="text-[10px]">Charts</span>
+            </span>
           </button>
           <button
             type="button"
@@ -938,7 +955,10 @@ const DashboardMobileView = ({
             aria-label="Cartões"
             onClick={() => setActiveScreen("cards")}
           >
-            <CreditCard size={18} />
+            <span className="flex flex-col items-center leading-none gap-0.5">
+              <CreditCard size={16} />
+              <span className="text-[10px]">Cards</span>
+            </span>
           </button>
           <button
             type="button"
@@ -950,7 +970,10 @@ const DashboardMobileView = ({
             aria-label="Investimentos"
             onClick={() => setActiveScreen("investments")}
           >
-            <PieChart size={18} />
+            <span className="flex flex-col items-center leading-none gap-0.5">
+              <PieChart size={16} />
+              <span className="text-[10px]">Invest</span>
+            </span>
           </button>
         </div>
       </nav>
