@@ -269,10 +269,7 @@ const DashboardMobileView = ({
       .slice(0, 4);
   }, [expenses]);
 
-  const latestTransactions = useMemo(
-    () => allTransactions.slice(0, 5),
-    [allTransactions],
-  );
+  const listedTransactions = useMemo(() => allTransactions, [allTransactions]);
 
   const chartSeriesData = useMemo(() => {
     const keyToData = new Map();
@@ -596,12 +593,12 @@ const DashboardMobileView = ({
           Movimentações
         </p>
         <div className="mt-2 space-y-2">
-          {latestTransactions.length === 0 ? (
+          {listedTransactions.length === 0 ? (
             <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
               Sem movimentações cadastradas.
             </p>
           ) : (
-            latestTransactions.map((item) => {
+            listedTransactions.map((item) => {
               const itemType = item.type || item.tipo;
               const isEntrada = itemType === "Entrada";
               return (
