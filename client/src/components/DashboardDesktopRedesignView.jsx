@@ -21,7 +21,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { API_CARTAO_URL, extractApiErrorMessage } from "../services/api";
+import {
+  API_CARTAO_URL,
+  API_URL,
+  extractApiErrorMessage,
+} from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
@@ -493,6 +497,8 @@ const DashboardDesktopRedesignView = ({
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("todas");
+  const [slideTransactionSearch, setSlideTransactionSearch] = useState("");
+  const [slideTransactionFilter, setSlideTransactionFilter] = useState("todas");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -1391,6 +1397,40 @@ const DashboardDesktopRedesignView = ({
     [filteredTransactions],
   );
 
+  const slideTransactions = useMemo(() => {
+    const normalized = slideTransactionSearch.trim().toLowerCase();
+
+    return sortByDate(allTransactions)
+      .filter((item) => !item.isSimulated)
+      .filter((item) => {
+        const itemType = item.type || item.tipo;
+        const byType =
+          slideTransactionFilter === "todas" ||
+          (slideTransactionFilter === "entradas" && itemType === "Entrada") ||
+          (slideTransactionFilter === "saidas" && itemType === "Saida");
+
+        if (!byType) {
+          return false;
+        }
+
+        if (!normalized) {
+          return true;
+        }
+
+        const title = String(item.name || item.titulo || "").toLowerCase();
+        const description = String(
+          item.description || item.descricao || "",
+        ).toLowerCase();
+        const category = String(item.categoria?.nome || "").toLowerCase();
+
+        return (
+          title.includes(normalized) ||
+          description.includes(normalized) ||
+          category.includes(normalized)
+        );
+      });
+  }, [allTransactions, slideTransactionFilter, slideTransactionSearch]);
+
   const handleOpenSimulation = () => {
     setIsSimulationModalOpen(true);
   };
@@ -1399,6 +1439,45 @@ const DashboardDesktopRedesignView = ({
     setEditingItem(null);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
+  };
+
+  const handleOpenEditTransaction = (transaction) => {
+    setEditingItem(transaction);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTransaction = async (transaction) => {
+    const transactionId = transaction?.id;
+    if (!transactionId) {
+      return;
+    }
+
+    const title = transaction.name || transaction.titulo || "esta transação";
+    if (!window.confirm(`Deseja excluir ${title}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/${transactionId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível excluir a transação.",
+        );
+        alert(message);
+        return;
+      }
+
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao excluir transação:", error);
+      alert("Erro ao excluir transação. Verifique o console.");
+    }
   };
 
   const handleSimulate = (formData) => {
@@ -1965,6 +2044,161 @@ const DashboardDesktopRedesignView = ({
                 </article>
               );
             })}
+          </section>
+        </div>
+      ) : activeSlide === "transactions" ? (
+        <div
+          className="h-full min-h-0 flex flex-col"
+          style={{
+            gap: `${slideGap}px`,
+            paddingBottom: `${slideBottomSafeArea}px`,
+          }}
+        >
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveSlide(null)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              aria-label="Voltar ao dashboard"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+              Movimentações do Mês
+            </h2>
+            <button
+              type="button"
+              onClick={handleOpenNewTransaction}
+              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-[#26513f] bg-[#143325] px-3 py-2 text-xs font-semibold text-[#8ef0c6] hover:bg-[#194130] transition-colors"
+            >
+              <Plus size={14} /> Nova transação
+            </button>
+          </div>
+
+          <section
+            className="rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] shadow-sm min-h-0 overflow-hidden flex flex-col"
+            style={{
+              height: `${slideContentHeight}px`,
+              padding: `${slideInnerPadding}px`,
+            }}
+          >
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <input
+                type="search"
+                value={slideTransactionSearch}
+                onChange={(event) =>
+                  setSlideTransactionSearch(event.target.value)
+                }
+                placeholder="Buscar movimentação"
+                className="w-56 sm:w-72 px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9] placeholder:text-[#7f84a8]"
+              />
+              <select
+                value={slideTransactionFilter}
+                onChange={(event) =>
+                  setSlideTransactionFilter(event.target.value)
+                }
+                className="px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9]"
+              >
+                <option value="todas">Todas</option>
+                <option value="entradas">Somente entradas</option>
+                <option value="saidas">Somente saídas</option>
+              </select>
+            </div>
+
+            <div className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg border border-[#2a3554]">
+              {slideTransactions.length === 0 ? (
+                <div className="h-full flex items-center justify-center px-6 text-center">
+                  <p className="text-sm text-[#7f84a8]">
+                    Nenhuma movimentação cadastrada para os filtros aplicados.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#131a33] text-[10px] uppercase tracking-wider text-[#8f94b4] border-b border-[#2a3554]">
+                      <th className="p-3 font-bold">Data</th>
+                      <th className="p-3 font-bold">Título</th>
+                      <th className="p-3 font-bold">Categoria</th>
+                      <th className="p-3 font-bold">Valor</th>
+                      <th className="p-3 font-bold">Tipo</th>
+                      <th className="p-3 font-bold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#202a4a]">
+                    {slideTransactions.map((item) => {
+                      const itemType = item.type || item.tipo;
+                      const isEntrada = itemType === "Entrada";
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-[#141d36] transition-colors"
+                        >
+                          <td className="p-3 text-xs text-[#9f9cb9] whitespace-nowrap">
+                            {item.date || item.data
+                              ? formatDateLabel(item.date || item.data)
+                              : "--/--"}
+                          </td>
+                          <td className="p-3">
+                            <p className="text-sm font-semibold text-[#dbe3ff]">
+                              {item.name || item.titulo || "Movimentação"}
+                            </p>
+                            <p className="text-xs text-[#7f84a8] truncate max-w-[320px]">
+                              {item.description ||
+                                item.descricao ||
+                                "Sem descrição"}
+                            </p>
+                          </td>
+                          <td className="p-3 text-xs text-[#9f9cb9]">
+                            {item.categoria?.nome || "Sem categoria"}
+                          </td>
+                          <td
+                            className="p-3 text-sm font-semibold whitespace-nowrap"
+                            style={{
+                              color: isEntrada
+                                ? "var(--color-verde-text)"
+                                : "var(--color-vermelho-text)",
+                            }}
+                          >
+                            {isEntrada ? "+" : "-"}
+                            {formatCurrency(item.value || item.valor || 0)}
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                isEntrada
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-rose-100 text-rose-700"
+                              }`}
+                            >
+                              {itemType}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditTransaction(item)}
+                                className="text-xs font-medium text-[#9ec2ff] border border-[#2f4566] rounded-md px-2 py-1 hover:bg-[#1a2842] transition-colors"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTransaction(item)}
+                                className="text-xs font-medium text-[#f08f9f] border border-[#6b3040] rounded-md px-2 py-1 hover:bg-[#351e2a] transition-colors"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </section>
         </div>
       ) : activeSlide === "charts" ? (
@@ -2834,7 +3068,19 @@ const DashboardDesktopRedesignView = ({
             className="grid grid-cols-3 min-h-0"
             style={{ columnGap: `${sectionGap}px` }}
           >
-            <article className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]">
+            <article
+              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
+              onClick={() => setActiveSlide("transactions")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveSlide("transactions");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Abrir slide de movimentações"
+            >
               <div className="sticky top-0 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[#b9bfd8]">
                   {showUpcomingReceipts
@@ -2842,7 +3088,10 @@ const DashboardDesktopRedesignView = ({
                     : "Próximas despesas"}
                 </h3>
                 <button
-                  onClick={() => setShowUpcomingReceipts(!showUpcomingReceipts)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setShowUpcomingReceipts(!showUpcomingReceipts);
+                  }}
                   className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
                   title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
                 >
@@ -2892,7 +3141,19 @@ const DashboardDesktopRedesignView = ({
               className="col-span-2 grid grid-rows-[auto_auto] min-h-0"
               style={{ rowGap: `${sectionGap}px` }}
             >
-              <article className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+              <article
+                className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 cursor-pointer"
+                onClick={() => setActiveSlide("transactions")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setActiveSlide("transactions");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Abrir slide de movimentações"
+              >
                 <div
                   className="grid grid-cols-3"
                   style={{ columnGap: `${sectionGap}px` }}
@@ -3217,8 +3478,18 @@ const DashboardDesktopRedesignView = ({
             </div>
 
             <article
-              className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4"
+              className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4 cursor-pointer"
               style={{ maxHeight: `${sectionThreeMaxHeight}px` }}
+              onClick={() => setActiveSlide("transactions")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveSlide("transactions");
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
                 <h3 className="text-sm font-semibold text-[#b9bfd8]">
@@ -3229,12 +3500,14 @@ const DashboardDesktopRedesignView = ({
                     type="search"
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
                     placeholder="Buscar transação"
                     className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
                   />
                   <select
                     value={filterType}
                     onChange={(event) => setFilterType(event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
                     className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
                   >
                     <option value="todas">Todas</option>

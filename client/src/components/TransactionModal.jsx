@@ -313,9 +313,11 @@ const TransactionModal = ({
   const isTransporte =
     categoryId === categoriaTransporte?.id && tipo === "Saida";
   const isCompraNoCartao = tipo === "Saida" && vincularCartao;
+  const fieldClassName =
+    "w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 py-2 text-sm text-[#dbe3ff] placeholder:text-[#7f89ac] focus:border-[#4f6fb0] focus:outline-none focus:ring-2 focus:ring-[#4f6fb0]/25";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-[rgba(4,7,15,0.72)] backdrop-blur-sm flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
@@ -323,12 +325,12 @@ const TransactionModal = ({
         aria-labelledby="transaction-modal-title"
         tabIndex={-1}
         onKeyDown={handleDialogKeyDown}
-        className="bg-white rounded-2xl max-w-lg w-full mx-4 p-6 shadow-xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] p-6 shadow-[0_24px_60px_rgba(3,8,18,0.6)]"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <h2
             id="transaction-modal-title"
-            className="text-xl font-bold text-slate-800"
+            className="text-lg sm:text-xl font-semibold text-[#dbe3ff]"
           >
             {isSimulation
               ? "Simular Transação"
@@ -340,7 +342,7 @@ const TransactionModal = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal de transação"
-            className="text-slate-400 hover:text-slate-600"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#31405f] text-[#8f97b8] transition-colors hover:bg-[#1f2a45] hover:text-[#dbe3ff]"
           >
             <X size={20} />
           </button>
@@ -348,7 +350,7 @@ const TransactionModal = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {validationError ? (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+            <div className="rounded-lg border border-[#6b3040] bg-[#2a1620] p-2 text-xs text-[#f5a3b2]">
               {validationError}
             </div>
           ) : null}
@@ -357,31 +359,31 @@ const TransactionModal = ({
             <input
               type="text"
               placeholder="Título"
-              className="p-2 border rounded-lg"
+              className={fieldClassName}
               value={name}
               onChange={(e) => setField("name", e.target.value)}
             />
             <input
               type="text"
               placeholder="Descrição"
-              className="p-2 border rounded-lg"
+              className={fieldClassName}
               value={description}
               onChange={(e) => setField("description", e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2 px-1">
+          <div className="flex items-center gap-2 px-1 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
             <input
               type="checkbox"
               id="modal-isFixed"
-              className="w-4 h-4 text-emerald-500 rounded border-slate-300 disabled:opacity-50"
+              className="h-4 w-4 rounded border-[#3c4b6b] bg-[#111a2f] accent-emerald-500 disabled:opacity-50"
               checked={isFixed}
               onChange={(e) => setField("isFixed", e.target.checked)}
               disabled={editingId !== null}
             />
             <label
               htmlFor="modal-isFixed"
-              className={`text-sm font-medium ${editingId ? "text-slate-400" : "text-slate-600"}`}
+              className={`text-sm font-medium ${editingId ? "text-[#7f89ac]" : "text-[#b9bfd8]"}`}
             >
               É uma movimentação recorrente?{" "}
               {editingId && "(Bloqueado na edição)"}
@@ -389,11 +391,11 @@ const TransactionModal = ({
           </div>
 
           {isFixed && editingId === null && (
-            <div className="flex flex-wrap items-center gap-4 px-1">
-              <span className="text-sm font-medium text-slate-600">
+            <div className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
+              <span className="text-sm font-medium text-[#b9bfd8]">
                 Tipo da movimentação fixa:
               </span>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
                 <input
                   type="radio"
                   name="tipoMovimentacaoFixa"
@@ -405,7 +407,7 @@ const TransactionModal = ({
                 />
                 Recorrente Fixa
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
                 <input
                   type="radio"
                   name="tipoMovimentacaoFixa"
@@ -421,11 +423,11 @@ const TransactionModal = ({
           )}
 
           {isFixed && editingId === null && (
-            <div className="flex flex-wrap items-center gap-4 px-1">
-              <span className="text-sm font-medium text-slate-600">
+            <div className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
+              <span className="text-sm font-medium text-[#b9bfd8]">
                 Tipo de recorrência:
               </span>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
                 <input
                   type="radio"
                   name="tipoRecorrencia"
@@ -435,7 +437,7 @@ const TransactionModal = ({
                 />
                 Mensal
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
                 <input
                   type="radio"
                   name="tipoRecorrencia"
@@ -451,7 +453,7 @@ const TransactionModal = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="date"
-              className="p-2 border rounded-lg"
+              className={fieldClassName}
               value={date}
               onChange={(e) => setField("date", e.target.value)}
             />
@@ -465,7 +467,7 @@ const TransactionModal = ({
                     ? "Duração (semanas)"
                     : "Duração (meses)"
                 }
-                className="p-2 border rounded-lg"
+                className={fieldClassName}
                 value={period}
                 onChange={(e) => setField("period", e.target.value)}
               />
@@ -474,13 +476,13 @@ const TransactionModal = ({
             <input
               type="number"
               placeholder="Valor"
-              className="p-2 border rounded-lg"
+              className={fieldClassName}
               value={value}
               onChange={(e) => setField("value", e.target.value)}
             />
 
             <select
-              className="p-2 border rounded-lg"
+              className={fieldClassName}
               value={tipo}
               onChange={(e) => {
                 const novoTipo = e.target.value;
@@ -496,8 +498,8 @@ const TransactionModal = ({
             </select>
 
             {tipo === "Saida" && (
-              <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+              <div className="md:col-span-2 rounded-lg border border-[#2f4566] bg-[#111a2f] p-3 space-y-2">
+                <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
                   <input
                     type="checkbox"
                     checked={vincularCartao}
@@ -515,7 +517,7 @@ const TransactionModal = ({
                 </label>
 
                 {isCompraNoCartao ? (
-                  <div className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1.5 text-xs text-teal-700">
+                  <div className="rounded-md border border-[#1f5a4b] bg-[#0f2f26] px-2 py-1.5 text-xs text-[#84e0bc]">
                     Use a data real da compra (não use a data de vencimento). A
                     competência e o vencimento são calculados pelo ciclo do
                     cartão.
@@ -523,15 +525,15 @@ const TransactionModal = ({
                 ) : null}
 
                 {loadingCartao ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[#8f97b8]">
                     Carregando cartão ativo...
                   </p>
                 ) : cartaoAtivo ? (
                   <div className="space-y-2">
-                    <label className="block text-xs text-slate-600">
+                    <label className="block text-xs text-[#b9bfd8]">
                       Cartão selecionado
                       <select
-                        className="mt-1 w-full rounded-md border border-slate-300 p-2 text-xs bg-white"
+                        className="mt-1 w-full rounded-md border border-[#334266] bg-[#182540] p-2 text-xs text-[#dbe3ff]"
                         value={form.cartaoId || cartaoAtivo.id}
                         onChange={(e) =>
                           setField("cartaoId", e.target.value || null)
@@ -542,14 +544,14 @@ const TransactionModal = ({
                         </option>
                       </select>
                     </label>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-[#9aa3c4]">
                       Fechamento dia{" "}
                       <strong>{cartaoAtivo.diaFechamento}</strong> · Vencimento
                       dia <strong>{cartaoAtivo.diaVencimento}</strong>
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-[#f3ca8d]">
                     Nenhum cartão ativo encontrado. Cadastre um cartão para
                     vincular compras.
                   </p>
@@ -558,7 +560,7 @@ const TransactionModal = ({
             )}
 
             <select
-              className="p-2 border rounded-lg md:col-span-2"
+              className={`${fieldClassName} md:col-span-2`}
               value={categoryId}
               onChange={(e) => {
                 setField("categoryId", e.target.value);
@@ -577,7 +579,7 @@ const TransactionModal = ({
 
             {isTransporte && (
               <select
-                className="p-2 border rounded-lg md:col-span-2"
+                className={`${fieldClassName} md:col-span-2`}
                 value={veiculoId}
                 onChange={(e) => {
                   setField("veiculoId", e.target.value);
@@ -597,7 +599,7 @@ const TransactionModal = ({
               <input
                 type="number"
                 placeholder="Quilometragem (km)"
-                className="p-2 border rounded-lg md:col-span-2"
+                className={`${fieldClassName} md:col-span-2`}
                 value={km}
                 onChange={(e) => setField("km", e.target.value)}
               />
@@ -608,19 +610,19 @@ const TransactionModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors p-2"
+              className="flex-1 rounded-lg border border-[#3b4868] bg-[#1b2945] p-2 font-medium text-[#c4cbe4] transition-colors hover:bg-[#223255]"
             >
               Cancelar
             </button>
             <button
               aria-label="Cancelar ação"
               type="submit"
-              className={`flex-1 text-white rounded-lg font-medium transition-colors p-2 ${
+              className={`flex-1 rounded-lg p-2 font-medium text-white transition-colors ${
                 isSimulation
-                  ? "bg-amber-500 hover:bg-amber-600"
+                  ? "bg-[#c47b16] hover:bg-[#d08a2f]"
                   : editingId
-                    ? "bg-amber-500 hover:bg-amber-600"
-                    : "bg-emerald-500 hover:bg-emerald-600"
+                    ? "bg-[#c47b16] hover:bg-[#d08a2f]"
+                    : "bg-[#1f8b63] hover:bg-[#28a373]"
               }`}
             >
               {isSimulation ? "Simular" : editingId ? "Atualizar" : "Salvar"}
