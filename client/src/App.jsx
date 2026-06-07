@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { LayoutDashboard, Target, Car, LogOut } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
+import DashboardMobileView from "./components/DashboardMobileView";
 import InvestmentsView from "./components/InvestmentsView";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
@@ -73,6 +74,9 @@ const App = () => {
   const headerRef = useRef(null);
   const categoryManagerTriggerRef = useRef(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false,
+  );
   const hasBootstrappedRef = useRef(false);
   const activePeriodKeyRef = useRef(`${selectedAno}-${selectedMes}`);
   const latestMutationTokenRef = useRef(0);
@@ -106,6 +110,16 @@ const App = () => {
   useEffect(() => {
     activePeriodKeyRef.current = `${selectedAno}-${selectedMes}`;
   }, [selectedAno, selectedMes]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth < 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleOpenCategoryManager = (triggerElement) => {
     categoryManagerTriggerRef.current =
@@ -345,6 +359,11 @@ const App = () => {
       return;
     }
 
+    if (isMobileViewport) {
+      setHeaderHeight(0);
+      return;
+    }
+
     if (activeTab === "dashboard") {
       setHeaderHeight(0);
       return;
@@ -372,10 +391,52 @@ const App = () => {
       observer.disconnect();
       window.removeEventListener("resize", updateHeaderHeight);
     };
-  }, [isLoggedIn, activeTab]);
+  }, [isLoggedIn, activeTab, isMobileViewport]);
 
   if (!isLoggedIn) {
     return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
+
+  if (isMobileViewport) {
+    return (
+      <div className="mobile-viewport-shell text-[#e8ebff]">
+        <DashboardMobileView
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          finalBalance={finalBalance}
+          investmentAmount={investmentAmount}
+          incomes={incomes}
+          expenses={expenses}
+          investments={investments}
+          fetchData={fetchData}
+          loading={isInitialLoading}
+          totalInvestmentsBalance={totalInvestmentsBalance}
+          selectedMes={selectedMes}
+          selectedAno={selectedAno}
+          onChangeMonth={handleChangeMonth}
+          categorias={categorias}
+          veiculos={veiculos}
+          onOpenCategoryManager={handleOpenCategoryManager}
+          saldoAnterior={saldoAnterior}
+          budgetRefreshKey={budgetRefreshKey}
+        />
+        <CategoryManagerModal
+          isOpen={isCategoryManagerOpen}
+          onClose={handleCloseCategoryManager}
+          categorias={categorias}
+          onCategoriasChange={() => {
+            fetchCategorias();
+            setBudgetRefreshKey((k) => k + 1);
+          }}
+        />
+        <ReleaseNotesModal
+          isOpen={releaseNotesOpen}
+          version={APP_VERSION}
+          releaseNotes={releaseNotesContent}
+          onClose={() => setReleaseNotesOpen(false)}
+        />
+      </div>
+    );
   }
 
   return (
