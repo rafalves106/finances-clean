@@ -34,7 +34,7 @@ const TransactionModal = ({
   initialCardPurchaseMode = false,
 }) => {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [cartaoAtivo, setCartaoAtivo] = useState(null);
+  const [cartoes, setCartoes] = useState([]);
   const [loadingCartao, setLoadingCartao] = useState(false);
   const [validationError, setValidationError] = useState("");
   const dialogRef = useRef(null);
@@ -87,39 +87,42 @@ const TransactionModal = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const carregarCartaoAtivo = async () => {
+    const carregarCartoes = async () => {
       setLoadingCartao(true);
-
       try {
-        const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+        const response = await fetch(`${API_CARTAO_URL}/resumos`, {
           credentials: "include",
         });
-
         if (!response.ok) {
-          setCartaoAtivo(null);
+          setCartoes([]);
           return;
         }
-
         const data = await response.json();
-        const cartao = data?.cartao || null;
-        setCartaoAtivo(cartao);
+        const summaries = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.resumos)
+            ? data.resumos
+            : [];
+        const lista = summaries.filter((s) => s?.cartao).map((s) => s.cartao);
 
-        if (!editingItem && initialCardPurchaseMode && cartao?.id) {
+        setCartoes(lista);
+
+        if (!editingItem && initialCardPurchaseMode && lista.length > 0) {
           setForm((prev) => ({
             ...prev,
             tipo: "Saida",
             vincularCartao: true,
-            cartaoId: cartao.id,
+            cartaoId: lista[0].id,
           }));
         }
       } catch {
-        setCartaoAtivo(null);
+        setCartoes([]);
       } finally {
         setLoadingCartao(false);
       }
     };
 
-    carregarCartaoAtivo();
+    carregarCartoes();
   }, [editingItem, initialCardPurchaseMode, isOpen]);
 
   useEffect(() => {
@@ -503,17 +506,17 @@ const TransactionModal = ({
                   <input
                     type="checkbox"
                     checked={vincularCartao}
-                    disabled={!cartaoAtivo}
+                    disabled={cartoes.length === 0}
                     onChange={(e) => {
                       const checked = e.target.checked;
                       setField("vincularCartao", checked);
                       setField(
                         "cartaoId",
-                        checked ? cartaoAtivo?.id || null : null,
+                        checked ? cartoes[0]?.id || null : null,
                       );
                     }}
                   />
-                  Marcar como compra no cartão ativo
+                  Marcar como compra no cartão
                 </label>
 
                 {isCompraNoCartao ? (
@@ -526,34 +529,45 @@ const TransactionModal = ({
 
                 {loadingCartao ? (
                   <p className="text-xs text-[#8f97b8]">
-                    Carregando cartão ativo...
+                    Carregando cartões...
                   </p>
-                ) : cartaoAtivo ? (
+                ) : cartoes.length > 0 ? (
                   <div className="space-y-2">
                     <label className="block text-xs text-[#b9bfd8]">
                       Cartão selecionado
                       <select
                         className="mt-1 w-full rounded-md border border-[#334266] bg-[#182540] p-2 text-xs text-[#dbe3ff]"
-                        value={form.cartaoId || cartaoAtivo.id}
+                        value={form.cartaoId || ""}
                         onChange={(e) =>
                           setField("cartaoId", e.target.value || null)
                         }
                       >
-                        <option value={cartaoAtivo.id}>
-                          {cartaoAtivo.nome}
-                        </option>
+                        {cartoes.map((cartao) => (
+                          <option key={cartao.id} value={cartao.id}>
+                            {cartao.nome}
+                          </option>
+                        ))}
                       </select>
                     </label>
-                    <p className="text-xs text-[#9aa3c4]">
-                      Fechamento dia{" "}
-                      <strong>{cartaoAtivo.diaFechamento}</strong> · Vencimento
-                      dia <strong>{cartaoAtivo.diaVencimento}</strong>
-                    </p>
+                    {(() => {
+                      const selecionado =
+                        cartoes.find(
+                          (c) => String(c.id) === String(form.cartaoId),
+                        ) || cartoes[0];
+                      return selecionado ? (
+                        <p className="text-xs text-[#9aa3c4]">
+                          Fechamento dia{" "}
+                          <strong>{selecionado.diaFechamento}</strong> ·
+                          Vencimento dia{" "}
+                          <strong>{selecionado.diaVencimento}</strong>
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
                 ) : (
                   <p className="text-xs text-[#f3ca8d]">
-                    Nenhum cartão ativo encontrado. Cadastre um cartão para
-                    vincular compras.
+                    Nenhum cartão encontrado. Cadastre um cartão para vincular
+                    compras.
                   </p>
                 )}
               </div>
