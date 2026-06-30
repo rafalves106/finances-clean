@@ -119,6 +119,7 @@ public class MovimentacaoRepository : IMovimentacaoRepository
     {
         var baseQuery = _context.Movimentacoes
             .Where(m => m.InvestimentoId == null &&
+                    (m.CartaoId == null || m.EhMovimentacaoFatura) &&
                     (m.Data.Year < ano ||
                     (m.Data.Year == ano && m.Data.Month < mes)));
 
@@ -126,5 +127,80 @@ public class MovimentacaoRepository : IMovimentacaoRepository
         var saidas = baseQuery.OfType<Saida>().Sum(m => (decimal?)m.Valor) ?? 0;
 
         return entradas - saidas;
+    }
+
+    public decimal SomarComprasCartaoPorCiclo(Guid usuarioId, Guid cartaoId, int ciclo)
+    {
+        return _context.Saidas
+            .Where(s =>
+                s.UsuarioId == usuarioId &&
+                s.CartaoId == cartaoId &&
+                s.CompetenciaFatura == ciclo &&
+                !s.EhMovimentacaoFatura)
+            .Sum(s => (decimal?)s.Valor) ?? 0m;
+    }
+
+    public int VincularComprasCartaoAFatura(Guid usuarioId, Guid cartaoId, int ciclo, Guid faturaAgregadaId)
+    {
+        var compras = _context.Saidas
+            .Where(s =>
+                s.UsuarioId == usuarioId &&
+                s.CartaoId == cartaoId &&
+                s.CompetenciaFatura == ciclo &&
+                !s.EhMovimentacaoFatura &&
+                s.FaturaAgregadaId != faturaAgregadaId)
+            .ToList();
+
+        if (compras.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var compra in compras)
+        {
+            compra.AtualizarDados(
+                compra.Titulo,
+                compra.Descricao,
+                compra.Valor,
+                compra.Data,
+                compra.Fixa,
+                compra.Periodo,
+                compra.CategoriaId,
+                compra.VeiculoId,
+                compra.Km,
+                compra.CartaoId,
+                compra.CompetenciaFatura,
+                compra.TipoMovimentacaoFixa,
+                ehMovimentacaoFatura: false,
+                faturaAgregadaId: faturaAgregadaId);
+        }
+
+        _context.Saidas.UpdateRange(compras);
+        _context.SaveChanges();
+        return compras.Count;
+    }
+
+    public IEnumerable<Saida> ListarComprasCartaoPorPeriodoSemFatura(Guid usuarioId, DateTime dataInicio, DateTime dataFim)
+    {
+        return _context.Saidas
+            .Where(s =>
+                s.UsuarioId == usuarioId &&
+                s.CartaoId != null &&
+                !s.EhMovimentacaoFatura &&
+                s.FaturaAgregadaId == null &&
+                s.Data >= dataInicio &&
+                s.Data <= dataFim)
+            .OrderBy(s => s.Data)
+            .ThenBy(s => s.Id)
+            .ToList();
+    }
+
+    public Saida? ObterMovimentacaoFatura(Guid usuarioId, Guid faturaAgregadaId)
+    {
+        return _context.Saidas
+            .FirstOrDefault(s =>
+                s.UsuarioId == usuarioId &&
+                s.EhMovimentacaoFatura &&
+                s.FaturaAgregadaId == faturaAgregadaId);
     }
 }

@@ -16,6 +16,11 @@ public class CartaoBackfillRollbackRequestDTO
   public Guid ExecutionId { get; set; }
 }
 
+public class CartaoBackfillFaturaAgregadaRequestDTO
+{
+  public int Meses { get; set; } = 12;
+}
+
 public class CartaoBackfillExecutionResponseDTO
 {
   public Guid ExecutionId { get; set; }

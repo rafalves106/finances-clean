@@ -18,6 +18,7 @@ public class FinanceDbContext : DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<Veiculo> Veiculos { get; set; }
     public DbSet<CartaoManual> CartoesManuais { get; set; }
+    public DbSet<FaturaAgregada> FaturasAgregadas { get; set; }
     public DbSet<CartaoBackfillExecution> CartaoBackfillExecutions { get; set; }
     public DbSet<CartaoBackfillExecutionItem> CartaoBackfillExecutionItems { get; set; }
 
@@ -58,6 +59,8 @@ public class FinanceDbContext : DbContext
                 .HasConversion<string>()
                 .HasDefaultValue(TipoMovimentacaoFixa.RecorrenteFixa);
             entity.Property(e => e.CompetenciaFatura).IsRequired(false);
+            entity.Property(e => e.EhMovimentacaoFatura).HasDefaultValue(false);
+            entity.Property(e => e.FaturaAgregadaId).IsRequired(false);
 
             entity.HasOne<Investimento>()
                   .WithMany()
@@ -68,6 +71,12 @@ public class FinanceDbContext : DbContext
             entity.HasOne<CartaoManual>()
                 .WithMany()
                 .HasForeignKey(m => m.CartaoId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne<FaturaAgregada>()
+                .WithMany()
+                .HasForeignKey(m => m.FaturaAgregadaId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
@@ -92,6 +101,8 @@ public class FinanceDbContext : DbContext
             entity.HasIndex(e => e.InvestimentoId);
             entity.HasIndex(e => e.CartaoId);
             entity.HasIndex(e => e.CompetenciaFatura);
+            entity.HasIndex(e => e.FaturaAgregadaId);
+            entity.HasIndex(e => e.EhMovimentacaoFatura);
             entity.HasIndex(m => m.VeiculoId);
 
             entity.HasQueryFilter(m =>
@@ -200,6 +211,35 @@ public class FinanceDbContext : DbContext
             _currentUserService == null ||
             !_currentUserService.UsuarioId.HasValue ||
             c.UsuarioId == _currentUserService.UsuarioId);
+        });
+
+        // --- CartaoBackfillExecution ---
+        modelBuilder.Entity<FaturaAgregada>(entity =>
+        {
+            entity.ToTable("FaturasAgregadas");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UsuarioId).IsRequired();
+            entity.Property(e => e.CartaoId).IsRequired();
+            entity.Property(e => e.Ciclo).IsRequired();
+            entity.Property(e => e.Vencimento).IsRequired();
+            entity.Property(e => e.ValorTotal).HasPrecision(18, 2);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.MovimentacaoId).IsRequired(false);
+            entity.Property(e => e.CreatedAtUtc).IsRequired();
+            entity.Property(e => e.UpdatedAtUtc).IsRequired();
+
+            entity.HasOne<CartaoManual>()
+                .WithMany()
+                .HasForeignKey(e => e.CartaoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UsuarioId, e.CartaoId, e.Ciclo }).IsUnique();
+            entity.HasIndex(e => e.MovimentacaoId);
+
+            entity.HasQueryFilter(e =>
+                _currentUserService == null ||
+                !_currentUserService.UsuarioId.HasValue ||
+                e.UsuarioId == _currentUserService.UsuarioId);
         });
 
         // --- CartaoBackfillExecution ---

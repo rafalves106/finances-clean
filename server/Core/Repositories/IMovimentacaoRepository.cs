@@ -17,4 +17,8 @@ public interface IMovimentacaoRepository
     IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId);
     void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes);
     decimal ObterSaldoAcumulado(int mes, int ano);
+    decimal SomarComprasCartaoPorCiclo(Guid usuarioId, Guid cartaoId, int ciclo) => 0m;
+    int VincularComprasCartaoAFatura(Guid usuarioId, Guid cartaoId, int ciclo, Guid faturaAgregadaId) => 0;
+    IEnumerable<Saida> ListarComprasCartaoPorPeriodoSemFatura(Guid usuarioId, DateTime dataInicio, DateTime dataFim) => [];
+    Saida? ObterMovimentacaoFatura(Guid usuarioId, Guid faturaAgregadaId) => null;
 }

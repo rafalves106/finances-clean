@@ -31,6 +31,7 @@ builder.Services.AddScoped<ICategoriaOrcamentoUsuarioRepository, CategoriaOrcame
 builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();
 builder.Services.AddScoped<ICartaoRepository, CartaoRepository>();
 builder.Services.AddScoped<ICartaoBackfillRepository, CartaoBackfillRepository>();
+builder.Services.AddScoped<IFaturaAgregadaRepository, FaturaAgregadaRepository>();
 
 builder.Services.AddScoped<CriarMovimentacaoUseCase>();
 builder.Services.AddScoped<ListarMovimentacoesUseCase>();
@@ -56,6 +57,9 @@ builder.Services.AddScoped<ObterPrevisaoFaturaUseCase>();
 builder.Services.AddScoped<ExecutarPreviewBackfillCompetenciaCartaoUseCase>();
 builder.Services.AddScoped<ExecutarApplyBackfillCompetenciaCartaoUseCase>();
 builder.Services.AddScoped<ExecutarRollbackBackfillCompetenciaCartaoUseCase>();
+builder.Services.AddScoped<FaturaAgregadaService>();
+builder.Services.AddScoped<MovimentacaoFaturaService>();
+builder.Services.AddScoped<ExecutarBackfillFaturaAgregadaUseCase>();
 
 builder.Services.AddScoped<CriarInvestimentoUseCase>();
 builder.Services.AddScoped<ListarInvestimentosUseCase>();

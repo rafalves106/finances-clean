@@ -16,7 +16,8 @@ public class CartaoController(
   ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase,
   ExecutarPreviewBackfillCompetenciaCartaoUseCase executarPreviewBackfillCompetenciaCartaoUseCase,
   ExecutarApplyBackfillCompetenciaCartaoUseCase executarApplyBackfillCompetenciaCartaoUseCase,
-  ExecutarRollbackBackfillCompetenciaCartaoUseCase executarRollbackBackfillCompetenciaCartaoUseCase) : AuthenticatedController
+  ExecutarRollbackBackfillCompetenciaCartaoUseCase executarRollbackBackfillCompetenciaCartaoUseCase,
+  ExecutarBackfillFaturaAgregadaUseCase executarBackfillFaturaAgregadaUseCase) : AuthenticatedController
 {
   [HttpPost]
   public IActionResult Cadastrar([FromBody] CadastrarCartaoManualDTO dto)
@@ -162,6 +163,21 @@ public class CartaoController(
     catch (InvalidOperationException ex) when (ex.Message == "BACKFILL_EXECUTION_INVALIDA")
     {
       return Conflict(Erro("BACKFILL_EXECUTION_INVALIDA", "ExecutionId inválido para rollback."));
+    }
+  }
+
+  [HttpPost("backfill/fatura-agregada")]
+  public IActionResult BackfillFaturaAgregada([FromBody] CartaoBackfillFaturaAgregadaRequestDTO? dto)
+  {
+    try
+    {
+      var meses = dto?.Meses ?? 12;
+      var resultado = executarBackfillFaturaAgregadaUseCase.Executar(UsuarioId, meses);
+      return Ok(resultado);
+    }
+    catch (ArgumentException ex)
+    {
+      return BadRequest(Erro("BACKFILL_FATURA_PARAMETRO_INVALIDO", ex.Message));
     }
   }
 

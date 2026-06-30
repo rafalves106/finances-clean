@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository, FaturaAgregadaService faturaAgregadaService, MovimentacaoFaturaService movimentacaoFaturaService) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -61,6 +61,12 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
             };
 
             criarMovimentacaoUseCase.Executar(movimentacao);
+
+            if (movimentacaoDTO.CartaoId.HasValue && cartaoSelecionado is not null)
+            {
+                var ciclosAfetados = ObterCiclosAfetadosNaCriacao(movimentacaoDTO, cartaoSelecionado);
+                RecalcularFaturasSincronas(movimentacaoDTO.CartaoId.Value, ciclosAfetados, "criar");
+            }
 
             return CreatedAtAction(nameof(CriarMovimentacao), new { id = movimentacao.Id }, movimentacao);
         }
@@ -185,6 +191,12 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     [HttpPut("{id}")]
     public IActionResult AtualizarMovimentacao(Guid id, [FromBody] MovimentacaoDTO movimentacaoDTO)
     {
+        var movimentacaoAntes = buscarMovimentacaoUseCase.Executar(id);
+        if (movimentacaoAntes is null)
+        {
+            return NotFound($"Nenhuma movimentação encontrada com o ID: {id}");
+        }
+
         var validacaoCartao = ValidarVinculoCartao(movimentacaoDTO, out var cartaoSelecionado);
         if (validacaoCartao is not null)
         {
@@ -199,6 +211,25 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         try
         {
             atualizarMovimentacaoUseCase.Executar(id, dtoAjustado);
+
+            var ciclosAfetados = new List<(Guid cartaoId, int ciclo)>();
+
+            if (movimentacaoAntes.CartaoId.HasValue && movimentacaoAntes.CompetenciaFatura.HasValue)
+            {
+                ciclosAfetados.Add((movimentacaoAntes.CartaoId.Value, movimentacaoAntes.CompetenciaFatura.Value));
+            }
+
+            if (dtoAjustado.CartaoId.HasValue && dtoAjustado.CompetenciaFatura.HasValue)
+            {
+                ciclosAfetados.Add((dtoAjustado.CartaoId.Value, dtoAjustado.CompetenciaFatura.Value));
+            }
+
+            foreach (var item in ciclosAfetados.Distinct())
+            {
+                var fatura = faturaAgregadaService.RecalcularSync(UsuarioId, item.cartaoId, item.ciclo, "editar");
+                movimentacaoFaturaService.CreateOrUpdateForFatura(UsuarioId, fatura);
+            }
+
             return NoContent();
         }
         catch (ArgumentException)
@@ -211,9 +242,27 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     [HttpDelete("{id}")]
     public IActionResult RemoverMovimentacao(Guid id)
     {
+        var movimentacao = buscarMovimentacaoUseCase.Executar(id);
+        if (movimentacao is null)
+        {
+            return NotFound($"Nenhuma movimentação encontrada com o ID: {id}");
+        }
+
         try
         {
             removerMovimentacaoUseCase.Executar(id);
+
+            if (movimentacao.CartaoId.HasValue && movimentacao.CompetenciaFatura.HasValue)
+            {
+                var fatura = faturaAgregadaService.RecalcularSync(
+                    UsuarioId,
+                    movimentacao.CartaoId.Value,
+                    movimentacao.CompetenciaFatura.Value,
+                    "excluir");
+
+                movimentacaoFaturaService.CreateOrUpdateForFatura(UsuarioId, fatura);
+            }
+
             return NoContent();
         }
         catch (Exception)
@@ -333,6 +382,35 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         }
 
         return CompetenciaFaturaCalculator.CalcularCompetencia(dto.Data, cartao.DiaFechamento);
+    }
+
+    private void RecalcularFaturasSincronas(Guid cartaoId, IEnumerable<int> ciclos, string origem)
+    {
+        foreach (var ciclo in ciclos.Distinct())
+        {
+            var fatura = faturaAgregadaService.RecalcularSync(UsuarioId, cartaoId, ciclo, origem);
+            movimentacaoFaturaService.CreateOrUpdateForFatura(UsuarioId, fatura);
+        }
+    }
+
+    private static IEnumerable<int> ObterCiclosAfetadosNaCriacao(MovimentacaoDTO dto, CartaoManual cartao)
+    {
+        if (!dto.Fixa || dto.Periodo <= 0)
+        {
+            return [CompetenciaFaturaCalculator.CalcularCompetencia(dto.Data, cartao.DiaFechamento)];
+        }
+
+        var ciclos = new List<int>(dto.Periodo);
+        for (var i = 0; i < dto.Periodo; i++)
+        {
+            var dataParcela = dto.TipoRecorrencia == TipoRecorrencia.Semanal
+                ? dto.Data.AddDays(7 * i)
+                : dto.Data.AddMonths(i);
+
+            ciclos.Add(CompetenciaFaturaCalculator.CalcularCompetencia(dataParcela, cartao.DiaFechamento));
+        }
+
+        return ciclos;
     }
 }
 

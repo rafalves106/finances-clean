@@ -11,6 +11,7 @@ public class ObterResumoMensalUseCase(IMovimentacaoRepository movimentacaoReposi
     {
         var movimentacoes = movimentacaoRepository.ListarPorMes(mes, ano)
             .Where(m => m.InvestimentoId is null)
+            .Where(m => m.CartaoId is null || m.EhMovimentacaoFatura)
             .ToList();
 
         var totalEntradas = movimentacoes
