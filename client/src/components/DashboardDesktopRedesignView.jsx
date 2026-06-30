@@ -1474,6 +1474,7 @@ const DashboardDesktopRedesignView = ({
       }
 
       await fetchData();
+      await loadCardSummaries();
     } catch (error) {
       console.error("Erro ao excluir transação:", error);
       alert("Erro ao excluir transação. Verifique o console.");
@@ -1533,6 +1534,7 @@ const DashboardDesktopRedesignView = ({
       }
       setSimulatedTransactions([]);
       await fetchData();
+      await loadCardSummaries();
     } catch (error) {
       console.error("Erro ao aplicar simulação:", error);
       alert("Erro ao aplicar as transações simuladas. Verifique o console.");
@@ -3643,6 +3645,7 @@ const DashboardDesktopRedesignView = ({
         }}
         onSuccess={async () => {
           await fetchData();
+          await loadCardSummaries();
         }}
         categorias={categorias}
         veiculos={veiculos}
