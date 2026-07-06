@@ -1214,7 +1214,8 @@ const DashboardDesktopRedesignView = ({
       0,
     );
 
-    return Math.max(1000, maxSaldo + 1000);
+    const paddedMax = maxSaldo + 1000;
+    return Math.max(1000, Math.ceil(paddedMax / 1000) * 1000);
   }, [chartData]);
 
   const chartYTicks = useMemo(() => {
