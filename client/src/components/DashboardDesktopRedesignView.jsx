@@ -95,7 +95,7 @@ const CHART_SERIES_LABEL = {
   saldo: "Saldo",
 };
 
-const CHART_Y_TICKS = [0, 500, 1000, 2000, 3000, 5000];
+const CHART_Y_TICKS = [0, 1000, 2000, 3000, 4000, 5000];
 
 const formatChartAxisTick = (value) => {
   if (value >= 1000) {
@@ -697,7 +697,7 @@ const DashboardDesktopRedesignView = ({
       chartMargin: { top: 4, right: 4, left: 2, bottom: 4 },
       chartTickFontSize: 9,
       chartYAxisWidth: 24,
-      chartYTicks: [0, 2500, 5000, 7500, 10000],
+      chartYTicks: [0, 1000, 2000, 3000, 4000, 5000],
     };
   }, [viewportTier]);
 
@@ -2386,7 +2386,7 @@ const DashboardDesktopRedesignView = ({
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        domain={[0, 10000]}
+                        domain={[0, 5000]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
                         tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
@@ -2881,7 +2881,7 @@ const DashboardDesktopRedesignView = ({
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        domain={[0, 10000]}
+                        domain={[0, 5000]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
                         tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
