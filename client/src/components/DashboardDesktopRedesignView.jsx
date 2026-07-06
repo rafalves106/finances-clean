@@ -660,7 +660,6 @@ const DashboardDesktopRedesignView = ({
         chartMargin: { top: 8, right: 8, left: 8, bottom: 8 },
         chartTickFontSize: 10,
         chartYAxisWidth: 28,
-        chartYTicks: CHART_Y_TICKS,
       };
     }
 
@@ -679,7 +678,6 @@ const DashboardDesktopRedesignView = ({
         chartMargin: { top: 6, right: 6, left: 4, bottom: 6 },
         chartTickFontSize: 10,
         chartYAxisWidth: 26,
-        chartYTicks: CHART_Y_TICKS,
       };
     }
 
@@ -697,7 +695,6 @@ const DashboardDesktopRedesignView = ({
       chartMargin: { top: 4, right: 4, left: 2, bottom: 4 },
       chartTickFontSize: 9,
       chartYAxisWidth: 24,
-      chartYTicks: [0, 1000, 2000, 3000, 4000, 5000],
     };
   }, [viewportTier]);
 
@@ -715,7 +712,6 @@ const DashboardDesktopRedesignView = ({
     chartMargin,
     chartTickFontSize,
     chartYAxisWidth,
-    chartYTicks,
   } = responsiveDensity;
 
   const hUtil = Math.max(
@@ -1211,6 +1207,29 @@ const DashboardDesktopRedesignView = ({
         return acc;
       }, []);
   }, [allTransactions, saldoAnterior]);
+
+  const chartYAxisMax = useMemo(() => {
+    const maxSaldo = chartData.reduce(
+      (max, item) => Math.max(max, Number(item.saldo || 0)),
+      0,
+    );
+
+    return Math.max(1000, maxSaldo + 1000);
+  }, [chartData]);
+
+  const chartYTicks = useMemo(() => {
+    const ticks = [];
+
+    for (let tick = 0; tick < chartYAxisMax; tick += 1000) {
+      ticks.push(tick);
+    }
+
+    if (ticks[ticks.length - 1] !== chartYAxisMax) {
+      ticks.push(chartYAxisMax);
+    }
+
+    return ticks;
+  }, [chartYAxisMax]);
 
   const upcomingPayments = useMemo(() => {
     const now = new Date();
@@ -2386,7 +2405,7 @@ const DashboardDesktopRedesignView = ({
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        domain={[0, 5000]}
+                        domain={[0, chartYAxisMax]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
                         tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
@@ -2881,7 +2900,7 @@ const DashboardDesktopRedesignView = ({
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        domain={[0, 5000]}
+                        domain={[0, chartYAxisMax]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
                         tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
