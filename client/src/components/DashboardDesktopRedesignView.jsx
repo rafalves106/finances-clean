@@ -95,7 +95,7 @@ const CHART_SERIES_LABEL = {
   saldo: "Saldo",
 };
 
-const CHART_Y_TICKS = [0, 1000, 2500, 5000, 7500, 10000];
+const CHART_Y_TICKS = [0, 500, 1000, 2000, 3000, 5000];
 
 const formatChartAxisTick = (value) => {
   if (value >= 1000) {
