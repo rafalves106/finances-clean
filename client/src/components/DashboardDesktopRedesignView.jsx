@@ -28,6 +28,7 @@ import {
   extractApiErrorMessage,
 } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
+import ExportCsvModal from "./ExportCsvModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
 
@@ -510,12 +511,12 @@ const DashboardDesktopRedesignView = ({
   const [slideTransactionFilter, setSlideTransactionFilter] = useState("todas");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [cardSummaries, setCardSummaries] = useState([]);
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
-  const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
@@ -768,15 +769,8 @@ const DashboardDesktopRedesignView = ({
     onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
   };
 
-  const handleExportCsv = useCallback(async () => {
+  const handleExportCsv = useCallback(async ({ startDate, endDate }) => {
     try {
-      setIsExportingCsv(true);
-
-      const { startDate, endDate } = getMonthDateRange(
-        selectedAno,
-        selectedMes,
-      );
-
       const query = new URLSearchParams({
         dataInicio: startDate,
         dataFim: endDate,
@@ -818,10 +812,8 @@ const DashboardDesktopRedesignView = ({
     } catch (error) {
       console.error("Erro ao exportar CSV:", error);
       alert(error.message || "Erro ao exportar CSV.");
-    } finally {
-      setIsExportingCsv(false);
     }
-  }, [selectedAno, selectedMes]);
+  }, []);
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
@@ -3773,9 +3765,8 @@ const DashboardDesktopRedesignView = ({
 
         <button
           type="button"
-          onClick={handleExportCsv}
-          disabled={isExportingCsv}
-          className="bg-sky-500 hover:bg-sky-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          onClick={() => setIsExportModalOpen(true)}
+          className="bg-sky-500 hover:bg-sky-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
           aria-label="Exportar movimentações em CSV"
           title="Exportar CSV"
         >
@@ -3791,6 +3782,14 @@ const DashboardDesktopRedesignView = ({
           <Plus size={20} />
         </button>
       </div>
+
+      <ExportCsvModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={handleExportCsv}
+        defaultStartDate={getMonthDateRange(selectedAno, selectedMes).startDate}
+        defaultEndDate={getMonthDateRange(selectedAno, selectedMes).endDate}
+      />
 
       <TransactionModal
         isOpen={isModalOpen}
