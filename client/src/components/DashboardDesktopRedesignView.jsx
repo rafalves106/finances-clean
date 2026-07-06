@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
+  Download,
   Plus,
   RefreshCw,
   Sparkles,
@@ -86,6 +87,14 @@ const sortByDate = (list) =>
   [...list].sort(
     (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
   );
+
+const getMonthDateRange = (year, month) => {
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  return { startDate, endDate };
+};
 
 const CHART_SERIES_ORDER = ["entrada", "saida", "saldo"];
 
@@ -506,6 +515,7 @@ const DashboardDesktopRedesignView = ({
   const [cardSummaries, setCardSummaries] = useState([]);
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
@@ -757,6 +767,61 @@ const DashboardDesktopRedesignView = ({
     const nextDate = new Date(selectedAno, selectedMes, 1);
     onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
   };
+
+  const handleExportCsv = useCallback(async () => {
+    try {
+      setIsExportingCsv(true);
+
+      const { startDate, endDate } = getMonthDateRange(
+        selectedAno,
+        selectedMes,
+      );
+
+      const query = new URLSearchParams({
+        dataInicio: startDate,
+        dataFim: endDate,
+      });
+
+      const response = await fetch(
+        `${API_URL}/exportar-csv?${query.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          errorText || "Não foi possível exportar movimentações.",
+        );
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition");
+      const filenameMatch =
+        contentDisposition?.match(/filename\*=UTF-8''([^;\r\n]+)/i) ||
+        contentDisposition?.match(/filename="([^"]+)"/i) ||
+        contentDisposition?.match(/filename=([^;\r\n"]+)/i);
+      const fileName = filenameMatch
+        ? decodeURIComponent(filenameMatch[1].trim())
+        : `movimentacoes_${startDate.replaceAll("-", "")}_${endDate.replaceAll("-", "")}.csv`;
+
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Erro ao exportar CSV:", error);
+      alert(error.message || "Erro ao exportar CSV.");
+    } finally {
+      setIsExportingCsv(false);
+    }
+  }, [selectedAno, selectedMes]);
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
@@ -3704,6 +3769,17 @@ const DashboardDesktopRedesignView = ({
           title="Simular transação"
         >
           <Sparkles size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          disabled={isExportingCsv}
+          className="bg-sky-500 hover:bg-sky-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          aria-label="Exportar movimentações em CSV"
+          title="Exportar CSV"
+        >
+          <Download size={18} />
         </button>
 
         <button
