@@ -228,7 +228,10 @@ if (app.Environment.IsDevelopment())
 
 appReady = true;
 
-app.MapOpenApi();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
 if (!app.Environment.IsDevelopment())
 {
@@ -257,12 +260,16 @@ app.Use(async (context, next) =>
 
 app.UseHttpsRedirection();
 app.UseCookiePolicy();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/openapi/v1.json", "Finance API V1");
-});
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "Finance API V1");
+    });
+
+    app.MapGet("/", () => Results.Redirect("/swagger"));
+}
 
 app.MapGet("/health", () => Results.Ok(new
 {

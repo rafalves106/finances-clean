@@ -25,7 +25,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8080}:5000"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ConnectionStrings__PostgresConnection=Host=db;Port=5432;Database=${DB_NAME:-FinanceDb};Username=${DB_USER:-falves};Password=${DB_PASSWORD:-__REDACTED_DB_PASSWORD__}
       - Jwt__Key=${JWT_KEY:-chave-local-dev-minimo-32-caracteres!!}
       - Jwt__Issuer=finance-api
@@ -45,8 +45,6 @@ services:
     container_name: finance_frontend
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
-    environment:
-      - VITE_PROXY_TARGET=http://backend:5000
     depends_on:
       backend:
         condition: service_healthy
