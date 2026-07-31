@@ -66,6 +66,7 @@ const DashboardMobileView = ({
   veiculos = [],
   fetchData,
   saldoAnterior = 0,
+  onOpenCategoryManager,
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -1050,12 +1051,25 @@ const DashboardMobileView = ({
               border: "1px solid var(--border-default)",
             }}
           >
-            <h2
-              className="m-0 text-sm font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              Despesas por categoria
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2
+                className="m-0 text-sm font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Despesas por categoria
+              </h2>
+              <button
+                type="button"
+                onClick={(event) => onOpenCategoryManager(event.currentTarget)}
+                className="rounded-lg px-2.5 py-1 text-[11px] font-medium"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                Gerenciar categorias
+              </button>
+            </div>
             <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
               {categorySpendChartData.length === 0 ? (
                 <div
