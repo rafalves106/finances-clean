@@ -236,7 +236,7 @@ app.UseForwardedHeaders();
 
 var appReady = false;
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsEnvironment("Testing"))
 {
     await ApplyMigrationsWithRetryAsync(app);
 }
