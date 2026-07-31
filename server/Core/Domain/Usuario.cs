@@ -6,10 +6,12 @@ public class Usuario
   public string Nome { get; private set; } = null!;
   public string Email { get; private set; } = null!;
   public string SenhaHash { get; private set; } = null!;
+  public bool Ativo { get; private set; }
+  public bool IsAdmin { get; private set; }
 
   protected Usuario() { }
 
-  public Usuario(string nome, string email, string senhaHash)
+  public Usuario(string nome, string email, string senhaHash, bool ativo = true)
   {
     if (string.IsNullOrWhiteSpace(nome)) throw new ArgumentException("Nome obrigatório.");
     if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email obrigatório.");
@@ -18,8 +20,12 @@ public class Usuario
     Nome = nome;
     Email = email.ToLower().Trim();
     SenhaHash = senhaHash;
+    Ativo = ativo;
+    IsAdmin = false;
   }
 
   public bool VerificarSenha(string senha) =>
       BCrypt.Net.BCrypt.Verify(senha, SenhaHash);
+
+  public void Ativar() => Ativo = true;
 }

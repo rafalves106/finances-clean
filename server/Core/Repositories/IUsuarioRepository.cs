@@ -7,4 +7,5 @@ public interface IUsuarioRepository
   Usuario? BuscarPorEmail(string email);
   bool ExistePorEmail(string email);
   void Adicionar(Usuario usuario);
+  void Atualizar(Usuario usuario);
 }
