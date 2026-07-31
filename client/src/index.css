@@ -385,6 +385,16 @@ body {
     0 14px 30px rgba(8, 7, 17, 0.46);
 }
 
+.uiux-card-fatura-label {
+  margin: 0 0 2px;
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
 .uiux-card-top-row {
   display: flex;
   align-items: baseline;

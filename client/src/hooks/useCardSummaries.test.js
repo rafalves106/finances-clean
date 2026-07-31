@@ -82,4 +82,57 @@ describe("useCardSummaries", () => {
 
     expect(result.current.cardLimitUsed).toBe(800);
   });
+
+  it("busca a fatura do mes/ano selecionado e refaz o fetch quando eles mudam", async () => {
+    const fetchMock = buildFetchMock([
+      {
+        cartao: { id: "cartao-1", nome: "Cartao Principal", limiteTotal: 2000 },
+        limite: { utilizado: 300, disponivel: 1700, percentualUso: 15 },
+        previsaoFatura: { atual: 300, proxima: 0 },
+      },
+    ]);
+    globalThis.fetch = fetchMock;
+
+    const { result, rerender } = renderHook(
+      ({ selectedMes, selectedAno }) =>
+        useCardSummaries({ allTransactions: [], selectedMes, selectedAno }),
+      { initialProps: { selectedMes: 5, selectedAno: 2026 } },
+    );
+
+    await waitFor(() => expect(result.current.cardLimitUsed).toBe(300));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("mes=5"),
+      expect.anything(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("ano=2026"),
+      expect.anything(),
+    );
+
+    fetchMock.mockClear();
+    fetchMock.mockImplementation(
+      buildFetchMock([
+        {
+          cartao: {
+            id: "cartao-1",
+            nome: "Cartao Principal",
+            limiteTotal: 2000,
+          },
+          limite: { utilizado: 0, disponivel: 2000, percentualUso: 0 },
+          previsaoFatura: { atual: 0, proxima: 0 },
+        },
+      ]),
+    );
+
+    rerender({ selectedMes: 6, selectedAno: 2026 });
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("mes=6"),
+        expect.anything(),
+      ),
+    );
+    await waitFor(() => expect(result.current.cardLimitUsed).toBe(0));
+  });
 });

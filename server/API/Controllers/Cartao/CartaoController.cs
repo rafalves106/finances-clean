@@ -94,16 +94,16 @@ public class CartaoController(
   }
 
   [HttpGet("resumo")]
-  public IActionResult ObterResumo()
+  public IActionResult ObterResumo([FromQuery] int? mes = null, [FromQuery] int? ano = null)
   {
-    var resumo = obterResumoCartaoUseCase.Executar(UsuarioId);
+    var resumo = obterResumoCartaoUseCase.Executar(UsuarioId, mes, ano);
     return resumo is null ? NotFound(Erro("CARTAO_NAO_ENCONTRADO", "Cartão não encontrado.")) : Ok(resumo);
   }
 
   [HttpGet("resumos")]
-  public IActionResult ListarResumos()
+  public IActionResult ListarResumos([FromQuery] int? mes = null, [FromQuery] int? ano = null)
   {
-    var resumos = listarResumosCartoesUseCase.Executar(UsuarioId);
+    var resumos = listarResumosCartoesUseCase.Executar(UsuarioId, mes, ano);
     return Ok(resumos);
   }
 

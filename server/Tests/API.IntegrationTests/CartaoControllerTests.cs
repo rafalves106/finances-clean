@@ -131,6 +131,70 @@ public class CartaoControllerTests : IClassFixture<ApiWebApplicationFactory>
     Assert.Equal(HttpStatusCode.Created, novoResponse.StatusCode);
   }
 
+  [Fact]
+  public async Task ListarResumos_ComMesEAnoDeCompetenciaPassada_DeveRetornarSoAFaturaDaquelaCompetencia()
+  {
+    using var client = BuildAuthenticatedClient();
+
+    using var cadastro = BuildRequest(
+        HttpMethod.Post,
+        "/api/v1/cartao",
+        new
+        {
+          nome = "Cartão Histórico",
+          limiteTotal = 2000,
+          diaFechamento = 10,
+          diaVencimento = 20
+        });
+    var cadastroResponse = await client.SendAsync(cadastro);
+    Assert.Equal(HttpStatusCode.Created, cadastroResponse.StatusCode);
+    using var cadastroDocument = JsonDocument.Parse(await cadastroResponse.Content.ReadAsStringAsync());
+    var cartaoId = cadastroDocument.RootElement.GetProperty("id").GetGuid();
+
+    // dia 15/abril (>= fechamento 10) cai na competencia de maio (202605)
+    await CriarCompraNoCartao(client, cartaoId, valor: 500, data: new DateTime(2026, 4, 15));
+    // dia 20/maio (>= fechamento 10) cai na competencia de junho (202606)
+    await CriarCompraNoCartao(client, cartaoId, valor: 700, data: new DateTime(2026, 5, 20));
+
+    var resumoMaio = await ObterResumos(client, mes: 5, ano: 2026);
+    Assert.Equal(500m, resumoMaio.GetProperty("limite").GetProperty("utilizado").GetDecimal());
+
+    var resumoJunho = await ObterResumos(client, mes: 6, ano: 2026);
+    Assert.Equal(700m, resumoJunho.GetProperty("limite").GetProperty("utilizado").GetDecimal());
+    Assert.Equal(0m, resumoJunho.GetProperty("previsaoFatura").GetProperty("proxima").GetDecimal());
+  }
+
+  private static async Task CriarCompraNoCartao(HttpClient client, Guid cartaoId, decimal valor, DateTime data)
+  {
+    using var request = BuildRequest(
+        HttpMethod.Post,
+        "/api/v1/movimentacoes",
+        new
+        {
+          titulo = "Compra teste",
+          valor,
+          data,
+          tipo = "Saida",
+          cartaoId
+        });
+
+    var response = await client.SendAsync(request);
+    Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+  }
+
+  private static async Task<JsonElement> ObterResumos(HttpClient client, int mes, int ano)
+  {
+    using var request = new HttpRequestMessage(
+        HttpMethod.Get, $"/api/v1/cartao/resumos?mes={mes}&ano={ano}");
+    request.Headers.TryAddWithoutValidation("Origin", "http://allowed.example.com");
+
+    var response = await client.SendAsync(request);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+    using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    return document.RootElement[0].Clone();
+  }
+
   private HttpClient BuildAuthenticatedClient()
   {
     var client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
