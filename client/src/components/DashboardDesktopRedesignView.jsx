@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   Download,
@@ -22,465 +22,41 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  API_CARTAO_URL,
-  API_URL,
-  extractApiErrorMessage,
-} from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
+import { useViewportDensity } from "../hooks/useViewportDensity";
+import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
+import { useCardSummaries } from "../hooks/useCardSummaries";
+import { useTransactionFilters } from "../hooks/useTransactionFilters";
+import { useTransactionActions } from "../hooks/useTransactionActions";
+import { useCsvExport } from "../hooks/useCsvExport";
+import {
+  UPCOMING_ITEM_TITLE_MAX_LENGTH,
+  formatDateLabel,
+  formatVariationPercent,
+  getMonthDateRange,
+  truncateWithThreeDots,
+} from "../util/dashboardFormatters";
+import {
+  DEFAULT_CARD_THEME,
+  getBackLayerStyle,
+  getCategoryStandardColor,
+  getFrontLayerStyle,
+  getThemePalette,
+  normalizeCardTheme,
+  toHsla,
+  toRgba,
+} from "../util/cardTheme";
+import {
+  CHART_THEME_COLORS,
+  formatChartAxisTick,
+  renderCategoryComparisonTooltip,
+  renderCategoryPieIconLabel,
+  renderCategoryPieTooltip,
+  renderChartTooltip,
+} from "./dashboard/chartTooltips";
 import ExportCsvModal from "./ExportCsvModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
-
-const formatDateLabel = (dateInput) => {
-  const date = new Date(dateInput);
-  return date.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-};
-
-const UPCOMING_ITEM_TITLE_MAX_LENGTH = 22;
-
-const truncateWithThreeDots = (text, maxLength) => {
-  const normalized = String(text || "").trim();
-  if (normalized.length <= maxLength) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, maxLength).trimEnd()}...`;
-};
-
-const getMonthYearFromValue = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return {
-    month: date.getMonth() + 1,
-    year: date.getFullYear(),
-  };
-};
-
-const calculateVariationPercent = (currentValue, previousValue) => {
-  if (previousValue <= 0) {
-    return currentValue > 0 ? 100 : 0;
-  }
-
-  return ((currentValue - previousValue) / previousValue) * 100;
-};
-
-const formatVariationPercent = (value) => {
-  const normalized = Number.isFinite(value) ? value : 0;
-  const sign = normalized >= 0 ? "+" : "";
-  return `${sign}${normalized.toFixed(1).replace(".", ",")}%`;
-};
-
-const isInvestmentExpense = (item) => {
-  const type = item.type || item.tipo;
-  const categoryName = String(item.categoria?.nome || "").toLowerCase();
-
-  return type === "Saida" && categoryName.includes("invest");
-};
-
-const sortByDate = (list) =>
-  [...list].sort(
-    (a, b) => new Date(b.date || b.data) - new Date(a.date || a.data),
-  );
-
-const getMonthDateRange = (year, month) => {
-  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-  return { startDate, endDate };
-};
-
-const CHART_SERIES_ORDER = ["entrada", "saida", "saldo"];
-
-const CHART_SERIES_LABEL = {
-  entrada: "Receita",
-  saida: "Despesa",
-  saldo: "Saldo",
-};
-
-const CHART_Y_TICKS = [0, 1000, 2000, 3000, 4000, 5000];
-
-const formatChartAxisTick = (value) => {
-  if (value >= 1000) {
-    const compact = value / 1000;
-    const normalized = Number.isInteger(compact)
-      ? String(compact)
-      : String(compact).replace(/\.0$/, "");
-    return `${normalized}K`;
-  }
-
-  return String(value);
-};
-
-const CHART_THEME_COLORS = {
-  entrada: {
-    line: "#2C462F",
-    fill: "#059669",
-    glow: "rgba(5, 150, 105, 0.34)",
-  },
-  saida: {
-    line: "#462C2C",
-    fill: "#E11D48",
-    glow: "rgba(225, 29, 72, 0.3)",
-  },
-  saldo: {
-    line: "#2C4246",
-    fill: "#2563EB",
-    glow: "rgba(37, 99, 235, 0.28)",
-  },
-};
-
-const getUniqueTooltipItems = (payload) => {
-  if (!Array.isArray(payload) || payload.length === 0) {
-    return [];
-  }
-
-  const uniqueByDataKey = new Map();
-
-  payload.forEach((item) => {
-    const key = item?.dataKey;
-    if (!key || uniqueByDataKey.has(key)) {
-      return;
-    }
-
-    uniqueByDataKey.set(key, item);
-  });
-
-  return CHART_SERIES_ORDER.map((key) => uniqueByDataKey.get(key)).filter(
-    Boolean,
-  );
-};
-
-const renderChartTooltip = ({ active, payload, label }) => {
-  if (!active) {
-    return null;
-  }
-
-  const items = getUniqueTooltipItems(payload);
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <div
-      style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
-        borderRadius: "12px",
-        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
-        fontSize: "12px",
-        padding: "10px 12px",
-      }}
-    >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
-        {label}
-      </p>
-      {items.map((item) => (
-        <p
-          key={item.dataKey}
-          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
-        >
-          {CHART_SERIES_LABEL[item.dataKey] ?? item.dataKey}:{" "}
-          {formatCurrency(item.value)}
-        </p>
-      ))}
-    </div>
-  );
-};
-
-const renderCategoryComparisonTooltip = ({ active, payload }) => {
-  if (!active || !Array.isArray(payload) || payload.length === 0) {
-    return null;
-  }
-
-  const rawCategoryName = payload[0]?.payload?.nome;
-  const categoryName =
-    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
-      ? rawCategoryName
-      : "Categoria";
-
-  return (
-    <div
-      style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
-        borderRadius: "12px",
-        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
-        fontSize: "12px",
-        padding: "10px 12px",
-      }}
-    >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
-        {categoryName}
-      </p>
-      {payload.map((item) => (
-        <p
-          key={item.dataKey}
-          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
-        >
-          {item.name}: {formatCurrency(item.value)}
-        </p>
-      ))}
-    </div>
-  );
-};
-
-const renderCategoryPieTooltip = ({ active, payload }) => {
-  if (!active || !Array.isArray(payload) || payload.length === 0) {
-    return null;
-  }
-
-  const firstItem = payload[0];
-  const rawCategoryName = firstItem?.payload?.nome;
-  const categoryName =
-    typeof rawCategoryName === "string" && rawCategoryName.trim().length > 0
-      ? rawCategoryName
-      : "Categoria";
-
-  return (
-    <div
-      style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
-        borderRadius: "12px",
-        boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
-        fontSize: "12px",
-        padding: "10px 12px",
-      }}
-    >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
-        {categoryName}
-      </p>
-      <p style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}>
-        Gasto no mês: {formatCurrency(firstItem?.value || 0)}
-      </p>
-    </div>
-  );
-};
-
-const renderCategoryPieIconLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-  payload,
-}) => {
-  if (!payload?.icone || (Number.isFinite(percent) && percent < 0.06)) {
-    return null;
-  }
-
-  const centerX = Number(cx);
-  const centerY = Number(cy);
-  const inner = Number(innerRadius);
-  const outer = Number(outerRadius);
-  const radius = inner + (outer - inner) * 0.5;
-  const angleInRad = (-Number(midAngle) * Math.PI) / 180;
-  const x = centerX + radius * Math.cos(angleInRad);
-  const y = centerY + radius * Math.sin(angleInRad);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor="middle"
-      dominantBaseline="central"
-      style={{ fontSize: 12 }}
-    >
-      {payload.icone}
-    </text>
-  );
-};
-
-const DEFAULT_CARD_THEME = "#271815";
-
-const normalizeCardTheme = (value) => {
-  if (typeof value !== "string") {
-    return DEFAULT_CARD_THEME;
-  }
-
-  const trimmed = value.trim();
-  if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
-    return trimmed.toUpperCase();
-  }
-
-  return DEFAULT_CARD_THEME;
-};
-
-const hexToRgb = (hexColor) => {
-  const normalized = normalizeCardTheme(hexColor).replace("#", "");
-  return {
-    r: parseInt(normalized.slice(0, 2), 16),
-    g: parseInt(normalized.slice(2, 4), 16),
-    b: parseInt(normalized.slice(4, 6), 16),
-  };
-};
-
-const rgbToHsl = (r, g, b) => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      case b:
-        h = ((r - g) / d + 4) / 6;
-        break;
-      default:
-        break;
-    }
-  }
-
-  return {
-    h: Math.round(h * 360),
-    s: Math.round(s * 100),
-    l: Math.round(l * 100),
-  };
-};
-
-const hexToHsl = (hexColor) => {
-  const { r, g, b } = hexToRgb(hexColor);
-  return rgbToHsl(r, g, b);
-};
-
-const toRgba = (hexColor, alpha) => {
-  const { r, g, b } = hexToRgb(hexColor);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-const toHsla = (hslColor, alpha) => {
-  if (!hslColor || typeof hslColor !== "string") {
-    return `hsla(0, 0%, 0%, ${alpha})`;
-  }
-
-  const hslMatch = hslColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-  if (!hslMatch) {
-    return hslColor;
-  }
-
-  const [, h, s, l] = hslMatch;
-  return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
-};
-
-const clampRatio = (value) => Math.min(1, Math.max(0, value));
-
-const mixRgb = (from, to, ratio) =>
-  Math.round(from + (to - from) * clampRatio(ratio));
-
-const rgbToHex = ({ r, g, b }) =>
-  `#${[r, g, b]
-    .map((channel) => channel.toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase()}`;
-
-const mixWithWhite = (hexColor, ratio) => {
-  const rgb = hexToRgb(hexColor);
-  return rgbToHex({
-    r: mixRgb(rgb.r, 255, ratio),
-    g: mixRgb(rgb.g, 255, ratio),
-    b: mixRgb(rgb.b, 255, ratio),
-  });
-};
-
-const mixWithBlack = (hexColor, ratio) => {
-  const rgb = hexToRgb(hexColor);
-  return rgbToHex({
-    r: mixRgb(rgb.r, 0, ratio),
-    g: mixRgb(rgb.g, 0, ratio),
-    b: mixRgb(rgb.b, 0, ratio),
-  });
-};
-
-const getThemePalette = (themeColor) => ({
-  backName: mixWithWhite(themeColor, 0.58),
-  usedText: mixWithWhite(themeColor, 0.62),
-  cardName: mixWithWhite(themeColor, 0.56),
-  progressTrackBorder: mixWithWhite(themeColor, 0.36),
-  progressTrackStart: toRgba(themeColor, 0.22),
-  progressTrackEnd: toRgba(mixWithBlack(themeColor, 0.68), 0.9),
-  progressFillBorder: mixWithWhite(themeColor, 0.48),
-  progressFillStart: mixWithWhite(themeColor, 0.24),
-  progressFillEnd: mixWithBlack(themeColor, 0.4),
-});
-
-const getBackLayerStyle = (themeColor, index) => ({
-  borderColor:
-    index === 0 ? toRgba(themeColor, 0.42) : toRgba(themeColor, 0.34),
-  background:
-    index === 0
-      ? `linear-gradient(180deg, ${toRgba(themeColor, 0.45)} 0%, rgba(28, 27, 36, 0.86) 100%)`
-      : `linear-gradient(180deg, ${toRgba(themeColor, 0.34)} 0%, rgba(30, 28, 36, 0.75) 100%)`,
-});
-
-const getFrontLayerStyle = (themeColor) => ({
-  borderColor: toRgba(themeColor, 0.58),
-  background: `
-    radial-gradient(circle at 12% 15%, ${toRgba(themeColor, 0.16)} 0%, ${toRgba(
-      themeColor,
-      0,
-    )} 45%),
-    linear-gradient(145deg, ${toRgba(themeColor, 0.96)} 0%, rgba(29, 17, 16, 0.92) 52%, #191026 100%)
-  `,
-});
-
-const getCategoryStandardColor = (categoryColor) => {
-  if (!categoryColor || typeof categoryColor !== "string") {
-    // Fallback: cor padrão cinza
-    return {
-      gradient1: "hsl(0, 0%, 20%)",
-      gradient2: "hsl(0, 0%, 12%)",
-      border: "hsl(0, 0%, 16%)",
-      text: "hsl(0, 0%, 38%)",
-    };
-  }
-
-  try {
-    const hsl = hexToHsl(categoryColor);
-    const hue = hsl.h;
-
-    // Aplica o padrão: HUE fixo, S e L padronizados
-    return {
-      gradient1: `hsl(${hue}, 25%, 15%)`,
-      gradient2: `hsl(${hue}, 28%, 9%)`,
-      border: `hsl(${hue}, 23%, 22%)`,
-      text: `hsl(${hue}, 23%, 38%)`,
-    };
-  } catch {
-    // Fallback se houver erro na conversão
-    return {
-      gradient1: "hsl(0, 0%, 20%)",
-      gradient2: "hsl(0, 0%, 12%)",
-      border: "hsl(0, 0%, 16%)",
-      text: "hsl(0, 0%, 38%)",
-    };
-  }
-};
 
 const DashboardDesktopRedesignView = ({
   incomes = [],
@@ -499,222 +75,17 @@ const DashboardDesktopRedesignView = ({
   onOpenCategoryManager,
   headerHeight = 96,
 }) => {
-  const [viewportHeight, setViewportHeight] = useState(
-    typeof window !== "undefined" ? window.innerHeight : 900,
-  );
-  const [viewportWidth, setViewportWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1920,
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("todas");
-  const [slideTransactionSearch, setSlideTransactionSearch] = useState("");
-  const [slideTransactionFilter, setSlideTransactionFilter] = useState("todas");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
-  const [cardSummaries, setCardSummaries] = useState([]);
-  const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
-  const [cardSummaryError, setCardSummaryError] = useState("");
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
-  const [openCardFormId, setOpenCardFormId] = useState(null);
-  const [cardFormById, setCardFormById] = useState({});
-  const [cardFormStatusById, setCardFormStatusById] = useState({});
-  const [isSavingCardById, setIsSavingCardById] = useState({});
-  const [newCardFormBySlot, setNewCardFormBySlot] = useState({});
-  const [newCardStatusBySlot, setNewCardStatusBySlot] = useState({});
-  const [isCreatingCardBySlot, setIsCreatingCardBySlot] = useState({});
   const [investmentSlideActions, setInvestmentSlideActions] = useState(null);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
 
-  useEffect(() => {
-    const onResize = () => {
-      setViewportHeight(window.innerHeight);
-      setViewportWidth(window.innerWidth);
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  const loadCardSummaries = useCallback(async () => {
-    try {
-      setIsCardSummaryLoading(true);
-      setCardSummaryError("");
-
-      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (multiResponse.ok) {
-        const multiData = await multiResponse.json();
-        const summaries = Array.isArray(multiData)
-          ? multiData
-          : Array.isArray(multiData?.resumos)
-            ? multiData.resumos
-            : Array.isArray(multiData?.data)
-              ? multiData.data
-              : [];
-
-        const validSummaries = summaries.filter((item) => item?.cartao);
-
-        if (validSummaries.length > 0) {
-          setCardSummaries(validSummaries.slice(0, 3));
-          return;
-        }
-
-        setCardSummaries([]);
-        return;
-      }
-
-      if (multiResponse.status !== 404 && multiResponse.status !== 405) {
-        const message = await extractApiErrorMessage(
-          multiResponse,
-          "Não foi possível carregar o resumo do cartão.",
-        );
-        setCardSummaryError(message);
-        setCardSummaries([]);
-        return;
-      }
-
-      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (response.status === 404) {
-        setCardSummaries([]);
-        return;
-      }
-
-      if (!response.ok) {
-        const message = await extractApiErrorMessage(
-          response,
-          "Não foi possível carregar o resumo do cartão.",
-        );
-        setCardSummaryError(message);
-        setCardSummaries([]);
-        return;
-      }
-
-      const data = await response.json();
-      if (data?.cartao) {
-        setCardSummaries([data]);
-      } else {
-        setCardSummaries([]);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar resumo de cartão:", error);
-      setCardSummaryError("Erro ao carregar resumo do cartão.");
-      setCardSummaries([]);
-    } finally {
-      setIsCardSummaryLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadCardSummaries();
-  }, [loadCardSummaries]);
-
-  useEffect(() => {
-    setCardFormById((current) => {
-      const next = { ...current };
-
-      cardSummaries.forEach((summary) => {
-        const card = summary?.cartao;
-        if (!card?.id) {
-          return;
-        }
-
-        const cardId = String(card.id);
-        if (next[cardId]) {
-          return;
-        }
-
-        next[cardId] = {
-          nome: card.nome || "",
-          limiteTotal: String(card.limiteTotal ?? ""),
-          diaFechamento: String(card.diaFechamento ?? ""),
-          diaVencimento: String(card.diaVencimento ?? ""),
-          corTema: normalizeCardTheme(card.corTema),
-        };
-      });
-
-      return next;
-    });
-  }, [cardSummaries]);
-
-  const viewportTier =
-    viewportWidth >= 1920 || viewportHeight >= 1080
-      ? "xl"
-      : viewportWidth >= 1440 || viewportHeight >= 900
-        ? "lg"
-        : "md";
-  const responsiveDensity = useMemo(() => {
-    if (viewportTier === "xl") {
-      return {
-        dashboardGap: 16,
-        mainPaddingTop: 16,
-        mainPaddingBottom: 16,
-        slideGap: 16,
-        slideHeaderHeight: 60,
-        slideBottomSafeArea: 88,
-        slideInnerPadding: 12,
-        sectionGap: 12,
-        sectionThreeMaxHeight: 345,
-        sectionThreeCardMinHeight: 260,
-        chartMargin: { top: 8, right: 8, left: 8, bottom: 8 },
-        chartTickFontSize: 10,
-        chartYAxisWidth: 28,
-      };
-    }
-
-    if (viewportTier === "lg") {
-      return {
-        dashboardGap: 12,
-        mainPaddingTop: 12,
-        mainPaddingBottom: 12,
-        slideGap: 12,
-        slideHeaderHeight: 56,
-        slideBottomSafeArea: 64,
-        slideInnerPadding: 10,
-        sectionGap: 10,
-        sectionThreeMaxHeight: 330,
-        sectionThreeCardMinHeight: 244,
-        chartMargin: { top: 6, right: 6, left: 4, bottom: 6 },
-        chartTickFontSize: 10,
-        chartYAxisWidth: 26,
-      };
-    }
-
-    return {
-      dashboardGap: 9,
-      mainPaddingTop: 10,
-      mainPaddingBottom: 10,
-      slideGap: 9,
-      slideHeaderHeight: 52,
-      slideBottomSafeArea: 48,
-      slideInnerPadding: 8,
-      sectionGap: 8,
-      sectionThreeMaxHeight: 305,
-      sectionThreeCardMinHeight: 220,
-      chartMargin: { top: 4, right: 4, left: 2, bottom: 4 },
-      chartTickFontSize: 9,
-      chartYAxisWidth: 24,
-    };
-  }, [viewportTier]);
-
   const {
     dashboardGap,
-    mainPaddingTop,
-    mainPaddingBottom,
     slideGap,
-    slideHeaderHeight,
     slideBottomSafeArea,
     slideInnerPadding,
     sectionGap,
@@ -723,37 +94,16 @@ const DashboardDesktopRedesignView = ({
     chartMargin,
     chartTickFontSize,
     chartYAxisWidth,
-  } = responsiveDensity;
+    hUtil,
+    slideContentHeight,
+    hSecao1,
+    hSecao2,
+    hSecao3,
+    kpiTitleClassName,
+    kpiValueClassName,
+    kpiHelperClampClassName,
+  } = useViewportDensity({ headerHeight });
 
-  const hUtil = Math.max(
-    380,
-    Math.floor(
-      viewportHeight - headerHeight - mainPaddingTop - mainPaddingBottom,
-    ),
-  );
-  const slideContentHeight = Math.max(
-    220,
-    hUtil - slideHeaderHeight - slideBottomSafeArea - slideGap,
-  );
-  const hConteudo = Math.max(220, hUtil - 2 * dashboardGap);
-  const hSecao1 = Math.floor(hConteudo * 0.3);
-  const hSecao2 = Math.floor(hConteudo * 0.28);
-  const hSecao3Raw = hConteudo - hSecao1 - hSecao2;
-  const hSecao3 = Math.min(hSecao3Raw, sectionThreeMaxHeight);
-  const kpiTitleClassName =
-    viewportTier === "xl"
-      ? "text-[24px]"
-      : viewportTier === "lg"
-        ? "text-[22px]"
-        : "text-[20px]";
-  const kpiValueClassName =
-    viewportTier === "xl"
-      ? "text-2xl"
-      : viewportTier === "lg"
-        ? "text-[22px]"
-        : "text-[20px]";
-  const kpiHelperClampClassName =
-    viewportTier === "xl" ? "" : "dashboard-kpi-helper-clamp";
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
     year: "2-digit",
@@ -769,913 +119,122 @@ const DashboardDesktopRedesignView = ({
     onChangeMonth(nextDate.getMonth() + 1, nextDate.getFullYear());
   };
 
-  const handleExportCsv = useCallback(async ({ startDate, endDate }) => {
-    try {
-      const query = new URLSearchParams({
-        dataInicio: startDate,
-        dataFim: endDate,
-      });
-
-      const response = await fetch(
-        `${API_URL}/exportar-csv?${query.toString()}`,
-        {
-          method: "GET",
-          credentials: "include",
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          errorText || "Não foi possível exportar movimentações.",
-        );
-      }
-
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("content-disposition");
-      const filenameMatch =
-        contentDisposition?.match(/filename\*=UTF-8''([^;\r\n]+)/i) ||
-        contentDisposition?.match(/filename="([^"]+)"/i) ||
-        contentDisposition?.match(/filename=([^;\r\n"]+)/i);
-      const fileName = filenameMatch
-        ? decodeURIComponent(filenameMatch[1].trim())
-        : `movimentacoes_${startDate.replaceAll("-", "")}_${endDate.replaceAll("-", "")}.csv`;
-
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Erro ao exportar CSV:", error);
-      alert(error.message || "Erro ao exportar CSV.");
-    }
-  }, []);
+  const { isExportModalOpen, setIsExportModalOpen, handleExportCsv } =
+    useCsvExport();
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
     [expenses, incomes, simulatedTransactions],
   );
 
-  const cardTransactionsById = useMemo(() => {
-    const grouped = new Map();
+  const {
+    isCardSummaryLoading,
+    cardSummaryError,
+    loadCardSummaries,
+    openCardFormId,
+    setOpenCardFormId,
+    cardFormById,
+    cardFormStatusById,
+    isSavingCardById,
+    newCardFormBySlot,
+    setNewCardFormBySlot,
+    newCardStatusBySlot,
+    isCreatingCardBySlot,
+    cardTransactionsById,
+    cardColumns,
+    cardSummary,
+    backCardSummaries,
+    activeCardTheme,
+    activeCardPalette,
+    cardLimitTotal,
+    cardLimitUsed,
+    cardUsagePercent,
+    handleBringCardToFront,
+    handleCardFormChange,
+    handleCardFormSubmit,
+    getInitialCardCreateForm,
+    handleCreateCardFormChange,
+    handleCreateCardFormSubmit,
+  } = useCardSummaries({ allTransactions, selectedMes, selectedAno });
 
-    sortByDate(allTransactions).forEach((item) => {
-      if (!item?.cartaoId) {
-        return;
-      }
-
-      const key = String(item.cartaoId);
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
-
-      grouped.get(key).push(item);
-    });
-
-    return grouped;
-  }, [allTransactions]);
-
-  const cardBillingCycleUsedByCardId = useMemo(() => {
-    const now = new Date();
-    const todayDay = now.getDate();
-    const todayMonth = now.getMonth(); // 0-indexed
-    const todayYear = now.getFullYear();
-    const endOfToday = new Date(
-      todayYear,
-      todayMonth,
-      todayDay,
-      23,
-      59,
-      59,
-      999,
-    );
-
-    return cardSummaries.reduce((acc, summary) => {
-      const card = summary?.cartao;
-      if (!card?.id || !card?.diaFechamento) return acc;
-
-      const diaFech = Number(card.diaFechamento);
-
-      let cycleStart;
-      if (todayDay > diaFech) {
-        cycleStart = new Date(todayYear, todayMonth, diaFech + 1, 0, 0, 0, 0);
-      } else {
-        const pm = todayMonth === 0 ? 11 : todayMonth - 1;
-        const py = todayMonth === 0 ? todayYear - 1 : todayYear;
-        cycleStart = new Date(py, pm, diaFech + 1, 0, 0, 0, 0);
-      }
-
-      const txns = cardTransactionsById.get(String(card.id)) || [];
-
-      const used = txns
-        .filter((t) => (t.type || t.tipo) === "Saida")
-        .filter((t) => {
-          const d = new Date(t.date || t.data);
-          return d >= cycleStart && d <= endOfToday;
-        })
-        .reduce((sum, t) => sum + Number(t.value || t.valor || 0), 0);
-
-      acc.set(String(card.id), { used, cycleStart });
-      return acc;
-    }, new Map());
-  }, [cardSummaries, cardTransactionsById]);
-
-  const cardColumns = useMemo(
-    () => Array.from({ length: 3 }, (_, index) => cardSummaries[index] || null),
-    [cardSummaries],
-  );
-
-  const cardSummary = cardSummaries[0] || null;
-  const backCardSummaries = cardSummaries.slice(1, 3);
-  const activeCardTheme = normalizeCardTheme(cardSummary?.cartao?.corTema);
-  const activeCardPalette = getThemePalette(activeCardTheme);
-  const cardLimitTotal = Number(
-    cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
-  );
-  const cardLimitUsedFromApi = Number(
-    cardSummary?.limite?.limiteUtilizado ||
-      cardSummary?.limite?.utilizado ||
-      cardSummary?.limite?.Utilizado ||
-      0,
-  );
-
-  const _billingDataMain = cardBillingCycleUsedByCardId.get(
-    cardSummary?.cartao?.id ? String(cardSummary.cartao.id) : "",
-  );
-
-  const isViewingCurrentMonth =
-    selectedMes === new Date().getMonth() + 1 &&
-    selectedAno === new Date().getFullYear();
-
-  const cardLimitUsed =
-    isViewingCurrentMonth && _billingDataMain !== undefined
-      ? _billingDataMain.used
-      : cardLimitUsedFromApi;
-
-  const cardUsagePercent =
-    cardLimitTotal > 0
-      ? Math.min(100, Math.max(0, (cardLimitUsed / cardLimitTotal) * 100))
-      : 0;
-
-  const handleBringCardToFront = (cardIndex) => {
-    setCardSummaries((current) => {
-      if (cardIndex <= 0 || cardIndex >= current.length) {
-        return current;
-      }
-
-      const selected = current[cardIndex];
-      return [selected, ...current.filter((_, index) => index !== cardIndex)];
-    });
-  };
-
-  const handleCardFormChange = (cardId, field, value) => {
-    setCardFormById((current) => ({
-      ...current,
-      [cardId]: {
-        ...(current[cardId] || {}),
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleCardFormSubmit = async (event, cardId) => {
-    event.preventDefault();
-
-    const values = cardFormById[cardId];
-    if (!values) {
-      return;
-    }
-
-    const payload = {
-      nome: values.nome?.trim() || "",
-      limiteTotal: Number(values.limiteTotal || 0),
-      diaFechamento: Number(values.diaFechamento || 0),
-      diaVencimento: Number(values.diaVencimento || 0),
-      corTema: values.corTema || DEFAULT_CARD_THEME,
-    };
-
-    try {
-      setIsSavingCardById((current) => ({ ...current, [cardId]: true }));
-      setCardFormStatusById((current) => ({ ...current, [cardId]: "" }));
-
-      const response = await fetch(`${API_CARTAO_URL}/${cardId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const message = await extractApiErrorMessage(
-          response,
-          "Não foi possível salvar o cartão.",
-        );
-        setCardFormStatusById((current) => ({ ...current, [cardId]: message }));
-        return;
-      }
-
-      setCardSummaries((current) =>
-        current.map((summary) => {
-          if (String(summary?.cartao?.id) !== cardId) {
-            return summary;
-          }
-
-          return {
-            ...summary,
-            cartao: {
-              ...summary.cartao,
-              nome: payload.nome,
-              limiteTotal: payload.limiteTotal,
-              diaFechamento: payload.diaFechamento,
-              diaVencimento: payload.diaVencimento,
-              corTema: payload.corTema,
-            },
-          };
-        }),
-      );
-
-      setCardFormStatusById((current) => ({
-        ...current,
-        [cardId]: "Cartão atualizado com sucesso.",
-      }));
-    } catch (error) {
-      console.error("Error saving card:", error);
-      setCardFormStatusById((current) => ({
-        ...current,
-        [cardId]: "Erro ao salvar cartão.",
-      }));
-    } finally {
-      setIsSavingCardById((current) => ({ ...current, [cardId]: false }));
-    }
-  };
-
-  const getInitialCardCreateForm = (slotIndex) => ({
-    nome: `Cartão ${slotIndex + 1}`,
-    limiteTotal: "",
-    diaFechamento: "",
-    diaVencimento: "",
-    corTema: DEFAULT_CARD_THEME,
+  const {
+    totalIncome,
+    totalExpense,
+    monthComparison,
+    receitasTagClassName,
+    despesasTagClassName,
+    saldoTagClassName,
+    investimentosTagClassName,
+    receitasDiffColorClassName,
+    despesasDiffColorClassName,
+    saldoDiffColorClassName,
+    investimentoDiffColorClassName,
+    receitasDiffDirection,
+    despesasDiffDirection,
+    saldoDiffDirection,
+    investimentoDiffDirection,
+    chartData,
+    chartYAxisMax,
+    chartYTicks,
+    upcomingPayments,
+    upcomingReceipts,
+    categoryRanking,
+    slideCategoryRanking,
+    slideCategoryLeftColumn,
+    slideCategoryRightColumn,
+    exceededAlertsLeftColumn,
+    exceededAlertsRightColumn,
+    categoryComparisonData,
+    currentMonthShortLabel,
+    previousMonthShortLabel,
+    categoryPieData,
+    slideCategoryPieData,
+    dashboardPiePaddingAngle,
+    dashboardPieCornerRadius,
+  } = useDashboardFinancials({
+    allTransactions,
+    incomes,
+    expenses,
+    categorias,
+    selectedMes,
+    selectedAno,
+    saldoAnterior,
   });
 
-  const handleCreateCardFormChange = (slotIndex, field, value) => {
-    const slotKey = String(slotIndex);
-    setNewCardFormBySlot((current) => ({
-      ...current,
-      [slotKey]: {
-        ...(current[slotKey] || getInitialCardCreateForm(slotIndex)),
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleCreateCardFormSubmit = async (event, slotIndex) => {
-    event.preventDefault();
-
-    const slotKey = String(slotIndex);
-    const values =
-      newCardFormBySlot[slotKey] || getInitialCardCreateForm(slotIndex);
-
-    const payload = {
-      nome: values.nome?.trim() || "",
-      limiteTotal: Number(values.limiteTotal || 0),
-      diaFechamento: Number(values.diaFechamento || 0),
-      diaVencimento: Number(values.diaVencimento || 0),
-      corTema: values.corTema || DEFAULT_CARD_THEME,
-    };
-
-    try {
-      setIsCreatingCardBySlot((current) => ({ ...current, [slotKey]: true }));
-      setNewCardStatusBySlot((current) => ({ ...current, [slotKey]: "" }));
-
-      const response = await fetch(API_CARTAO_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const message = await extractApiErrorMessage(
-          response,
-          "Não foi possível criar o cartão.",
-        );
-        setNewCardStatusBySlot((current) => ({
-          ...current,
-          [slotKey]: message,
-        }));
-        return;
-      }
-
-      await loadCardSummaries();
-      setOpenCardFormId(null);
-      setNewCardFormBySlot((current) => {
-        const next = { ...current };
-        delete next[slotKey];
-        return next;
-      });
-      setNewCardStatusBySlot((current) => ({
-        ...current,
-        [slotKey]: "Cartão criado com sucesso.",
-      }));
-    } catch (error) {
-      console.error("Error creating card:", error);
-      setNewCardStatusBySlot((current) => ({
-        ...current,
-        [slotKey]: "Erro ao criar cartão.",
-      }));
-    } finally {
-      setIsCreatingCardBySlot((current) => ({ ...current, [slotKey]: false }));
-    }
-  };
-
-  const totalIncome = useMemo(
-    () =>
-      allTransactions
-        .filter((item) => (item.type || item.tipo) === "Entrada")
-        .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
-    [allTransactions],
-  );
-
-  const totalExpense = useMemo(
-    () =>
-      allTransactions
-        .filter((item) => (item.type || item.tipo) === "Saida")
-        .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
-    [allTransactions],
-  );
-
-  const monthComparison = useMemo(() => {
-    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
-    const previousMonth = previousRef.getMonth() + 1;
-    const previousYear = previousRef.getFullYear();
-
-    const sumByTypeAndPeriod = (type, month, year) =>
-      allTransactions
-        .filter((item) => (item.type || item.tipo) === type)
-        .reduce((acc, item) => {
-          const dateInfo = getMonthYearFromValue(item.date || item.data);
-          if (!dateInfo) {
-            return acc;
-          }
-
-          if (dateInfo.month !== month || dateInfo.year !== year) {
-            return acc;
-          }
-
-          return acc + Number(item.value || item.valor || 0);
-        }, 0);
-
-    const currentIncome = sumByTypeAndPeriod(
-      "Entrada",
-      selectedMes,
-      selectedAno,
-    );
-    const previousIncome = sumByTypeAndPeriod(
-      "Entrada",
-      previousMonth,
-      previousYear,
-    );
-
-    const currentExpense = sumByTypeAndPeriod(
-      "Saida",
-      selectedMes,
-      selectedAno,
-    );
-    const previousExpense = sumByTypeAndPeriod(
-      "Saida",
-      previousMonth,
-      previousYear,
-    );
-
-    const sumInvestmentsByPeriod = (month, year) =>
-      allTransactions.filter(isInvestmentExpense).reduce((acc, item) => {
-        const dateInfo = getMonthYearFromValue(item.date || item.data);
-        if (!dateInfo) {
-          return acc;
-        }
-
-        if (dateInfo.month !== month || dateInfo.year !== year) {
-          return acc;
-        }
-
-        return acc + Number(item.value || item.valor || 0);
-      }, 0);
-
-    const currentInvestment = sumInvestmentsByPeriod(selectedMes, selectedAno);
-    const previousInvestment = sumInvestmentsByPeriod(
-      previousMonth,
-      previousYear,
-    );
-
-    return {
-      incomePercent: calculateVariationPercent(currentIncome, previousIncome),
-      expensePercent: calculateVariationPercent(
-        currentExpense,
-        previousExpense,
-      ),
-      balancePercent: calculateVariationPercent(
-        currentIncome - currentExpense,
-        previousIncome - previousExpense,
-      ),
-      incomeDiff: currentIncome - previousIncome,
-      expenseDiff: currentExpense - previousExpense,
-      balanceDiff:
-        currentIncome - currentExpense - (previousIncome - previousExpense),
-      currentBalance: currentIncome - currentExpense,
-      investmentPercent: calculateVariationPercent(
-        currentInvestment,
-        previousInvestment,
-      ),
-      investmentDiff: currentInvestment - previousInvestment,
-      currentInvestment,
-    };
-  }, [allTransactions, selectedAno, selectedMes]);
-
-  const receitasTrendIsPositive = monthComparison.incomePercent >= 0;
-  const despesasTrendIsPositive = monthComparison.expensePercent <= 0;
-  const saldoTrendIsPositive = monthComparison.balancePercent >= 0;
-  const investmentTrendIsPositive = monthComparison.investmentDiff > 0;
-
-  const receitasTagClassName = receitasTrendIsPositive
-    ? "tag-positive"
-    : "tag-negative";
-  const despesasTagClassName = despesasTrendIsPositive
-    ? "tag-positive"
-    : "tag-negative";
-  const saldoTagClassName = saldoTrendIsPositive
-    ? "tag-positive"
-    : "tag-negative";
-  const investimentosTagClassName = investmentTrendIsPositive
-    ? "tag-positive"
-    : "tag-negative";
-
-  const receitasDiffColorClassName = receitasTrendIsPositive
-    ? "text-positive"
-    : "text-negative";
-  const despesasDiffColorClassName = despesasTrendIsPositive
-    ? "text-positive"
-    : "text-negative";
-  const saldoDiffColorClassName = saldoTrendIsPositive
-    ? "text-positive"
-    : "text-negative";
-  const investimentoDiffColorClassName = investmentTrendIsPositive
-    ? "text-positive"
-    : "text-negative";
-
-  const receitasDiffDirection =
-    monthComparison.incomeDiff >= 0 ? "a mais" : "a menos";
-  const despesasDiffDirection =
-    monthComparison.expenseDiff >= 0 ? "a mais" : "a menos";
-  const saldoDiffDirection =
-    monthComparison.balanceDiff >= 0 ? "a mais" : "a menos";
-  const investimentoDiffDirection =
-    monthComparison.investmentDiff >= 0 ? "a mais" : "a menos";
-
-  const chartData = useMemo(() => {
-    const grouped = allTransactions.reduce((acc, item) => {
-      const iso = (item.date || item.data || "").split("T")[0];
-      if (!iso) return acc;
-      if (!acc[iso]) {
-        acc[iso] = { entrada: 0, saida: 0 };
-      }
-      if ((item.type || item.tipo) === "Entrada") {
-        acc[iso].entrada += Number(item.value || item.valor || 0);
-      } else {
-        acc[iso].saida += Number(item.value || item.valor || 0);
-      }
-      return acc;
-    }, {});
-
-    return Object.entries(grouped)
-      .sort((a, b) => new Date(a[0]) - new Date(b[0]))
-      .reduce((acc, [iso, values], index) => {
-        const previous = index > 0 ? acc[index - 1].saldo : saldoAnterior;
-        const [, month, day] = iso.split("-");
-        acc.push({
-          data: `${day}/${month}`,
-          entrada: values.entrada,
-          saida: values.saida,
-          saldo: previous + values.entrada - values.saida,
-        });
-        return acc;
-      }, []);
-  }, [allTransactions, saldoAnterior]);
-
-  const chartYAxisMax = useMemo(() => {
-    const maxSaldo = chartData.reduce(
-      (max, item) => Math.max(max, Number(item.saldo || 0)),
-      0,
-    );
-
-    const paddedMax = maxSaldo + 1000;
-    return Math.max(1000, Math.ceil(paddedMax / 1000) * 1000);
-  }, [chartData]);
-
-  const chartYTicks = useMemo(() => {
-    const ticks = [];
-
-    for (let tick = 0; tick < chartYAxisMax; tick += 1000) {
-      ticks.push(tick);
-    }
-
-    if (ticks[ticks.length - 1] !== chartYAxisMax) {
-      ticks.push(chartYAxisMax);
-    }
-
-    return ticks;
-  }, [chartYAxisMax]);
-
-  const upcomingPayments = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(selectedAno, selectedMes - 1, 1, 0, 0, 0, 0);
-    const monthEnd = new Date(selectedAno, selectedMes, 0, 23, 59, 59, 999);
-    const start =
-      selectedMes === now.getMonth() + 1 && selectedAno === now.getFullYear()
-        ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-        : monthStart;
-
-    return sortByDate(expenses)
-      .filter((item) => {
-        const dueDate = new Date(item.date || item.data);
-        return dueDate >= start && dueDate <= monthEnd;
-      })
-      .slice(0, 5)
-      .map((item) => ({
-        id: item.id,
-        title: item.name || item.titulo || "Despesa",
-        value: Number(item.value || item.valor || 0),
-        categoria: item.categoria?.nome || "Sem categoria",
-        icone: item.categoria?.icone || "•",
-        dueDate: new Date(item.date || item.data),
-      }));
-  }, [expenses, selectedAno, selectedMes]);
-
-  const upcomingReceipts = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(selectedAno, selectedMes - 1, 1, 0, 0, 0, 0);
-    const monthEnd = new Date(selectedAno, selectedMes, 0, 23, 59, 59, 999);
-    const start =
-      selectedMes === now.getMonth() + 1 && selectedAno === now.getFullYear()
-        ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-        : monthStart;
-
-    return sortByDate(incomes)
-      .filter((item) => {
-        const dueDate = new Date(item.date || item.data);
-        return dueDate >= start && dueDate <= monthEnd;
-      })
-      .slice(0, 5)
-      .map((item) => ({
-        id: item.id,
-        title: item.name || item.titulo || "Receita",
-        value: Number(item.value || item.valor || 0),
-        categoria: item.categoria?.nome || "Sem categoria",
-        icone: item.categoria?.icone || "•",
-        dueDate: new Date(item.date || item.data),
-      }));
-  }, [incomes, selectedAno, selectedMes]);
-
-  const categoryRankingAll = useMemo(() => {
-    const categoriaById = new Map(
-      categorias.map((categoria) => [String(categoria.id), categoria]),
-    );
-
-    const grouped = expenses.reduce((acc, item) => {
-      const key = item.categoriaId || "sem-categoria";
-      const categoriaRef = categoriaById.get(String(key));
-      const nome =
-        item.categoria?.nome || categoriaRef?.nome || "Sem categoria";
-      const icone = item.categoria?.icone || categoriaRef?.icone || "";
-      const cor = item.categoria?.cor || categoriaRef?.cor || "#6A6785";
-      const limite = Number(
-        item.categoria?.orcamentoMensal ||
-          categoriaRef?.orcamentoMensal ||
-          item.categoria?.limiteMensal ||
-          categoriaRef?.limiteMensal ||
-          0,
-      );
-
-      if (!acc[key]) {
-        acc[key] = { id: key, nome, icone, cor, limite, total: 0 };
-      }
-      acc[key].total += Number(item.value || item.valor || 0);
-      return acc;
-    }, {});
-
-    return Object.values(grouped).sort((a, b) => b.total - a.total);
-  }, [categorias, expenses]);
-
-  const categoryRanking = useMemo(
-    () => categoryRankingAll.slice(0, 4),
-    [categoryRankingAll],
-  );
-
-  const slideCategoryRanking = useMemo(
-    () => categoryRankingAll.slice(0, 8),
-    [categoryRankingAll],
-  );
-
-  const slideCategoryLeftColumn = useMemo(
-    () => slideCategoryRanking.slice(0, 4),
-    [slideCategoryRanking],
-  );
-
-  const slideCategoryRightColumn = useMemo(
-    () => slideCategoryRanking.slice(4, 8),
-    [slideCategoryRanking],
-  );
-
-  const exceededCategoryAlerts = useMemo(
-    () =>
-      categoryRankingAll
-        .filter((item) => item.limite > 0 && item.total > item.limite)
-        .slice(0, 8),
-    [categoryRankingAll],
-  );
-
-  const exceededAlertsLeftColumn = useMemo(
-    () => exceededCategoryAlerts.slice(0, 4),
-    [exceededCategoryAlerts],
-  );
-
-  const exceededAlertsRightColumn = useMemo(
-    () => exceededCategoryAlerts.slice(4, 8),
-    [exceededCategoryAlerts],
-  );
-
-  const categoryComparisonData = useMemo(() => {
-    const categoriaById = new Map(
-      categorias.map((categoria) => [String(categoria.id), categoria]),
-    );
-    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
-    const previousMonth = previousRef.getMonth() + 1;
-    const previousYear = previousRef.getFullYear();
-
-    const grouped = allTransactions.reduce((acc, item) => {
-      if ((item.type || item.tipo) !== "Saida") {
-        return acc;
-      }
-
-      const dateInfo = getMonthYearFromValue(item.date || item.data);
-      if (!dateInfo) {
-        return acc;
-      }
-
-      const isCurrentPeriod =
-        dateInfo.month === selectedMes && dateInfo.year === selectedAno;
-      const isPreviousPeriod =
-        dateInfo.month === previousMonth && dateInfo.year === previousYear;
-
-      if (!isCurrentPeriod && !isPreviousPeriod) {
-        return acc;
-      }
-
-      const key = String(
-        item.categoriaId || item.categoria?.id || "sem-categoria",
-      );
-      const categoriaRef = categoriaById.get(key);
-      const nome =
-        item.categoria?.nome || categoriaRef?.nome || "Sem categoria";
-      const cor = item.categoria?.cor || categoriaRef?.cor || "#6A6785";
-
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          nome,
-          cor,
-          currentTotal: 0,
-          previousTotal: 0,
-        };
-      }
-
-      const value = Number(item.value || item.valor || 0);
-      if (isCurrentPeriod) {
-        acc[key].currentTotal += value;
-      }
-      if (isPreviousPeriod) {
-        acc[key].previousTotal += value;
-      }
-
-      return acc;
-    }, {});
-
-    return Object.values(grouped)
-      .filter((item) => item.currentTotal > 0 || item.previousTotal > 0)
-      .sort((a, b) => {
-        if (b.currentTotal !== a.currentTotal) {
-          return b.currentTotal - a.currentTotal;
-        }
-
-        return b.previousTotal - a.previousTotal;
-      })
-      .slice(0, 8)
-      .map((item) => ({
-        ...item,
-        shortName: truncateWithThreeDots(item.nome, 10),
-      }));
-  }, [allTransactions, categorias, selectedAno, selectedMes]);
-
-  const currentMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
-    month: "short",
-  }).format(new Date(selectedAno, selectedMes - 1, 1));
-
-  const previousMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
-    month: "short",
-  }).format(new Date(selectedAno, selectedMes - 2, 1));
-
-  const categoryPieData = useMemo(
-    () => categoryRankingAll.filter((item) => item.total > 0),
-    [categoryRankingAll],
-  );
-
-  const slideCategoryPieData = useMemo(
-    () => slideCategoryRanking.filter((item) => item.total > 0),
-    [slideCategoryRanking],
-  );
-
-  const dashboardPiePaddingAngle = categoryPieData.length > 8 ? 2 : 6;
-  const dashboardPieCornerRadius = categoryPieData.length > 8 ? 8 : 14;
-
-  const filteredTransactions = useMemo(() => {
-    const normalized = searchTerm.trim().toLowerCase();
-    return allTransactions.filter((item) => {
-      const isMatchFilter =
-        filterType === "todas" ||
-        (filterType === "entradas" && (item.type || item.tipo) === "Entrada") ||
-        (filterType === "saidas" && (item.type || item.tipo) === "Saida") ||
-        (filterType === "simuladas" && item.isSimulated);
-
-      if (!isMatchFilter) return false;
-      if (!normalized) return true;
-
-      const title = (item.name || item.titulo || "").toLowerCase();
-      const description = (
-        item.description ||
-        item.descricao ||
-        ""
-      ).toLowerCase();
-      const category = (item.categoria?.nome || "").toLowerCase();
-
-      return (
-        title.includes(normalized) ||
-        description.includes(normalized) ||
-        category.includes(normalized)
-      );
-    });
-  }, [allTransactions, filterType, searchTerm]);
-
-  const sortedMovimentacoes = useMemo(
-    () => sortByDate(filteredTransactions).slice(0, 5),
-    [filteredTransactions],
-  );
-
-  const slideTransactions = useMemo(() => {
-    const normalized = slideTransactionSearch.trim().toLowerCase();
-
-    return sortByDate(allTransactions)
-      .filter((item) => !item.isSimulated)
-      .filter((item) => {
-        const itemType = item.type || item.tipo;
-        const byType =
-          slideTransactionFilter === "todas" ||
-          (slideTransactionFilter === "entradas" && itemType === "Entrada") ||
-          (slideTransactionFilter === "saidas" && itemType === "Saida");
-
-        if (!byType) {
-          return false;
-        }
-
-        if (!normalized) {
-          return true;
-        }
-
-        const title = String(item.name || item.titulo || "").toLowerCase();
-        const description = String(
-          item.description || item.descricao || "",
-        ).toLowerCase();
-        const category = String(item.categoria?.nome || "").toLowerCase();
-
-        return (
-          title.includes(normalized) ||
-          description.includes(normalized) ||
-          category.includes(normalized)
-        );
-      });
-  }, [allTransactions, slideTransactionFilter, slideTransactionSearch]);
-
-  const handleOpenSimulation = () => {
-    setIsSimulationModalOpen(true);
-  };
-
-  const handleOpenNewTransaction = () => {
-    setEditingItem(null);
-    setOpenCardPurchaseMode(false);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditTransaction = (transaction) => {
-    setEditingItem(transaction);
-    setOpenCardPurchaseMode(false);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteTransaction = async (transaction) => {
-    const transactionId = transaction?.id;
-    if (!transactionId) {
-      return;
-    }
-
-    const title = transaction.name || transaction.titulo || "esta transação";
-    if (!window.confirm(`Deseja excluir ${title}?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/${transactionId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const message = await extractApiErrorMessage(
-          response,
-          "Não foi possível excluir a transação.",
-        );
-        alert(message);
-        return;
-      }
-
-      await fetchData();
-      await loadCardSummaries();
-    } catch (error) {
-      console.error("Erro ao excluir transação:", error);
-      alert("Erro ao excluir transação. Verifique o console.");
-    }
-  };
-
-  const handleSimulate = (formData) => {
-    const categoria =
-      categorias.find((item) => item.id === formData.categoryId) || null;
-
-    setSimulatedTransactions((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        name: formData.name,
-        description: formData.description,
-        value: Number(formData.value),
-        type: formData.tipo,
-        date: new Date(`${formData.date}T12:00:00Z`).toISOString(),
-        categoria,
-        categoriaId: formData.categoryId || null,
-        veiculoId: formData.veiculoId || null,
-        km: formData.km ? Number(formData.km) : null,
-        isSimulated: true,
-      },
-    ]);
-
-    setIsSimulationModalOpen(false);
-  };
-
-  const handleApplySimulation = async () => {
-    if (simulatedTransactions.length === 0) return;
-
-    try {
-      for (const item of simulatedTransactions) {
-        const payload = {
-          titulo: item.name,
-          descricao: item.description,
-          valor: item.value,
-          tipo: item.type,
-          data: item.date,
-          fixa: false,
-          periodo: 0,
-          tipoRecorrencia: "Mensal",
-          tipoMovimentacaoFixa: "RecorrenteFixa",
-          categoriaId: item.categoriaId || null,
-          veiculoId: item.veiculoId || null,
-          km: item.km || null,
-        };
-
-        await fetch("/api/v1/movimentacoes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
-      }
-      setSimulatedTransactions([]);
-      await fetchData();
-      await loadCardSummaries();
-    } catch (error) {
-      console.error("Erro ao aplicar simulação:", error);
-      alert("Erro ao aplicar as transações simuladas. Verifique o console.");
-    }
-  };
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterType,
+    setFilterType,
+    sortedMovimentacoes,
+    slideTransactionSearch,
+    setSlideTransactionSearch,
+    slideTransactionFilter,
+    setSlideTransactionFilter,
+    slideTransactions,
+  } = useTransactionFilters({ allTransactions });
+
+  const {
+    isModalOpen,
+    setIsModalOpen,
+    isSimulationModalOpen,
+    setIsSimulationModalOpen,
+    editingItem,
+    openCardPurchaseMode,
+    setOpenCardPurchaseMode,
+    handleOpenSimulation,
+    handleOpenNewTransaction,
+    handleOpenEditTransaction,
+    handleDeleteTransaction,
+    handleSimulate,
+    handleApplySimulation,
+  } = useTransactionActions({
+    categorias,
+    fetchData,
+    loadCardSummaries,
+    simulatedTransactions,
+    setSimulatedTransactions,
+  });
 
   if (loading) {
     return (
