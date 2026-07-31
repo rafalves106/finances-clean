@@ -1424,7 +1424,12 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-2 border rounded-2xl p-2 shadow-sm min-h-0 flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
+              className="col-span-2 border rounded-2xl p-2 min-h-0 flex flex-col cursor-pointer"
+              style={{
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+                boxShadow: "var(--shadow-panel)",
+              }}
               onClick={() => setActiveSlide("charts")}
               role="button"
               tabIndex={0}
@@ -1438,8 +1443,17 @@ const DashboardDesktopRedesignView = ({
             >
               <div className="flex-1 min-h-0 cursor-pointer">
                 {chartData.length === 0 ? (
-                  <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
-                    <p className="text-sm text-[#9fb0d3]">
+                  <div
+                    className="h-full rounded-xl border flex items-center justify-center px-6 text-center"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
+                  >
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Ainda não há dados no período para montar o gráfico de
                       monitoramento.
                     </p>
@@ -1506,13 +1520,13 @@ const DashboardDesktopRedesignView = ({
                       <CartesianGrid
                         strokeDasharray="4 10"
                         vertical={false}
-                        stroke="#2a2f52"
+                        stroke="#e7e9f0"
                       />
                       <XAxis
                         dataKey="data"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                       />
                       <YAxis
                         axisLine={false}
@@ -1520,13 +1534,13 @@ const DashboardDesktopRedesignView = ({
                         domain={[0, chartYAxisMax]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                         width={chartYAxisWidth}
                       />
                       <Tooltip
                         content={renderChartTooltip}
                         cursor={{
-                          stroke: "#b9bfd8",
+                          stroke: "#c4c9da",
                           strokeWidth: 2,
                           strokeDasharray: "6 6",
                         }}
@@ -1558,41 +1572,35 @@ const DashboardDesktopRedesignView = ({
                       <Line
                         type="monotone"
                         dataKey="entrada"
-                        stroke={CHART_THEME_COLORS.entrada.line}
+                        stroke={CHART_THEME_COLORS.entrada.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.entrada.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="entrada"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saida"
-                        stroke={CHART_THEME_COLORS.saida.line}
+                        stroke={CHART_THEME_COLORS.saida.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.saida.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="saida"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saldo"
-                        stroke={CHART_THEME_COLORS.saldo.line}
+                        stroke={CHART_THEME_COLORS.saldo.fill}
                         strokeWidth={2}
                         dot={false}
                         name="saldo"
@@ -1605,7 +1613,12 @@ const DashboardDesktopRedesignView = ({
             </article>
 
             <article
-              className="col-span-1 rounded-xl border p-5 shadow-sm min-h-0 flex flex-col gap-3 cursor-pointer"
+              className="col-span-1 rounded-xl border p-5 min-h-0 flex flex-col gap-3 cursor-pointer"
+              style={{
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+                boxShadow: "var(--shadow-panel)",
+              }}
               onClick={() => setActiveSlide("cards")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -1624,16 +1637,25 @@ const DashboardDesktopRedesignView = ({
                     role="status"
                     aria-live="polite"
                   >
-                    <p className="text-sm text-[#c8c5dd] font-medium">
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
                       Carregando cartão...
                     </p>
                   </div>
                 ) : !cardSummary ? (
                   <div className="uiux-card-state-box">
-                    <p className="text-sm text-[#d6d4e7] font-semibold">
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
                       Nenhum cartão ativo encontrado.
                     </p>
-                    <p className="text-xs text-[#9f9cb9] mt-1">
+                    <p
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Cadastre um cartão para visualizar limite, fechamento e
                       vencimento.
                     </p>
@@ -1759,7 +1781,7 @@ const DashboardDesktopRedesignView = ({
               {cardSummaryError ? (
                 <p
                   className="mt-1 text-xs"
-                  style={{ color: "var(--color-vermelho-text)" }}
+                  style={{ color: "var(--danger-700)" }}
                 >
                   {cardSummaryError}
                 </p>

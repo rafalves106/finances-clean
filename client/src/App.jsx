@@ -514,10 +514,13 @@ const App = () => {
   }
 
   return (
-    <div className="uiux-shell flex h-screen overflow-hidden text-[#e8ebff]">
+    <div
+      className="uiux-shell flex h-screen overflow-hidden"
+      style={{ color: "var(--text-primary)" }}
+    >
       <aside
-        className="uiux-sidebar uiux-sidebar-motion self-center h-full max-h-[400px] flex flex-col justify-between text-[#aeb2d8]"
-        style={{ width: isSidebarExpanded ? 240 : 64 }}
+        className="uiux-sidebar uiux-sidebar-motion self-center h-full max-h-[400px] flex flex-col justify-between"
+        style={{ width: isSidebarExpanded ? 240 : 64, color: "var(--text-secondary)" }}
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
@@ -527,19 +530,16 @@ const App = () => {
               id: "dashboard",
               label: "Dashboard",
               icon: <LayoutDashboard size={20} />,
-              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "wishlist",
               label: "Conquistas",
               icon: <Target size={20} />,
-              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
             {
               id: "vehicle",
               label: "Manutenção Veicular",
               icon: <Car size={20} />,
-              color: "bg-[#1d2148] text-[#f5f7ff] border border-[#30366e]",
             },
           ].map((item) => (
             <button
@@ -547,8 +547,28 @@ const App = () => {
               onClick={() => setActiveTab(item.id)}
               title={!isSidebarExpanded ? item.label : undefined}
               aria-label={item.label}
-              className={`group relative w-full flex items-center justify-start gap-3 px-2 rounded-full py-2.5 uiux-sidebar-item-transition
-                ${activeTab === item.id ? `${item.color} shadow-[0_0_25px_rgba(89,102,192,0.35)]` : "text-[#989fc9] hover:bg-[#171b40] hover:text-white"}`}
+              className="group relative w-full flex items-center justify-start gap-3 px-2 rounded-full py-2.5 uiux-sidebar-item-transition"
+              style={
+                activeTab === item.id
+                  ? {
+                      background: "var(--accent-50)",
+                      color: "var(--accent-600)",
+                      border: "1px solid var(--accent-100)",
+                    }
+                  : { color: "var(--text-tertiary)", border: "1px solid transparent" }
+              }
+              onMouseEnter={(e) => {
+                if (activeTab !== item.id) {
+                  e.currentTarget.style.background = "var(--bg-surface-hover)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== item.id) {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-tertiary)";
+                }
+              }}
             >
               <span className="h-5 w-5 shrink-0 flex items-center justify-center">
                 {item.icon}
@@ -567,12 +587,16 @@ const App = () => {
         </nav>
 
         <div
-          className={`border-t border-[#1f2553] space-y-3 py-4 ${
+          className={`space-y-3 py-4 ${
             isSidebarExpanded ? "px-4" : "px-3.5"
           }`}
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
         >
           {isSidebarExpanded ? (
-            <div className="text-xs text-[#7f86b5] text-center">
+            <div
+              className="text-xs text-center"
+              style={{ color: "var(--text-tertiary)" }}
+            >
               v{APP_VERSION}
             </div>
           ) : null}
@@ -584,9 +608,18 @@ const App = () => {
             }}
             aria-label="Sair"
             title={!isSidebarExpanded ? "Sair" : undefined}
-            className={`w-full flex items-center justify-start text-sm font-medium text-[#9ea4cf] hover:text-white hover:bg-[#171b40] rounded-full py-2 uiux-sidebar-item-transition ${
+            className={`w-full flex items-center justify-start text-sm font-medium rounded-full py-2 uiux-sidebar-item-transition ${
               isSidebarExpanded ? "gap-2 px-2.5" : "gap-0 px-2.5"
             }`}
+            style={{ color: "var(--text-tertiary)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-surface-hover)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-tertiary)";
+            }}
           >
             <LogOut size={16} className="shrink-0" />
             <span
@@ -608,11 +641,13 @@ const App = () => {
         {activeTab !== "dashboard" ? (
           <header
             ref={headerRef}
-            className={`uiux-header p-6 flex justify-between items-center sticky top-0 z-10 ${
-              activeTab === "investments" ? "border-b border-[#2c315f]" : ""
-            }`}
+            className="uiux-header p-6 flex justify-between items-center sticky top-0 z-10"
+            style={{ borderBottom: "1px solid var(--border-subtle)" }}
           >
-            <h1 className="text-2xl font-semibold tracking-wide capitalize text-[#ecefff]">
+            <h1
+              className="text-2xl font-semibold tracking-wide capitalize"
+              style={{ color: "var(--text-primary)" }}
+            >
               {activeTab === "investments" && "Planejador de Futuro"}
               {activeTab === "wishlist" && "Custo de Oportunidade"}
               {activeTab === "vehicle" && "Gestão de Veículos"}
