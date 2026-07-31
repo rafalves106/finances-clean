@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const ExportCsvModal = ({
   isOpen,
@@ -12,7 +13,7 @@ const ExportCsvModal = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const dialogRef = useRef(null);
+  const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -22,57 +23,6 @@ const ExportCsvModal = ({
     setErrorMessage("");
     setIsSubmitting(false);
   }, [defaultEndDate, defaultStartDate, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !dialogRef.current) return;
-
-    const focusable = dialogRef.current.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-
-    if (focusable.length > 0) {
-      focusable[0].focus();
-      return;
-    }
-
-    dialogRef.current.focus();
-  }, [isOpen]);
-
-  const handleDialogKeyDown = (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key !== "Tab" || !dialogRef.current) return;
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-
-    if (focusable.length === 0) {
-      event.preventDefault();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const current = document.activeElement;
-
-    if (event.shiftKey && current === first) {
-      event.preventDefault();
-      last.focus();
-      return;
-    }
-
-    if (!event.shiftKey && current === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
