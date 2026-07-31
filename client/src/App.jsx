@@ -398,28 +398,102 @@ const App = () => {
   }
 
   if (isMobileViewport) {
+    const mobileNavItems = [
+      { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+      { id: "wishlist", label: "Conquistas", icon: <Target size={18} /> },
+      { id: "vehicle", label: "Veículos", icon: <Car size={18} /> },
+    ];
+
     return (
-      <div className="mobile-viewport-shell text-[#e8ebff]">
-        <DashboardMobileView
-          totalIncome={totalIncome}
-          totalExpenses={totalExpenses}
-          finalBalance={finalBalance}
-          investmentAmount={investmentAmount}
-          incomes={incomes}
-          expenses={expenses}
-          investments={investments}
-          fetchData={fetchData}
-          loading={isInitialLoading}
-          totalInvestmentsBalance={totalInvestmentsBalance}
-          selectedMes={selectedMes}
-          selectedAno={selectedAno}
-          onChangeMonth={handleChangeMonth}
-          categorias={categorias}
-          veiculos={veiculos}
-          onOpenCategoryManager={handleOpenCategoryManager}
-          saldoAnterior={saldoAnterior}
-          budgetRefreshKey={budgetRefreshKey}
-        />
+      <div
+        className="mobile-viewport-shell"
+        style={{ background: "var(--bg-app)", color: "var(--text-primary)" }}
+      >
+        <nav
+          className="flex items-center gap-1 px-3 py-2 sticky top-0 z-20 overflow-x-auto"
+          style={{
+            background: "var(--bg-surface)",
+            borderBottom: "1px solid var(--border-subtle)",
+          }}
+          aria-label="Navegação principal"
+        >
+          {mobileNavItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              aria-label={item.label}
+              aria-current={activeTab === item.id ? "page" : undefined}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
+              style={
+                activeTab === item.id
+                  ? {
+                      background: "var(--accent-50)",
+                      color: "var(--accent-600)",
+                    }
+                  : { color: "var(--text-tertiary)" }
+              }
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              removeToken();
+              setIsLoggedIn(false);
+            }}
+            aria-label="Sair"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ml-auto"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            <LogOut size={16} />
+          </button>
+        </nav>
+
+        {activeTab === "dashboard" && (
+          <DashboardMobileView
+            totalIncome={totalIncome}
+            totalExpenses={totalExpenses}
+            finalBalance={finalBalance}
+            investmentAmount={investmentAmount}
+            incomes={incomes}
+            expenses={expenses}
+            investments={investments}
+            fetchData={fetchData}
+            loading={isInitialLoading}
+            totalInvestmentsBalance={totalInvestmentsBalance}
+            selectedMes={selectedMes}
+            selectedAno={selectedAno}
+            onChangeMonth={handleChangeMonth}
+            categorias={categorias}
+            veiculos={veiculos}
+            onOpenCategoryManager={handleOpenCategoryManager}
+            saldoAnterior={saldoAnterior}
+            budgetRefreshKey={budgetRefreshKey}
+          />
+        )}
+        {activeTab === "wishlist" && (
+          <div className="px-4 pb-6">
+            <WishlistView
+              totalIncome={monthlyIncomeForGoals}
+              hourlyRate={hourlyRate}
+              workHoursPerMonth={workHoursPerMonth}
+              setWorkHoursPerMonth={setWorkHoursPerMonth}
+            />
+          </div>
+        )}
+        {activeTab === "vehicle" && (
+          <div className="px-4 pb-6">
+            <VehicleView
+              veiculos={veiculos}
+              fetchVeiculos={fetchVeiculos}
+              categorias={categorias}
+            />
+          </div>
+        )}
+
         <CategoryManagerModal
           isOpen={isCategoryManagerOpen}
           onClose={handleCloseCategoryManager}

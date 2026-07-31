@@ -2,6 +2,48 @@
 @import "tailwindcss";
 
 :root {
+  /* Tokens light mode (docs/ux-reviews/mapeamento-redesign-light-mobile-2026-07-31.md). Aditivos: desktop ainda usa os tokens dark abaixo, migracao e tela a tela. */
+  --bg-app: #f7f8fb;
+  --bg-surface: #ffffff;
+  --bg-surface-sunken: #eef1f6;
+  --bg-inverse: #12121a;
+
+  --text-primary: #12141c;
+  --text-secondary: #4b5169;
+  --text-tertiary: #767c93;
+  --text-disabled: #a6abbd;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: #e7e9f0;
+  --border-default: #dbdfea;
+  --border-strong: #c4c9da;
+
+  --accent-600: #4f46e5;
+  --accent-500: #6366f1;
+  --accent-100: #e7e6fb;
+  --accent-50: #f3f2fe;
+
+  --success-700: #15803d;
+  --success-100: #dcfce7;
+  --success-border: #86efac;
+  --danger-700: #b91c1c;
+  --danger-100: #fee2e2;
+  --danger-border: #fca5a5;
+  --warning-700: #b45309;
+  --warning-100: #fef3c7;
+  --info-700: #1d4ed8;
+  --info-100: #dbeafe;
+
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm:
+    0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-lg:
+    0 12px 24px rgba(16, 24, 40, 0.1), 0 4px 8px rgba(16, 24, 40, 0.04);
+  --shadow-modal: 0 24px 48px rgba(16, 24, 40, 0.18);
+
+  /* --- Tokens dark legado, ainda em uso pelo desktop --- */
   --uiux-bg-a: #0e0e0e;
   --uiux-bg-b: #12101d;
   --uiux-panel: linear-gradient(180deg, #12101d 0%, #1f1c2f 100%);

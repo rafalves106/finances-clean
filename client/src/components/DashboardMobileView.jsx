@@ -436,16 +436,30 @@ const DashboardMobileView = ({
   const renderHomeScreen = () => (
     <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
       <section
-        className="border border-[#2a3554] bg-[linear-gradient(145deg,rgba(26,38,72,0.96)_0%,rgba(17,26,49,0.94)_70%,rgba(14,21,42,0.98)_100%)]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-sm)",
+        }}
       >
-        <p className="text-[11px] uppercase tracking-wide text-[#9ca8ca] m-0">
+        <p
+          className="text-[11px] uppercase tracking-wide m-0"
+          style={{ color: "var(--text-tertiary)" }}
+        >
           Saldo atual
         </p>
-        <p className="text-[26px] font-semibold text-[#eef3ff] m-0 mt-1">
+        <p
+          className="text-[26px] font-semibold m-0 mt-1"
+          style={{ color: "var(--text-primary)" }}
+        >
           {formatCurrency(finalBalance)}
         </p>
-        <p className={`m-0 mt-1 text-[#aeb9db] ${kpiHelperClassName}`}>
+        <p
+          className={`m-0 mt-1 ${kpiHelperClassName}`}
+          style={{ color: "var(--text-secondary)" }}
+        >
           Receitas {formatCurrency(totalIncome)} · Despesas{" "}
           {formatCurrency(totalExpenses)}
         </p>
@@ -453,75 +467,126 @@ const DashboardMobileView = ({
 
       <section className="grid grid-cols-3 gap-2">
         <article
-          className="border border-[#2f4566] bg-[#101a31]"
           style={{
             borderRadius: `${cardRadius - 2}px`,
             padding: `${cardPadding - 2}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            borderLeft: "3px solid var(--success-700)",
           }}
         >
-          <p className="m-0 text-[11px] text-[#8f97b8]">Receitas</p>
-          <p className="m-0 mt-1 text-sm font-semibold text-emerald-300">
+          <p className="m-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            Receitas
+          </p>
+          <p
+            className="m-0 mt-1 text-sm font-semibold"
+            style={{ color: "var(--success-700)" }}
+          >
             {formatCurrency(totalIncome)}
           </p>
         </article>
         <article
-          className="border border-[#5a2f3f] bg-[#1f1524]"
           style={{
             borderRadius: `${cardRadius - 2}px`,
             padding: `${cardPadding - 2}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            borderLeft: "3px solid var(--danger-700)",
           }}
         >
-          <p className="m-0 text-[11px] text-[#c3a2ad]">Despesas</p>
-          <p className="m-0 mt-1 text-sm font-semibold text-rose-300">
+          <p className="m-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            Despesas
+          </p>
+          <p
+            className="m-0 mt-1 text-sm font-semibold"
+            style={{ color: "var(--danger-700)" }}
+          >
             {formatCurrency(totalExpenses)}
           </p>
         </article>
         <article
-          className="border border-[#334b68] bg-[#111a2f]"
           style={{
             borderRadius: `${cardRadius - 2}px`,
             padding: `${cardPadding - 2}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            borderLeft: "3px solid var(--accent-600)",
           }}
         >
-          <p className="m-0 text-[11px] text-[#9fb1cb]">Investimentos</p>
-          <p className="m-0 mt-1 text-sm font-semibold text-sky-300">
+          <p className="m-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            Investimentos
+          </p>
+          <p
+            className="m-0 mt-1 text-sm font-semibold"
+            style={{ color: "var(--accent-600)" }}
+          >
             {formatCurrency(totalInvestmentsBalance)}
           </p>
-          <p className="m-0 mt-0.5 text-[11px] text-[#8f9ec5]">
+          <p
+            className="m-0 mt-0.5 text-[11px]"
+            style={{ color: "var(--text-tertiary)" }}
+          >
             {investments.length} ativos
           </p>
         </article>
       </section>
 
       <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+        <p
+          className="m-0 text-xs font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
           Fatura de {currentMonthLabel}
         </p>
-        <p className="m-0 mt-1 text-sm text-[#cdd6f4]">{activeCardName}</p>
-        <p className={`m-0 mt-1 text-[#98a4c6] ${kpiHelperClassName}`}>
+        <p className="m-0 mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+          {activeCardName}
+        </p>
+        <p
+          className={`m-0 mt-1 ${kpiHelperClassName}`}
+          style={{ color: "var(--text-tertiary)" }}
+        >
           Limite {formatCurrency(activeCardLimit)} · Utilizado{" "}
           {formatCurrency(activeCardUsed)}
         </p>
         {cardSummaryError ? (
-          <p className="m-0 mt-1 text-[11px] text-rose-300">
+          <p
+            className="m-0 mt-1 text-[11px]"
+            style={{ color: "var(--danger-700)" }}
+          >
             {cardSummaryError}
           </p>
         ) : null}
       </section>
 
       <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+        <p
+          className="m-0 text-xs font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
           Próximos itens
         </p>
         <div className="mt-2 space-y-2">
           {upcomingItems.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
+            <p
+              className={`m-0 ${kpiHelperClassName}`}
+              style={{ color: "var(--text-tertiary)" }}
+            >
               Sem próximas movimentações.
             </p>
           ) : (
@@ -531,18 +596,33 @@ const DashboardMobileView = ({
               return (
                 <article
                   key={item.id}
-                  className="flex items-center justify-between rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
+                  className="flex items-center justify-between rounded-xl px-3 py-2"
+                  style={{
+                    background: "var(--bg-surface-sunken)",
+                    border: "1px solid var(--border-subtle)",
+                  }}
                 >
                   <div>
-                    <p className="m-0 text-xs text-[#d5ddf8]">
+                    <p
+                      className="m-0 text-xs"
+                      style={{ color: "var(--text-primary)" }}
+                    >
                       {item.name || item.titulo || "Movimentação"}
                     </p>
-                    <p className="m-0 text-[11px] text-[#8f97b8]">
+                    <p
+                      className="m-0 text-[11px]"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       {formatDateLabel(item.date || item.data)}
                     </p>
                   </div>
                   <p
-                    className={`m-0 text-xs font-semibold ${isEntrada ? "text-emerald-300" : "text-rose-300"}`}
+                    className="m-0 text-xs font-semibold"
+                    style={{
+                      color: isEntrada
+                        ? "var(--success-700)"
+                        : "var(--danger-700)",
+                    }}
                   >
                     {isEntrada ? "+" : "-"}
                     {formatCurrency(item.value || item.valor || 0)}
@@ -555,26 +635,49 @@ const DashboardMobileView = ({
       </section>
 
       <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Categorias</p>
+        <p
+          className="m-0 text-xs font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Categorias
+        </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {categoriesTop.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
+            <p
+              className={`m-0 ${kpiHelperClassName}`}
+              style={{ color: "var(--text-tertiary)" }}
+            >
               Sem categorias no período.
             </p>
           ) : (
             categoriesTop.map((category) => (
               <article
                 key={category.id}
-                className="rounded-xl border border-[#2f3d5f] bg-[#111c34] px-2.5 py-2"
+                className="rounded-xl px-2.5 py-2"
+                style={{
+                  background: "var(--bg-surface-sunken)",
+                  border: "1px solid var(--border-subtle)",
+                }}
               >
-                <p className="m-0 text-xs text-[#d5ddf8]">
+                <p
+                  className="m-0 text-xs"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {category.icone ? `${category.icone} ` : ""}
                   {category.nome}
                 </p>
-                <p className="m-0 mt-1 text-[11px] text-[#94a3cb]">
+                <p
+                  className="m-0 mt-1 text-[11px]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   {formatCurrency(category.total)}
                 </p>
               </article>
@@ -584,15 +687,26 @@ const DashboardMobileView = ({
       </section>
 
       <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+        <p
+          className="m-0 text-xs font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
           Movimentações
         </p>
         <div className="mt-2 space-y-2">
           {listedTransactions.length === 0 ? (
-            <p className={`m-0 text-[#8f97b8] ${kpiHelperClassName}`}>
+            <p
+              className={`m-0 ${kpiHelperClassName}`}
+              style={{ color: "var(--text-tertiary)" }}
+            >
               Sem movimentações cadastradas.
             </p>
           ) : (
@@ -602,11 +716,15 @@ const DashboardMobileView = ({
               return (
                 <article
                   key={item.id}
-                  className="rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
+                  className="rounded-xl px-3 py-2"
+                  style={{
+                    background: "var(--bg-surface-sunken)",
+                    border: "1px solid var(--border-subtle)",
+                  }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[#8fa2cf]">
+                      <span style={{ color: "var(--text-tertiary)" }}>
                         {isEntrada ? (
                           <ArrowUpRight size={14} />
                         ) : (
@@ -614,16 +732,27 @@ const DashboardMobileView = ({
                         )}
                       </span>
                       <div>
-                        <p className="m-0 text-xs text-[#d5ddf8]">
+                        <p
+                          className="m-0 text-xs"
+                          style={{ color: "var(--text-primary)" }}
+                        >
                           {item.name || item.titulo || "Movimentação"}
                         </p>
-                        <p className="m-0 text-[11px] text-[#8f97b8]">
+                        <p
+                          className="m-0 text-[11px]"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
                           {formatDateLabel(item.date || item.data)}
                         </p>
                       </div>
                     </div>
                     <p
-                      className={`m-0 text-xs font-semibold whitespace-nowrap ${isEntrada ? "text-emerald-300" : "text-rose-300"}`}
+                      className="m-0 text-xs font-semibold whitespace-nowrap"
+                      style={{
+                        color: isEntrada
+                          ? "var(--success-700)"
+                          : "var(--danger-700)",
+                      }}
                     >
                       {isEntrada ? "+" : "-"}
                       {formatCurrency(item.value || item.valor || 0)}
@@ -634,14 +763,22 @@ const DashboardMobileView = ({
                     <button
                       type="button"
                       onClick={() => handleOpenEditTransaction(item)}
-                      className="h-11 rounded-lg border border-[#35517a] text-[#a5c4ff] text-xs font-semibold"
+                      className="h-11 rounded-lg text-xs font-semibold"
+                      style={{
+                        border: "1px solid var(--accent-600)",
+                        color: "var(--accent-600)",
+                      }}
                     >
                       Editar
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteTransaction(item)}
-                      className="h-11 rounded-lg border border-[#6b3040] text-[#f5a3b2] text-xs font-semibold"
+                      className="h-11 rounded-lg text-xs font-semibold"
+                      style={{
+                        border: "1px solid var(--danger-border)",
+                        color: "var(--danger-700)",
+                      }}
                     >
                       Excluir
                     </button>
@@ -948,29 +1085,57 @@ const DashboardMobileView = ({
     return renderInvestmentsScreen();
   };
 
+  const navButtonStyle = (isActive) =>
+    isActive
+      ? {
+          color: "var(--accent-600)",
+          background: "var(--accent-50)",
+          border: "1px solid var(--accent-100)",
+        }
+      : {
+          color: "var(--text-tertiary)",
+          border: "1px solid transparent",
+        };
+
   return (
-    <div className="min-h-[100dvh] flex flex-col">
+    <div
+      className="min-h-[100dvh] flex flex-col"
+      style={{ background: "var(--bg-app)" }}
+    >
       <header
-        className="px-3 flex items-center justify-between border-b border-[#2a3554] bg-[#101a33]/95"
+        className="px-3 flex items-center justify-between"
         style={{
           height: `${headerHeight}px`,
           paddingTop: "max(8px, env(safe-area-inset-top))",
+          background: "var(--bg-surface)",
+          borderBottom: "1px solid var(--border-subtle)",
         }}
       >
         <button
           type="button"
           onClick={handlePreviousMonth}
-          className="h-11 min-w-11 px-3 rounded-lg border border-[#2f3b5a] text-sm text-[#c8d1ee]"
+          className="h-11 min-w-11 px-3 rounded-lg text-sm"
+          style={{
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+          }}
         >
           Mes -
         </button>
-        <p className="text-sm font-semibold text-[#dbe3ff] capitalize">
+        <p
+          className="text-sm font-semibold capitalize"
+          style={{ color: "var(--text-primary)" }}
+        >
           {currentMonthLabel}
         </p>
         <button
           type="button"
           onClick={handleNextMonth}
-          className="h-11 min-w-11 px-3 rounded-lg border border-[#2f3b5a] text-sm text-[#c8d1ee]"
+          className="h-11 min-w-11 px-3 rounded-lg text-sm"
+          style={{
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+          }}
         >
           Mes +
         </button>
@@ -985,7 +1150,10 @@ const DashboardMobileView = ({
         }}
       >
         <div className="mb-2 px-1">
-          <p className="m-0 text-[11px] tracking-wide uppercase text-[#8f97b8]">
+          <p
+            className="m-0 text-[11px] tracking-wide uppercase"
+            style={{ color: "var(--text-tertiary)" }}
+          >
             {MOBILE_SCREEN_LABELS[activeScreen]}
           </p>
         </div>
@@ -995,17 +1163,18 @@ const DashboardMobileView = ({
       </main>
 
       <nav
-        className="fixed left-0 right-0 bottom-0 z-20 border-t border-[#2a3554] bg-[#101a33]/96 backdrop-blur-md px-3 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]"
-        style={{ minHeight: `${bottomNavHeight}px` }}
+        className="fixed left-0 right-0 bottom-0 z-20 backdrop-blur-md px-3 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]"
+        style={{
+          minHeight: `${bottomNavHeight}px`,
+          background: "var(--bg-surface)",
+          borderTop: "1px solid var(--border-subtle)",
+        }}
       >
         <div className="grid grid-cols-5 items-center gap-2">
           <button
             type="button"
-            className={`h-11 rounded-xl border flex items-center justify-center ${
-              activeScreen === "home"
-                ? "text-[#dbe3ff] bg-[#1a2849] border-[#314870]"
-                : "text-[#96a7d9] border-[#2b3958]"
-            }`}
+            className="h-11 rounded-xl flex items-center justify-center"
+            style={navButtonStyle(activeScreen === "home")}
             aria-label="Home"
             onClick={() => setActiveScreen("home")}
           >
@@ -1016,11 +1185,8 @@ const DashboardMobileView = ({
           </button>
           <button
             type="button"
-            className={`h-11 rounded-xl border flex items-center justify-center ${
-              activeScreen === "charts"
-                ? "text-[#dbe3ff] bg-[#1a2849] border-[#314870]"
-                : "text-[#96a7d9] border-[#2b3958]"
-            }`}
+            className="h-11 rounded-xl flex items-center justify-center"
+            style={navButtonStyle(activeScreen === "charts")}
             aria-label="Gráficos"
             onClick={() => setActiveScreen("charts")}
           >
@@ -1031,7 +1197,11 @@ const DashboardMobileView = ({
           </button>
           <button
             type="button"
-            className="h-11 rounded-xl text-white bg-[#1f8b63] border border-[#2aa174] flex items-center justify-center"
+            className="h-11 rounded-xl flex items-center justify-center"
+            style={{
+              color: "var(--text-on-accent)",
+              background: "var(--accent-600)",
+            }}
             aria-label="Nova movimentação"
             onClick={handleOpenNewTransaction}
           >
@@ -1039,11 +1209,8 @@ const DashboardMobileView = ({
           </button>
           <button
             type="button"
-            className={`h-11 rounded-xl border flex items-center justify-center ${
-              activeScreen === "cards"
-                ? "text-[#dbe3ff] bg-[#1a2849] border-[#314870]"
-                : "text-[#96a7d9] border-[#2b3958]"
-            }`}
+            className="h-11 rounded-xl flex items-center justify-center"
+            style={navButtonStyle(activeScreen === "cards")}
             aria-label="Cartões"
             onClick={() => setActiveScreen("cards")}
           >
@@ -1054,11 +1221,8 @@ const DashboardMobileView = ({
           </button>
           <button
             type="button"
-            className={`h-11 rounded-xl border flex items-center justify-center ${
-              activeScreen === "investments"
-                ? "text-[#dbe3ff] bg-[#1a2849] border-[#314870]"
-                : "text-[#96a7d9] border-[#2b3958]"
-            }`}
+            className="h-11 rounded-xl flex items-center justify-center"
+            style={navButtonStyle(activeScreen === "investments")}
             aria-label="Investimentos"
             onClick={() => setActiveScreen("investments")}
           >

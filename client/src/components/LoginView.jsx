@@ -44,13 +44,28 @@ const LoginView = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-3 mb-8 text-slate-900">
-          <Wallet className="w-10 h-10 text-emerald-500" />
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: "var(--bg-app)" }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-8"
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-lg)",
+        }}
+      >
+        <div
+          className="flex items-center gap-3 mb-8"
+          style={{ color: "var(--text-primary)" }}
+        >
+          <Wallet className="w-10 h-10" style={{ color: "var(--accent-600)" }} />
           <div>
             <h1 className="text-2xl font-bold">Finanças</h1>
-            <p className="text-sm text-slate-500">Entre para continuar</p>
+            <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              Entre para continuar
+            </p>
           </div>
         </div>
 
@@ -58,7 +73,8 @@ const LoginView = ({ onLoginSuccess }) => {
           <div>
             <label
               htmlFor="login-email"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium mb-1"
+              style={{ color: "var(--text-secondary)" }}
             >
               Email
             </label>
@@ -68,14 +84,19 @@ const LoginView = ({ onLoginSuccess }) => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full p-3 rounded-xl focus:outline-none focus:ring-2"
+              style={{
+                border: "1px solid var(--border-default)",
+                "--tw-ring-color": "var(--accent-600)",
+              }}
             />
           </div>
 
           <div>
             <label
               htmlFor="login-senha"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium mb-1"
+              style={{ color: "var(--text-secondary)" }}
             >
               Senha
             </label>
@@ -85,12 +106,23 @@ const LoginView = ({ onLoginSuccess }) => {
               required
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full p-3 rounded-xl focus:outline-none focus:ring-2"
+              style={{
+                border: "1px solid var(--border-default)",
+                "--tw-ring-color": "var(--accent-600)",
+              }}
             />
           </div>
 
           {erro && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
+            <div
+              className="text-sm rounded-xl p-3"
+              style={{
+                color: "var(--danger-700)",
+                background: "var(--danger-100)",
+                border: "1px solid var(--danger-border)",
+              }}
+            >
               {erro}
             </div>
           )}
@@ -98,7 +130,17 @@ const LoginView = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 text-white font-semibold py-3 rounded-xl transition-colors"
+            className="w-full font-semibold py-3 rounded-xl transition-colors disabled:opacity-70"
+            style={{
+              background: "var(--accent-600)",
+              color: "var(--text-on-accent)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--accent-500)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--accent-600)";
+            }}
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
