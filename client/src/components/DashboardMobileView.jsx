@@ -363,17 +363,8 @@ const DashboardMobileView = ({
 
   const activeCardSummary = cardSummaries[0] || null;
   const activeCardName = activeCardSummary?.cartao?.nome || "Sem cartão ativo";
-  const activeCardLimit = Number(
-    activeCardSummary?.limite?.limiteTotal ||
-      activeCardSummary?.cartao?.limiteTotal ||
-      0,
-  );
-  const activeCardUsed = Number(
-    activeCardSummary?.limite?.limiteUtilizado ||
-      activeCardSummary?.limite?.utilizado ||
-      activeCardSummary?.limite?.Utilizado ||
-      0,
-  );
+  const activeCardLimit = Number(activeCardSummary?.cartao?.limiteTotal || 0);
+  const activeCardUsed = Number(activeCardSummary?.limite?.utilizado || 0);
 
   const handlePreviousMonth = () => {
     const previousDate = new Date(selectedAno, selectedMes - 2, 1);
@@ -773,17 +764,8 @@ const DashboardMobileView = ({
             (summary, index) => {
               const cardId = String(summary?.cartao?.id || `empty-${index}`);
               const cardName = summary?.cartao?.nome || "Sem cartão";
-              const cardLimitTotal = Number(
-                summary?.limite?.limiteTotal ||
-                  summary?.cartao?.limiteTotal ||
-                  0,
-              );
-              const cardLimitUsed = Number(
-                summary?.limite?.limiteUtilizado ||
-                  summary?.limite?.utilizado ||
-                  summary?.limite?.Utilizado ||
-                  0,
-              );
+              const cardLimitTotal = Number(summary?.cartao?.limiteTotal || 0);
+              const cardLimitUsed = Number(summary?.limite?.utilizado || 0);
 
               return (
                 <article

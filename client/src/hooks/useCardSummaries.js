@@ -7,11 +7,7 @@ import {
   normalizeCardTheme,
 } from "../util/cardTheme";
 
-export const useCardSummaries = ({
-  allTransactions,
-  selectedMes,
-  selectedAno,
-}) => {
+export const useCardSummaries = ({ allTransactions }) => {
   const [cardSummaries, setCardSummaries] = useState([]);
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
@@ -150,51 +146,6 @@ export const useCardSummaries = ({
     return grouped;
   }, [allTransactions]);
 
-  const cardBillingCycleUsedByCardId = useMemo(() => {
-    const now = new Date();
-    const todayDay = now.getDate();
-    const todayMonth = now.getMonth(); // 0-indexed
-    const todayYear = now.getFullYear();
-    const endOfToday = new Date(
-      todayYear,
-      todayMonth,
-      todayDay,
-      23,
-      59,
-      59,
-      999,
-    );
-
-    return cardSummaries.reduce((acc, summary) => {
-      const card = summary?.cartao;
-      if (!card?.id || !card?.diaFechamento) return acc;
-
-      const diaFech = Number(card.diaFechamento);
-
-      let cycleStart;
-      if (todayDay > diaFech) {
-        cycleStart = new Date(todayYear, todayMonth, diaFech + 1, 0, 0, 0, 0);
-      } else {
-        const pm = todayMonth === 0 ? 11 : todayMonth - 1;
-        const py = todayMonth === 0 ? todayYear - 1 : todayYear;
-        cycleStart = new Date(py, pm, diaFech + 1, 0, 0, 0, 0);
-      }
-
-      const txns = cardTransactionsById.get(String(card.id)) || [];
-
-      const used = txns
-        .filter((t) => (t.type || t.tipo) === "Saida")
-        .filter((t) => {
-          const d = new Date(t.date || t.data);
-          return d >= cycleStart && d <= endOfToday;
-        })
-        .reduce((sum, t) => sum + Number(t.value || t.valor || 0), 0);
-
-      acc.set(String(card.id), { used, cycleStart });
-      return acc;
-    }, new Map());
-  }, [cardSummaries, cardTransactionsById]);
-
   const cardColumns = useMemo(
     () => Array.from({ length: 3 }, (_, index) => cardSummaries[index] || null),
     [cardSummaries],
@@ -204,28 +155,10 @@ export const useCardSummaries = ({
   const backCardSummaries = cardSummaries.slice(1, 3);
   const activeCardTheme = normalizeCardTheme(cardSummary?.cartao?.corTema);
   const activeCardPalette = getThemePalette(activeCardTheme);
-  const cardLimitTotal = Number(
-    cardSummary?.limite?.limiteTotal || cardSummary?.cartao?.limiteTotal || 0,
-  );
-  const cardLimitUsedFromApi = Number(
-    cardSummary?.limite?.limiteUtilizado ||
-      cardSummary?.limite?.utilizado ||
-      cardSummary?.limite?.Utilizado ||
-      0,
-  );
-
-  const _billingDataMain = cardBillingCycleUsedByCardId.get(
-    cardSummary?.cartao?.id ? String(cardSummary.cartao.id) : "",
-  );
-
-  const isViewingCurrentMonth =
-    selectedMes === new Date().getMonth() + 1 &&
-    selectedAno === new Date().getFullYear();
-
-  const cardLimitUsed =
-    isViewingCurrentMonth && _billingDataMain !== undefined
-      ? _billingDataMain.used
-      : cardLimitUsedFromApi;
+  const cardLimitTotal = Number(cardSummary?.cartao?.limiteTotal || 0);
+  // Uso da fatura vem sempre do backend (ObterPrevisaoFatura), que soma por
+  // CompetenciaFatura e cobre corretamente ciclos que cruzam o mes calendario.
+  const cardLimitUsed = Number(cardSummary?.limite?.utilizado || 0);
 
   const cardUsagePercent =
     cardLimitTotal > 0
