@@ -7,7 +7,7 @@ import {
   normalizeCardTheme,
 } from "../util/cardTheme";
 
-export const useCardSummaries = ({ allTransactions }) => {
+export const useCardSummaries = ({ allTransactions, selectedMes, selectedAno }) => {
   const [cardSummaries, setCardSummaries] = useState([]);
   const [isCardSummaryLoading, setIsCardSummaryLoading] = useState(false);
   const [cardSummaryError, setCardSummaryError] = useState("");
@@ -24,7 +24,12 @@ export const useCardSummaries = ({ allTransactions }) => {
       setIsCardSummaryLoading(true);
       setCardSummaryError("");
 
-      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
+      const query =
+        selectedMes && selectedAno
+          ? `?${new URLSearchParams({ mes: selectedMes, ano: selectedAno })}`
+          : "";
+
+      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos${query}`, {
         method: "GET",
         credentials: "include",
       });
@@ -60,7 +65,7 @@ export const useCardSummaries = ({ allTransactions }) => {
         return;
       }
 
-      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+      const response = await fetch(`${API_CARTAO_URL}/resumo${query}`, {
         method: "GET",
         credentials: "include",
       });
@@ -93,7 +98,7 @@ export const useCardSummaries = ({ allTransactions }) => {
     } finally {
       setIsCardSummaryLoading(false);
     }
-  }, []);
+  }, [selectedMes, selectedAno]);
 
   useEffect(() => {
     loadCardSummaries();

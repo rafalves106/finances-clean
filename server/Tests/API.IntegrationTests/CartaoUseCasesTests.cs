@@ -287,6 +287,8 @@ public class CartaoUseCasesTests
 
       return (0m, 0m);
     }
+
+    public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia) => 0m;
   }
 
   private sealed class InMemoryMovimentacaoRepository(List<Movimentacao> movimentacoes) : IMovimentacaoRepository

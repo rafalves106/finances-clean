@@ -155,7 +155,7 @@ const DashboardDesktopRedesignView = ({
     getInitialCardCreateForm,
     handleCreateCardFormChange,
     handleCreateCardFormSubmit,
-  } = useCardSummaries({ allTransactions });
+  } = useCardSummaries({ allTransactions, selectedMes, selectedAno });
 
   const {
     totalIncome,
@@ -1685,6 +1685,13 @@ const DashboardDesktopRedesignView = ({
                       aria-label="Abrir gestão do cartão"
                       style={getFrontLayerStyle(activeCardTheme)}
                     >
+                      <p
+                        className="uiux-card-fatura-label"
+                        style={{ color: activeCardPalette.usedText }}
+                      >
+                        Fatura de {currentMonthLabel}
+                      </p>
+
                       <div className="uiux-card-top-row">
                         <p
                           className="uiux-card-value-used"
