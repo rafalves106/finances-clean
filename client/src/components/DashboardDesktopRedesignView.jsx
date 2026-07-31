@@ -155,7 +155,7 @@ const DashboardDesktopRedesignView = ({
     getInitialCardCreateForm,
     handleCreateCardFormChange,
     handleCreateCardFormSubmit,
-  } = useCardSummaries({ allTransactions, selectedMes, selectedAno });
+  } = useCardSummaries({ allTransactions });
 
   const {
     totalIncome,
