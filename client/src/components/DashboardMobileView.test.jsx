@@ -86,6 +86,6 @@ describe("DashboardMobileView", () => {
     expect(screen.getAllByText("Cartões").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByLabelText("Investimentos"));
-    expect(screen.getByText("Investimentos ativos")).toBeTruthy();
+    expect(screen.getByText("Simulador de Juros Compostos")).toBeTruthy();
   });
 });
