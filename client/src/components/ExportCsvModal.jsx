@@ -52,7 +52,7 @@ const ExportCsvModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(4,7,15,0.72)] backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[rgba(18,20,28,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
@@ -60,17 +60,17 @@ const ExportCsvModal = ({
         aria-labelledby="export-csv-modal-title"
         tabIndex={-1}
         onKeyDown={handleDialogKeyDown}
-        className="w-full max-w-md rounded-2xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.98)_0%,rgba(15,20,36,0.98)_100%)] p-5 shadow-[0_24px_60px_rgba(6,10,22,0.5)] text-[#dbe3ff]"
+        className="w-full max-w-md rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-lg)] text-[var(--text-primary)]"
       >
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2
               id="export-csv-modal-title"
-              className="text-lg font-semibold text-[#ecefff]"
+              className="text-lg font-semibold text-[var(--text-primary)]"
             >
               Exportar movimentações em CSV
             </h2>
-            <p className="mt-1 text-xs text-[#8f94b4]">
+            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
               Escolha o período que será baixado no arquivo.
             </p>
           </div>
@@ -79,7 +79,7 @@ const ExportCsvModal = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal de exportação CSV"
-            className="rounded-full p-2 text-[#8f94b4] hover:bg-[#1e2340] hover:text-white transition-colors"
+            className="rounded-full p-2 text-[var(--text-tertiary)] hover:bg-[var(--bg-surface-sunken)] hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
@@ -87,31 +87,31 @@ const ExportCsvModal = ({
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-xs font-medium text-[#aeb2d8]">
+            <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
               Data inicial
               <input
                 type="date"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
-                className="rounded-lg border border-[#2f355d] bg-[#10162a] px-3 py-2 text-sm text-[#dbe3ff] outline-none focus:border-[#7da7ff]"
+                className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-600)]"
                 required
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-xs font-medium text-[#aeb2d8]">
+            <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
               Data final
               <input
                 type="date"
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
-                className="rounded-lg border border-[#2f355d] bg-[#10162a] px-3 py-2 text-sm text-[#dbe3ff] outline-none focus:border-[#7da7ff]"
+                className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-600)]"
                 required
               />
             </label>
           </div>
 
           {errorMessage ? (
-            <p className="text-xs text-[#f08f9f]" role="alert">
+            <p className="text-xs text-[var(--danger-700)]" role="alert">
               {errorMessage}
             </p>
           ) : null}
@@ -120,7 +120,7 @@ const ExportCsvModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#2f355d] px-3 py-2 text-sm font-medium text-[#cfd5f3] hover:bg-[#1e2340] transition-colors"
+              className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-sunken)] transition-colors"
             >
               Cancelar
             </button>
@@ -128,7 +128,7 @@ const ExportCsvModal = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-600)] px-3 py-2 text-sm font-semibold text-[var(--text-on-accent)] hover:bg-[var(--accent-500)] disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
               <Download size={16} />
               {isSubmitting ? "Exportando..." : "Exportar CSV"}
