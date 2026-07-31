@@ -19,4 +19,10 @@ _context.Usuarios
         _context.Usuarios.Add(usuario);
         _context.SaveChanges();
     }
+
+    public void Atualizar(Usuario usuario)
+    {
+        _context.Usuarios.Update(usuario);
+        _context.SaveChanges();
+    }
 }

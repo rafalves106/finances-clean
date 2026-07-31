@@ -16,6 +16,9 @@ public class LoginUseCase(
     if (!usuario.VerificarSenha(dto.Senha))
       throw new UnauthorizedAccessException("Email ou senha inválidos.");
 
+    if (!usuario.Ativo)
+      throw new ContaNaoAtivadaException();
+
     var token = _tokenService.GerarToken(usuario);
 
     return new AuthResponseDTO(token, usuario.Nome, usuario.Email);
