@@ -11,10 +11,21 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.CookiePolicy;
+using Microsoft.AspNetCore.HttpOverrides;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // Kestrel so recebe HTTP puro atras do Cloudflare Tunnel; sem isso o app
+    // nunca enxerga a requisicao como HTTPS (UseHsts/UseHttpsRedirection ficam mudos).
+    // Portas do backend nao sao expostas publicamente (so acessiveis via tunnel/localhost).
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
 
@@ -219,6 +230,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 var appReady = false;
 
 if (app.Environment.IsDevelopment())
@@ -228,7 +241,10 @@ if (app.Environment.IsDevelopment())
 
 appReady = true;
 
-app.MapOpenApi();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
 if (!app.Environment.IsDevelopment())
 {
@@ -257,12 +273,16 @@ app.Use(async (context, next) =>
 
 app.UseHttpsRedirection();
 app.UseCookiePolicy();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/openapi/v1.json", "Finance API V1");
-});
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "Finance API V1");
+    });
+
+    app.MapGet("/", () => Results.Redirect("/swagger"));
+}
 
 app.MapGet("/health", () => Results.Ok(new
 {
