@@ -113,34 +113,34 @@ export const mixWithBlack = (hexColor, ratio) => {
 };
 
 export const getThemePalette = (themeColor) => ({
-  backName: mixWithWhite(themeColor, 0.58),
-  usedText: mixWithWhite(themeColor, 0.62),
-  cardName: mixWithWhite(themeColor, 0.56),
-  progressTrackBorder: mixWithWhite(themeColor, 0.36),
-  progressTrackStart: toRgba(themeColor, 0.22),
-  progressTrackEnd: toRgba(mixWithBlack(themeColor, 0.68), 0.9),
-  progressFillBorder: mixWithWhite(themeColor, 0.48),
-  progressFillStart: mixWithWhite(themeColor, 0.24),
-  progressFillEnd: mixWithBlack(themeColor, 0.4),
+  backName: mixWithBlack(themeColor, 0.35),
+  usedText: mixWithBlack(themeColor, 0.4),
+  cardName: mixWithBlack(themeColor, 0.35),
+  progressTrackBorder: mixWithWhite(themeColor, 0.4),
+  progressTrackStart: toRgba(themeColor, 0.12),
+  progressTrackEnd: toRgba(mixWithWhite(themeColor, 0.85), 0.6),
+  progressFillBorder: mixWithBlack(themeColor, 0.2),
+  progressFillStart: mixWithWhite(themeColor, 0.1),
+  progressFillEnd: mixWithBlack(themeColor, 0.1),
 });
 
 export const getBackLayerStyle = (themeColor, index) => ({
   borderColor:
-    index === 0 ? toRgba(themeColor, 0.42) : toRgba(themeColor, 0.34),
+    index === 0 ? toRgba(themeColor, 0.32) : toRgba(themeColor, 0.22),
   background:
     index === 0
-      ? `linear-gradient(180deg, ${toRgba(themeColor, 0.45)} 0%, rgba(28, 27, 36, 0.86) 100%)`
-      : `linear-gradient(180deg, ${toRgba(themeColor, 0.34)} 0%, rgba(30, 28, 36, 0.75) 100%)`,
+      ? `linear-gradient(180deg, ${mixWithWhite(themeColor, 0.82)} 0%, ${mixWithWhite(themeColor, 0.92)} 100%)`
+      : `linear-gradient(180deg, ${mixWithWhite(themeColor, 0.88)} 0%, ${mixWithWhite(themeColor, 0.95)} 100%)`,
 });
 
 export const getFrontLayerStyle = (themeColor) => ({
-  borderColor: toRgba(themeColor, 0.58),
+  borderColor: toRgba(themeColor, 0.4),
   background: `
-    radial-gradient(circle at 12% 15%, ${toRgba(themeColor, 0.16)} 0%, ${toRgba(
+    radial-gradient(circle at 12% 15%, ${toRgba(themeColor, 0.14)} 0%, ${toRgba(
       themeColor,
       0,
     )} 45%),
-    linear-gradient(145deg, ${toRgba(themeColor, 0.96)} 0%, rgba(29, 17, 16, 0.92) 52%, #191026 100%)
+    linear-gradient(145deg, ${mixWithWhite(themeColor, 0.78)} 0%, ${mixWithWhite(themeColor, 0.9)} 100%)
   `,
 });
 
