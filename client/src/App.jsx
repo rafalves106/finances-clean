@@ -8,6 +8,7 @@ import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
+import RegisterView from "./components/RegisterView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
 
 import {
@@ -54,6 +55,7 @@ const parsePeriodKey = (periodKey) => {
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
+  const [authScreen, setAuthScreen] = useState("login");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
   const [selectedAno, setSelectedAno] = useState(new Date().getFullYear());
@@ -394,7 +396,18 @@ const App = () => {
   }, [isLoggedIn, activeTab, isMobileViewport]);
 
   if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
+    if (authScreen === "register") {
+      return (
+        <RegisterView onNavigateToLogin={() => setAuthScreen("login")} />
+      );
+    }
+
+    return (
+      <LoginView
+        onLoginSuccess={() => setIsLoggedIn(true)}
+        onNavigateToRegister={() => setAuthScreen("register")}
+      />
+    );
   }
 
   if (isMobileViewport) {

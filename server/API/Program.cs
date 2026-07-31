@@ -179,9 +179,11 @@ builder.Services.AddRateLimiter(options =>
         var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var endpoint = httpContext.Request.Path.Value?.ToLowerInvariant() ?? "unknown";
         var partitionKey = $"{remoteIp}:{endpoint}";
-        var permitLimit = endpoint.EndsWith("/registro", StringComparison.OrdinalIgnoreCase)
-            ? 3
-            : 5;
+        var isRestrictedAuthPath =
+            endpoint.EndsWith("/registro", StringComparison.OrdinalIgnoreCase) ||
+            endpoint.EndsWith("/registro-publico", StringComparison.OrdinalIgnoreCase) ||
+            endpoint.EndsWith("/ativar", StringComparison.OrdinalIgnoreCase);
+        var permitLimit = isRestrictedAuthPath ? 3 : 5;
 
         return RateLimitPartition.GetFixedWindowLimiter(
             partitionKey,

@@ -4,9 +4,11 @@ import { Wallet } from "lucide-react";
 import { API_AUTH_URL } from "../services/api";
 import { setToken } from "../services/auth";
 
-const LoginView = ({ onLoginSuccess }) => {
+const LoginView = ({ onLoginSuccess, onNavigateToRegister }) => {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [needsActivation, setNeedsActivation] = useState(false);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,6 +18,23 @@ const LoginView = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
+      if (needsActivation) {
+        const response = await fetch(`${API_AUTH_URL}/ativar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, senha, codigo }),
+        });
+
+        if (response.ok) {
+          setToken();
+          onLoginSuccess();
+          return;
+        }
+
+        setErro("Código de ativação inválido.");
+        return;
+      }
+
       const response = await fetch(`${API_AUTH_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,6 +46,17 @@ const LoginView = ({ onLoginSuccess }) => {
         setToken(data.token);
         onLoginSuccess();
         return;
+      }
+
+      if (response.status === 403) {
+        const data = await response.json().catch(() => null);
+        if (data?.code === "CONTA_NAO_ATIVADA") {
+          setNeedsActivation(true);
+          setErro(
+            "Conta ainda não ativada. Peça o código ao administrador da plataforma.",
+          );
+          return;
+        }
       }
 
       if (response.status === 401) {
@@ -114,6 +144,31 @@ const LoginView = ({ onLoginSuccess }) => {
             />
           </div>
 
+          {needsActivation && (
+            <div>
+              <label
+                htmlFor="login-codigo"
+                className="block text-sm font-medium mb-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Código de ativação
+              </label>
+              <input
+                id="login-codigo"
+                type="text"
+                required
+                autoFocus
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+                className="w-full p-3 rounded-xl focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+              />
+            </div>
+          )}
+
           {erro && (
             <div
               className="text-sm rounded-xl p-3"
@@ -142,9 +197,26 @@ const LoginView = ({ onLoginSuccess }) => {
               e.currentTarget.style.background = "var(--accent-600)";
             }}
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {loading
+              ? needsActivation
+                ? "Ativando..."
+                : "Entrando..."
+              : needsActivation
+                ? "Ativar conta"
+                : "Entrar"}
           </button>
         </form>
+
+        {!needsActivation && onNavigateToRegister && (
+          <button
+            type="button"
+            onClick={onNavigateToRegister}
+            className="w-full text-center text-sm mt-4"
+            style={{ color: "var(--accent-600)" }}
+          >
+            Criar conta
+          </button>
+        )}
       </div>
     </div>
   );
