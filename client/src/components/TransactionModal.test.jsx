@@ -47,6 +47,7 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
     const inputs = document.querySelectorAll('input[type="date"]');
     fireEvent.change(inputs[0], { target: { value: "2026-01-10" } });
 
+    fireEvent.click(screen.getByRole("button", { name: /Mais opções/i }));
     fireEvent.click(screen.getByLabelText(/É uma movimentação recorrente\?/i));
     fireEvent.click(screen.getByLabelText("Parcelada"));
 

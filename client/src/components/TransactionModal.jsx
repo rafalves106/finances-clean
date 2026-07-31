@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { API_CARTAO_URL, API_URL } from "../services/api";
 import { formatDate } from "../util/formatDate";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const INITIAL_FORM = {
   editingId: null,
@@ -21,6 +22,9 @@ const INITIAL_FORM = {
   cartaoId: null,
 };
 
+const hasAdvancedData = (item) =>
+  Boolean(item?.fixa || item?.cartaoId || item?.veiculoId);
+
 const TransactionModal = ({
   isOpen,
   onClose,
@@ -37,7 +41,8 @@ const TransactionModal = ({
   const [cartoes, setCartoes] = useState([]);
   const [loadingCartao, setLoadingCartao] = useState(false);
   const [validationError, setValidationError] = useState("");
-  const dialogRef = useRef(null);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, onClose);
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -74,6 +79,7 @@ const TransactionModal = ({
         date: dateStr,
       });
       setValidationError("");
+      setIsAdvancedOpen(hasAdvancedData(editingItem));
     } else {
       setForm({
         ...INITIAL_FORM,
@@ -81,6 +87,7 @@ const TransactionModal = ({
         vincularCartao: initialCardPurchaseMode,
       });
       setValidationError("");
+      setIsAdvancedOpen(initialCardPurchaseMode);
     }
   }, [editingItem, initialCardPurchaseMode, isOpen]);
 
@@ -124,57 +131,6 @@ const TransactionModal = ({
 
     carregarCartoes();
   }, [editingItem, initialCardPurchaseMode, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !dialogRef.current) return;
-
-    const focusable = dialogRef.current.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-
-    if (focusable.length > 0) {
-      focusable[0].focus();
-      return;
-    }
-
-    dialogRef.current.focus();
-  }, [isOpen]);
-
-  const handleDialogKeyDown = (e) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (e.key !== "Tab" || !dialogRef.current) return;
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-
-    if (focusable.length === 0) {
-      e.preventDefault();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const current = document.activeElement;
-
-    if (e.shiftKey && current === first) {
-      e.preventDefault();
-      last.focus();
-      return;
-    }
-
-    if (!e.shiftKey && current === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -316,11 +272,17 @@ const TransactionModal = ({
   const isTransporte =
     categoryId === categoriaTransporte?.id && tipo === "Saida";
   const isCompraNoCartao = tipo === "Saida" && vincularCartao;
+  const fieldStyle = {
+    border: "1px solid var(--border-default)",
+    background: "var(--bg-surface)",
+    color: "var(--text-primary)",
+  };
   const fieldClassName =
-    "w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 py-2 text-sm text-[#dbe3ff] placeholder:text-[#7f89ac] focus:border-[#4f6fb0] focus:outline-none focus:ring-2 focus:ring-[#4f6fb0]/25";
+    "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2";
+  const advancedActive = isFixed || vincularCartao || Boolean(veiculoId);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(4,7,15,0.72)] backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[rgba(18,20,28,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
@@ -328,12 +290,18 @@ const TransactionModal = ({
         aria-labelledby="transaction-modal-title"
         tabIndex={-1}
         onKeyDown={handleDialogKeyDown}
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] p-6 shadow-[0_24px_60px_rgba(3,8,18,0.6)]"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6"
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-modal)",
+        }}
       >
         <div className="flex items-center justify-between mb-5">
           <h2
             id="transaction-modal-title"
-            className="text-lg sm:text-xl font-semibold text-[#dbe3ff]"
+            className="text-lg sm:text-xl font-semibold"
+            style={{ color: "var(--text-primary)" }}
           >
             {isSimulation
               ? "Simular Transação"
@@ -345,7 +313,11 @@ const TransactionModal = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal de transação"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#31405f] text-[#8f97b8] transition-colors hover:bg-[#1f2a45] hover:text-[#dbe3ff]"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+            style={{
+              border: "1px solid var(--border-default)",
+              color: "var(--text-tertiary)",
+            }}
           >
             <X size={20} />
           </button>
@@ -353,16 +325,25 @@ const TransactionModal = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {validationError ? (
-            <div className="rounded-lg border border-[#6b3040] bg-[#2a1620] p-2 text-xs text-[#f5a3b2]">
+            <div
+              className="rounded-lg p-2 text-xs"
+              style={{
+                border: "1px solid var(--danger-border)",
+                background: "var(--danger-100)",
+                color: "var(--danger-700)",
+              }}
+            >
               {validationError}
             </div>
           ) : null}
 
+          {/* Essencial: campos que cobrem a maioria dos lançamentos do dia a dia */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
               placeholder="Título"
               className={fieldClassName}
+              style={fieldStyle}
               value={name}
               onChange={(e) => setField("name", e.target.value)}
             />
@@ -370,122 +351,28 @@ const TransactionModal = ({
               type="text"
               placeholder="Descrição"
               className={fieldClassName}
+              style={fieldStyle}
               value={description}
               onChange={(e) => setField("description", e.target.value)}
             />
-          </div>
-
-          <div className="flex items-center gap-2 px-1 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
-            <input
-              type="checkbox"
-              id="modal-isFixed"
-              className="h-4 w-4 rounded border-[#3c4b6b] bg-[#111a2f] accent-emerald-500 disabled:opacity-50"
-              checked={isFixed}
-              onChange={(e) => setField("isFixed", e.target.checked)}
-              disabled={editingId !== null}
-            />
-            <label
-              htmlFor="modal-isFixed"
-              className={`text-sm font-medium ${editingId ? "text-[#7f89ac]" : "text-[#b9bfd8]"}`}
-            >
-              É uma movimentação recorrente?{" "}
-              {editingId && "(Bloqueado na edição)"}
-            </label>
-          </div>
-
-          {isFixed && editingId === null && (
-            <div className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
-              <span className="text-sm font-medium text-[#b9bfd8]">
-                Tipo da movimentação fixa:
-              </span>
-              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
-                <input
-                  type="radio"
-                  name="tipoMovimentacaoFixa"
-                  value="RecorrenteFixa"
-                  checked={tipoMovimentacaoFixa === "RecorrenteFixa"}
-                  onChange={(e) =>
-                    setField("tipoMovimentacaoFixa", e.target.value)
-                  }
-                />
-                Recorrente Fixa
-              </label>
-              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
-                <input
-                  type="radio"
-                  name="tipoMovimentacaoFixa"
-                  value="Parcelada"
-                  checked={tipoMovimentacaoFixa === "Parcelada"}
-                  onChange={(e) =>
-                    setField("tipoMovimentacaoFixa", e.target.value)
-                  }
-                />
-                Parcelada
-              </label>
-            </div>
-          )}
-
-          {isFixed && editingId === null && (
-            <div className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg border border-[#2a3554] bg-[#101a31]">
-              <span className="text-sm font-medium text-[#b9bfd8]">
-                Tipo de recorrência:
-              </span>
-              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
-                <input
-                  type="radio"
-                  name="tipoRecorrencia"
-                  value="Mensal"
-                  checked={tipoRecorrencia === "Mensal"}
-                  onChange={(e) => setField("tipoRecorrencia", e.target.value)}
-                />
-                Mensal
-              </label>
-              <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
-                <input
-                  type="radio"
-                  name="tipoRecorrencia"
-                  value="Semanal"
-                  checked={tipoRecorrencia === "Semanal"}
-                  onChange={(e) => setField("tipoRecorrencia", e.target.value)}
-                />
-                Semanal
-              </label>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="date"
               className={fieldClassName}
+              style={fieldStyle}
               value={date}
               onChange={(e) => setField("date", e.target.value)}
             />
-
-            {isFixed && editingId === null && (
-              <input
-                type="number"
-                min="1"
-                placeholder={
-                  tipoRecorrencia === "Semanal"
-                    ? "Duração (semanas)"
-                    : "Duração (meses)"
-                }
-                className={fieldClassName}
-                value={period}
-                onChange={(e) => setField("period", e.target.value)}
-              />
-            )}
-
             <input
               type="number"
               placeholder="Valor"
               className={fieldClassName}
+              style={fieldStyle}
               value={value}
               onChange={(e) => setField("value", e.target.value)}
             />
-
             <select
               className={fieldClassName}
+              style={fieldStyle}
               value={tipo}
               onChange={(e) => {
                 const novoTipo = e.target.value;
@@ -499,82 +386,9 @@ const TransactionModal = ({
               <option value="Saida">Saída</option>
               <option value="Entrada">Entrada</option>
             </select>
-
-            {tipo === "Saida" && (
-              <div className="md:col-span-2 rounded-lg border border-[#2f4566] bg-[#111a2f] p-3 space-y-2">
-                <label className="flex items-center gap-2 text-sm text-[#dbe3ff]">
-                  <input
-                    type="checkbox"
-                    checked={vincularCartao}
-                    disabled={cartoes.length === 0}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setField("vincularCartao", checked);
-                      setField(
-                        "cartaoId",
-                        checked ? cartoes[0]?.id || null : null,
-                      );
-                    }}
-                  />
-                  Marcar como compra no cartão
-                </label>
-
-                {isCompraNoCartao ? (
-                  <div className="rounded-md border border-[#1f5a4b] bg-[#0f2f26] px-2 py-1.5 text-xs text-[#84e0bc]">
-                    Use a data real da compra (não use a data de vencimento). A
-                    competência e o vencimento são calculados pelo ciclo do
-                    cartão.
-                  </div>
-                ) : null}
-
-                {loadingCartao ? (
-                  <p className="text-xs text-[#8f97b8]">
-                    Carregando cartões...
-                  </p>
-                ) : cartoes.length > 0 ? (
-                  <div className="space-y-2">
-                    <label className="block text-xs text-[#b9bfd8]">
-                      Cartão selecionado
-                      <select
-                        className="mt-1 w-full rounded-md border border-[#334266] bg-[#182540] p-2 text-xs text-[#dbe3ff]"
-                        value={form.cartaoId || ""}
-                        onChange={(e) =>
-                          setField("cartaoId", e.target.value || null)
-                        }
-                      >
-                        {cartoes.map((cartao) => (
-                          <option key={cartao.id} value={cartao.id}>
-                            {cartao.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {(() => {
-                      const selecionado =
-                        cartoes.find(
-                          (c) => String(c.id) === String(form.cartaoId),
-                        ) || cartoes[0];
-                      return selecionado ? (
-                        <p className="text-xs text-[#9aa3c4]">
-                          Fechamento dia{" "}
-                          <strong>{selecionado.diaFechamento}</strong> ·
-                          Vencimento dia{" "}
-                          <strong>{selecionado.diaVencimento}</strong>
-                        </p>
-                      ) : null;
-                    })()}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#f3ca8d]">
-                    Nenhum cartão encontrado. Cadastre um cartão para vincular
-                    compras.
-                  </p>
-                )}
-              </div>
-            )}
-
             <select
-              className={`${fieldClassName} md:col-span-2`}
+              className={fieldClassName}
+              style={fieldStyle}
               value={categoryId}
               onChange={(e) => {
                 setField("categoryId", e.target.value);
@@ -590,33 +404,293 @@ const TransactionModal = ({
                 </option>
               ))}
             </select>
+          </div>
 
-            {isTransporte && (
-              <select
-                className={`${fieldClassName} md:col-span-2`}
-                value={veiculoId}
-                onChange={(e) => {
-                  setField("veiculoId", e.target.value);
-                  setField("km", "");
-                }}
+          {/* Avancado: recorrencia, cartao e veiculo - usado ocasionalmente */}
+          <div
+            className="rounded-lg"
+            style={{ border: "1px solid var(--border-subtle)" }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsAdvancedOpen((current) => !current)}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <span>
+                Mais opções
+                {advancedActive ? " (em uso)" : ""}
+              </span>
+              {isAdvancedOpen ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+
+            {isAdvancedOpen && (
+              <div
+                className="px-3 pb-3 space-y-3"
+                style={{ borderTop: "1px solid var(--border-subtle)" }}
               >
-                <option value="">Selecione o veículo</option>
-                {veiculos.map((veiculo) => (
-                  <option key={veiculo.id} value={veiculo.id}>
-                    {veiculo.nome} — {veiculo.modelo} ({veiculo.ano})
-                  </option>
-                ))}
-              </select>
-            )}
+                <div className="flex items-center gap-2 px-1 pt-3">
+                  <input
+                    type="checkbox"
+                    id="modal-isFixed"
+                    className="h-4 w-4 rounded disabled:opacity-50"
+                    style={{ accentColor: "var(--accent-600)" }}
+                    checked={isFixed}
+                    onChange={(e) => setField("isFixed", e.target.checked)}
+                    disabled={editingId !== null}
+                  />
+                  <label
+                    htmlFor="modal-isFixed"
+                    className="text-sm font-medium"
+                    style={{
+                      color: editingId
+                        ? "var(--text-disabled)"
+                        : "var(--text-secondary)",
+                    }}
+                  >
+                    É uma movimentação recorrente?{" "}
+                    {editingId && "(Bloqueado na edição)"}
+                  </label>
+                </div>
 
-            {isTransporte && veiculoId && (
-              <input
-                type="number"
-                placeholder="Quilometragem (km)"
-                className={`${fieldClassName} md:col-span-2`}
-                value={km}
-                onChange={(e) => setField("km", e.target.value)}
-              />
+                {isFixed && editingId === null && (
+                  <div
+                    className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg"
+                    style={{ background: "var(--bg-surface-sunken)" }}
+                  >
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Tipo da movimentação fixa:
+                    </span>
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <input
+                        type="radio"
+                        name="tipoMovimentacaoFixa"
+                        value="RecorrenteFixa"
+                        checked={tipoMovimentacaoFixa === "RecorrenteFixa"}
+                        onChange={(e) =>
+                          setField("tipoMovimentacaoFixa", e.target.value)
+                        }
+                      />
+                      Recorrente Fixa
+                    </label>
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <input
+                        type="radio"
+                        name="tipoMovimentacaoFixa"
+                        value="Parcelada"
+                        checked={tipoMovimentacaoFixa === "Parcelada"}
+                        onChange={(e) =>
+                          setField("tipoMovimentacaoFixa", e.target.value)
+                        }
+                      />
+                      Parcelada
+                    </label>
+                  </div>
+                )}
+
+                {isFixed && editingId === null && (
+                  <div
+                    className="flex flex-wrap items-center gap-4 px-3 py-2 rounded-lg"
+                    style={{ background: "var(--bg-surface-sunken)" }}
+                  >
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Tipo de recorrência:
+                    </span>
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <input
+                        type="radio"
+                        name="tipoRecorrencia"
+                        value="Mensal"
+                        checked={tipoRecorrencia === "Mensal"}
+                        onChange={(e) =>
+                          setField("tipoRecorrencia", e.target.value)
+                        }
+                      />
+                      Mensal
+                    </label>
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <input
+                        type="radio"
+                        name="tipoRecorrencia"
+                        value="Semanal"
+                        checked={tipoRecorrencia === "Semanal"}
+                        onChange={(e) =>
+                          setField("tipoRecorrencia", e.target.value)
+                        }
+                      />
+                      Semanal
+                    </label>
+                  </div>
+                )}
+
+                {isFixed && editingId === null && (
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder={
+                      tipoRecorrencia === "Semanal"
+                        ? "Duração (semanas)"
+                        : "Duração (meses)"
+                    }
+                    className={fieldClassName}
+                    style={fieldStyle}
+                    value={period}
+                    onChange={(e) => setField("period", e.target.value)}
+                  />
+                )}
+
+                {tipo === "Saida" && (
+                  <div
+                    className="rounded-lg p-3 space-y-2"
+                    style={{ background: "var(--bg-surface-sunken)" }}
+                  >
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={vincularCartao}
+                        disabled={cartoes.length === 0}
+                        style={{ accentColor: "var(--accent-600)" }}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setField("vincularCartao", checked);
+                          setField(
+                            "cartaoId",
+                            checked ? cartoes[0]?.id || null : null,
+                          );
+                        }}
+                      />
+                      Marcar como compra no cartão
+                    </label>
+
+                    {isCompraNoCartao ? (
+                      <div
+                        className="rounded-md px-2 py-1.5 text-xs"
+                        style={{
+                          border: "1px solid var(--success-border)",
+                          background: "var(--success-100)",
+                          color: "var(--success-700)",
+                        }}
+                      >
+                        Use a data real da compra (não use a data de
+                        vencimento). A competência e o vencimento são
+                        calculados pelo ciclo do cartão.
+                      </div>
+                    ) : null}
+
+                    {loadingCartao ? (
+                      <p
+                        className="text-xs"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        Carregando cartões...
+                      </p>
+                    ) : cartoes.length > 0 ? (
+                      <div className="space-y-2">
+                        <label
+                          className="block text-xs"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          Cartão selecionado
+                          <select
+                            className="mt-1 w-full rounded-md p-2 text-xs"
+                            style={fieldStyle}
+                            value={form.cartaoId || ""}
+                            onChange={(e) =>
+                              setField("cartaoId", e.target.value || null)
+                            }
+                          >
+                            {cartoes.map((cartao) => (
+                              <option key={cartao.id} value={cartao.id}>
+                                {cartao.nome}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {(() => {
+                          const selecionado =
+                            cartoes.find(
+                              (c) => String(c.id) === String(form.cartaoId),
+                            ) || cartoes[0];
+                          return selecionado ? (
+                            <p
+                              className="text-xs"
+                              style={{ color: "var(--text-tertiary)" }}
+                            >
+                              Fechamento dia{" "}
+                              <strong>{selecionado.diaFechamento}</strong> ·
+                              Vencimento dia{" "}
+                              <strong>{selecionado.diaVencimento}</strong>
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
+                    ) : (
+                      <p
+                        className="text-xs"
+                        style={{ color: "var(--warning-700)" }}
+                      >
+                        Nenhum cartão encontrado. Cadastre um cartão para
+                        vincular compras.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isTransporte && (
+                  <select
+                    className={fieldClassName}
+                    style={fieldStyle}
+                    value={veiculoId}
+                    onChange={(e) => {
+                      setField("veiculoId", e.target.value);
+                      setField("km", "");
+                    }}
+                  >
+                    <option value="">Selecione o veículo</option>
+                    {veiculos.map((veiculo) => (
+                      <option key={veiculo.id} value={veiculo.id}>
+                        {veiculo.nome} — {veiculo.modelo} ({veiculo.ano})
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {isTransporte && veiculoId && (
+                  <input
+                    type="number"
+                    placeholder="Quilometragem (km)"
+                    className={fieldClassName}
+                    style={fieldStyle}
+                    value={km}
+                    onChange={(e) => setField("km", e.target.value)}
+                  />
+                )}
+              </div>
             )}
           </div>
 
@@ -624,20 +698,25 @@ const TransactionModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-[#3b4868] bg-[#1b2945] p-2 font-medium text-[#c4cbe4] transition-colors hover:bg-[#223255]"
+              className="flex-1 rounded-lg p-2 font-medium transition-colors"
+              style={{
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
             >
               Cancelar
             </button>
             <button
               aria-label="Cancelar ação"
               type="submit"
-              className={`flex-1 rounded-lg p-2 font-medium text-white transition-colors ${
-                isSimulation
-                  ? "bg-[#c47b16] hover:bg-[#d08a2f]"
-                  : editingId
-                    ? "bg-[#c47b16] hover:bg-[#d08a2f]"
-                    : "bg-[#1f8b63] hover:bg-[#28a373]"
-              }`}
+              className="flex-1 rounded-lg p-2 font-medium transition-colors"
+              style={{
+                background:
+                  isSimulation || editingId
+                    ? "var(--warning-700)"
+                    : "var(--accent-600)",
+                color: "var(--text-on-accent)",
+              }}
             >
               {isSimulation ? "Simular" : editingId ? "Atualizar" : "Salvar"}
             </button>

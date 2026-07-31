@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -28,7 +28,9 @@ import {
   extractApiErrorMessage,
 } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
+import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
 import TransactionModal from "./TransactionModal";
+import InvestmentsView from "./InvestmentsView";
 
 const sortByDate = (list) =>
   [...list].sort(
@@ -53,6 +55,7 @@ const MOBILE_SCREEN_LABELS = {
 
 const DashboardMobileView = ({
   totalInvestmentsBalance = 0,
+  investmentAmount = 0,
   incomes = [],
   expenses = [],
   investments = [],
@@ -74,12 +77,19 @@ const DashboardMobileView = ({
   const [editingItem, setEditingItem] = useState(null);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState(null);
-  const [isSimulatorExpanded, setIsSimulatorExpanded] = useState(false);
-  const [simulatorForm, setSimulatorForm] = useState({
-    aporteMensal: "500",
-    taxaAnual: "12",
-    periodoAnos: "10",
-  });
+  const [chartsTab, setChartsTab] = useState("fluxo");
+  const [expandedTransactionId, setExpandedTransactionId] = useState(null);
+  const [transactionCategoryFilter, setTransactionCategoryFilter] =
+    useState(null);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState(new Set());
+  const pendingDeleteTimersRef = useRef(new Map());
+
+  useEffect(() => {
+    const timers = pendingDeleteTimersRef.current;
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
 
   const mobileTier =
     viewportWidth >= 412 ? "lg" : viewportWidth >= 390 ? "md" : "sm";
@@ -228,6 +238,22 @@ const DashboardMobileView = ({
     [expenses, incomes],
   );
 
+  const {
+    slideCategoryRanking: categoryRanking,
+    exceededCategoryAlerts,
+    categoryComparisonData,
+    currentMonthShortLabel,
+    previousMonthShortLabel,
+  } = useDashboardFinancials({
+    allTransactions,
+    incomes,
+    expenses,
+    categorias,
+    selectedMes,
+    selectedAno,
+    saldoAnterior,
+  });
+
   const totalIncome = useMemo(
     () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
     [incomes],
@@ -274,7 +300,27 @@ const DashboardMobileView = ({
       .slice(0, 4);
   }, [expenses]);
 
-  const listedTransactions = useMemo(() => allTransactions, [allTransactions]);
+  const listedTransactions = useMemo(() => {
+    return allTransactions.filter((item) => {
+      if (pendingDeleteIds.has(item.id)) {
+        return false;
+      }
+
+      if (!transactionCategoryFilter) {
+        return true;
+      }
+
+      const itemCategoryId = String(
+        item.categoriaId || item.categoria?.id || "sem",
+      );
+      return itemCategoryId === transactionCategoryFilter;
+    });
+  }, [allTransactions, pendingDeleteIds, transactionCategoryFilter]);
+
+  const pendingDeleteItems = useMemo(
+    () => allTransactions.filter((item) => pendingDeleteIds.has(item.id)),
+    [allTransactions, pendingDeleteIds],
+  );
 
   const chartSeriesData = useMemo(() => {
     const keyToData = new Map();
@@ -347,25 +393,6 @@ const DashboardMobileView = ({
       .slice(0, 5);
   }, [expenses]);
 
-  const simulatorResult = useMemo(() => {
-    const aporte = Number(simulatorForm.aporteMensal || 0);
-    const taxa = Number(simulatorForm.taxaAnual || 0) / 100;
-    const anos = Number(simulatorForm.periodoAnos || 0);
-
-    if (aporte <= 0 || anos <= 0) {
-      return 0;
-    }
-
-    const totalMeses = anos * 12;
-    const taxaMensal = taxa / 12;
-
-    if (taxaMensal === 0) {
-      return aporte * totalMeses;
-    }
-
-    return aporte * ((Math.pow(1 + taxaMensal, totalMeses) - 1) / taxaMensal);
-  }, [simulatorForm]);
-
   const activeCardSummary = cardSummaries[0] || null;
   const activeCardName = activeCardSummary?.cartao?.nome || "Sem cartão ativo";
   const activeCardLimit = Number(activeCardSummary?.cartao?.limiteTotal || 0);
@@ -398,17 +425,9 @@ const DashboardMobileView = ({
     setIsModalOpen(true);
   };
 
-  const handleDeleteTransaction = async (transaction) => {
-    const transactionId = transaction?.id;
-    if (!transactionId) {
-      return;
-    }
+  const DELETE_UNDO_WINDOW_MS = 5000;
 
-    const title = transaction.name || transaction.titulo || "esta transação";
-    if (!window.confirm(`Deseja excluir ${title}?`)) {
-      return;
-    }
-
+  const executeDelete = async (transactionId) => {
     try {
       const response = await fetch(`${API_URL}/${transactionId}`, {
         method: "DELETE",
@@ -421,6 +440,11 @@ const DashboardMobileView = ({
           "Não foi possível excluir a transação.",
         );
         alert(message);
+        setPendingDeleteIds((current) => {
+          const next = new Set(current);
+          next.delete(transactionId);
+          return next;
+        });
         return;
       }
 
@@ -428,7 +452,41 @@ const DashboardMobileView = ({
     } catch (error) {
       console.error("Erro ao excluir transação:", error);
       alert("Erro ao excluir transação. Verifique o console.");
+    } finally {
+      pendingDeleteTimersRef.current.delete(transactionId);
     }
+  };
+
+  // ponytail: exclusao via toque + desfazer em vez de swipe fisico, mais
+  // seguro pra evitar exclusao acidental num app financeiro; swipe real
+  // pode entrar depois com uma lib de gesto se fizer falta.
+  const handleDeleteTransaction = (transaction) => {
+    const transactionId = transaction?.id;
+    if (!transactionId) {
+      return;
+    }
+
+    setPendingDeleteIds((current) => new Set(current).add(transactionId));
+
+    const timer = window.setTimeout(() => {
+      executeDelete(transactionId);
+    }, DELETE_UNDO_WINDOW_MS);
+
+    pendingDeleteTimersRef.current.set(transactionId, timer);
+  };
+
+  const handleUndoDelete = (transactionId) => {
+    const timer = pendingDeleteTimersRef.current.get(transactionId);
+    if (timer) {
+      window.clearTimeout(timer);
+      pendingDeleteTimersRef.current.delete(transactionId);
+    }
+
+    setPendingDeleteIds((current) => {
+      const next = new Set(current);
+      next.delete(transactionId);
+      return next;
+    });
   };
 
   const screenMinHeight = `calc(100dvh - ${headerHeight}px - ${bottomNavHeight}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`;
@@ -701,6 +759,78 @@ const DashboardMobileView = ({
         >
           Movimentações
         </p>
+
+        {pendingDeleteItems.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {pendingDeleteItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs"
+                style={{
+                  background: "var(--warning-100)",
+                  border: "1px solid var(--warning-border)",
+                  color: "var(--warning-700)",
+                }}
+              >
+                <span>
+                  {item.name || item.titulo || "Movimentação"} excluída
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleUndoDelete(item.id)}
+                  className="font-semibold underline"
+                >
+                  Desfazer
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {categoriesTop.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTransactionCategoryFilter(null)}
+              className="rounded-full px-3 py-1 text-[11px] font-semibold"
+              style={{
+                background: !transactionCategoryFilter
+                  ? "var(--accent-600)"
+                  : "var(--bg-surface-sunken)",
+                color: !transactionCategoryFilter
+                  ? "var(--text-on-accent)"
+                  : "var(--text-secondary)",
+              }}
+            >
+              Todas
+            </button>
+            {categoriesTop.map((categoria) => (
+              <button
+                key={categoria.id}
+                type="button"
+                onClick={() =>
+                  setTransactionCategoryFilter((current) =>
+                    current === categoria.id ? null : categoria.id,
+                  )
+                }
+                className="rounded-full px-3 py-1 text-[11px] font-semibold"
+                style={{
+                  background:
+                    transactionCategoryFilter === categoria.id
+                      ? "var(--accent-600)"
+                      : "var(--bg-surface-sunken)",
+                  color:
+                    transactionCategoryFilter === categoria.id
+                      ? "var(--text-on-accent)"
+                      : "var(--text-secondary)",
+                }}
+              >
+                {categoria.nome}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="mt-2 space-y-2">
           {listedTransactions.length === 0 ? (
             <p
@@ -713,6 +843,7 @@ const DashboardMobileView = ({
             listedTransactions.map((item) => {
               const itemType = item.type || item.tipo;
               const isEntrada = itemType === "Entrada";
+              const isExpanded = expandedTransactionId === item.id;
               return (
                 <article
                   key={item.id}
@@ -722,7 +853,15 @@ const DashboardMobileView = ({
                     border: "1px solid var(--border-subtle)",
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedTransactionId((current) =>
+                        current === item.id ? null : item.id,
+                      )
+                    }
+                    className="flex w-full items-center justify-between gap-2 text-left"
+                  >
                     <div className="flex items-center gap-2">
                       <span style={{ color: "var(--text-tertiary)" }}>
                         {isEntrada ? (
@@ -746,43 +885,55 @@ const DashboardMobileView = ({
                         </p>
                       </div>
                     </div>
-                    <p
-                      className="m-0 text-xs font-semibold whitespace-nowrap"
-                      style={{
-                        color: isEntrada
-                          ? "var(--success-700)"
-                          : "var(--danger-700)",
-                      }}
-                    >
-                      {isEntrada ? "+" : "-"}
-                      {formatCurrency(item.value || item.valor || 0)}
-                    </p>
-                  </div>
+                    <div className="flex items-center gap-1.5">
+                      <p
+                        className="m-0 text-xs font-semibold whitespace-nowrap"
+                        style={{
+                          color: isEntrada
+                            ? "var(--success-700)"
+                            : "var(--danger-700)",
+                        }}
+                      >
+                        {isEntrada ? "+" : "-"}
+                        {formatCurrency(item.value || item.valor || 0)}
+                      </p>
+                      <ChevronDown
+                        size={14}
+                        style={{
+                          color: "var(--text-tertiary)",
+                          transform: isExpanded ? "rotate(180deg)" : "none",
+                          transition: "transform 0.15s ease",
+                        }}
+                      />
+                    </div>
+                  </button>
 
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditTransaction(item)}
-                      className="h-11 rounded-lg text-xs font-semibold"
-                      style={{
-                        border: "1px solid var(--accent-600)",
-                        color: "var(--accent-600)",
-                      }}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTransaction(item)}
-                      className="h-11 rounded-lg text-xs font-semibold"
-                      style={{
-                        border: "1px solid var(--danger-border)",
-                        color: "var(--danger-700)",
-                      }}
-                    >
-                      Excluir
-                    </button>
-                  </div>
+                  {isExpanded && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditTransaction(item)}
+                        className="h-11 rounded-lg text-xs font-semibold"
+                        style={{
+                          border: "1px solid var(--accent-600)",
+                          color: "var(--accent-600)",
+                        }}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTransaction(item)}
+                        className="h-11 rounded-lg text-xs font-semibold"
+                        style={{
+                          border: "1px solid var(--danger-border)",
+                          color: "var(--danger-700)",
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })
@@ -792,118 +943,370 @@ const DashboardMobileView = ({
     </div>
   );
 
+  const chartsTabs = [
+    { id: "fluxo", label: "Fluxo" },
+    { id: "categorias", label: "Categorias" },
+    { id: "comparativo", label: "Comparativo" },
+  ];
+
+  const chartTooltipStyle = {
+    background: "var(--bg-inverse)",
+    border: "none",
+    borderRadius: "10px",
+    color: "#fff",
+    fontSize: "12px",
+  };
+
+  const rankingMaxTotal = Math.max(
+    1,
+    ...categoryRanking.map((item) => Number(item.total || 0)),
+  );
+
   const renderChartsScreen = () => (
     <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
-      <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+      <div
+        className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+        style={{ background: "var(--bg-surface-sunken)" }}
+        role="tablist"
+        aria-label="Visualizações de análise"
       >
-        <div className="flex items-center justify-between">
-          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
+        {chartsTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={chartsTab === tab.id}
+            onClick={() => setChartsTab(tab.id)}
+            className="h-9 rounded-lg text-xs font-semibold transition-colors"
+            style={
+              chartsTab === tab.id
+                ? { background: "var(--bg-surface)", color: "var(--accent-600)", boxShadow: "var(--shadow-xs)" }
+                : { color: "var(--text-tertiary)" }
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {chartsTab === "fluxo" && (
+        <section
+          style={{
+            borderRadius: `${cardRadius}px`,
+            padding: `${cardPadding}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+          }}
+        >
+          <h2
+            className="m-0 text-sm font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
             Fluxo do mês
           </h2>
-          <p className="m-0 text-[11px] text-[#8f97b8]">Toque para leitura</p>
-        </div>
-        <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
-          {chartSeriesData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-xs text-[#8f97b8]">
-              Sem dados para o período.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartSeriesData}>
-                <XAxis dataKey="day" stroke="#8f97b8" fontSize={10} />
-                <YAxis stroke="#8f97b8" fontSize={10} width={36} />
-                <Tooltip
-                  formatter={(value) => formatCurrency(Number(value || 0))}
-                  contentStyle={{
-                    background: "#15172a",
-                    border: "1px solid #32375e",
-                    borderRadius: "10px",
-                    color: "#dbe3ff",
-                    fontSize: "12px",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="entrada"
-                  stroke="#00b884"
-                  fill="rgba(0,184,132,0.32)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="saida"
-                  stroke="#ff5c77"
-                  fill="rgba(255,92,119,0.26)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
+          <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
+            {chartSeriesData.length === 0 ? (
+              <div
+                className="h-full flex items-center justify-center text-xs"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                Sem dados para o período.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartSeriesData}>
+                  <XAxis dataKey="day" stroke="#767c93" fontSize={10} />
+                  <YAxis stroke="#767c93" fontSize={10} width={36} />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value || 0))}
+                    contentStyle={chartTooltipStyle}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="entrada"
+                    stroke="#059669"
+                    fill="rgba(5,150,105,0.18)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="saida"
+                    stroke="#E11D48"
+                    fill="rgba(225,29,72,0.14)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
+      )}
 
-      <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
-            Despesas por categoria
-          </h2>
-          <p className="m-0 text-[11px] text-[#8f97b8]">Toque para leitura</p>
-        </div>
-        <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
-          {categorySpendChartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-xs text-[#8f97b8]">
-              Sem dados para o período.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsPieChart>
-                <Pie
-                  data={categorySpendChartData}
-                  dataKey="total"
-                  nameKey="nome"
-                  innerRadius={38}
-                  outerRadius={72}
-                  paddingAngle={3}
+      {chartsTab === "categorias" && (
+        <>
+          <section
+            style={{
+              borderRadius: `${cardRadius}px`,
+              padding: `${cardPadding}px`,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
+            }}
+          >
+            <h2
+              className="m-0 text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Despesas por categoria
+            </h2>
+            <div style={{ height: `${chartMinHeight}px` }} className="mt-2">
+              {categorySpendChartData.length === 0 ? (
+                <div
+                  className="h-full flex items-center justify-center text-xs"
+                  style={{ color: "var(--text-tertiary)" }}
                 >
-                  {categorySpendChartData.map((entry, index) => (
-                    <Cell
-                      key={entry.id}
-                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  Sem dados para o período.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={categorySpendChartData}
+                      dataKey="total"
+                      nameKey="nome"
+                      innerRadius={38}
+                      outerRadius={72}
+                      paddingAngle={3}
+                    >
+                      {categorySpendChartData.map((entry, index) => (
+                        <Cell
+                          key={entry.id}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value || 0))}
+                      contentStyle={chartTooltipStyle}
                     />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => formatCurrency(Number(value || 0))}
-                  contentStyle={{
-                    background: "#15172a",
-                    border: "1px solid #32375e",
-                    borderRadius: "10px",
-                    color: "#dbe3ff",
-                    fontSize: "12px",
-                  }}
-                />
-              </RechartsPieChart>
-            </ResponsiveContainer>
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </section>
+
+          {exceededCategoryAlerts.length > 0 && (
+            <section
+              style={{
+                borderRadius: `${cardRadius}px`,
+                padding: `${cardPadding}px`,
+                background: "var(--warning-100)",
+                border: "1px solid var(--warning-700)",
+              }}
+            >
+              <h2
+                className="m-0 text-sm font-semibold"
+                style={{ color: "var(--warning-700)" }}
+              >
+                Orçamento estourado
+              </h2>
+              <div className="mt-2 space-y-1.5">
+                {exceededCategoryAlerts.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-xs"
+                    style={{ color: "var(--warning-700)" }}
+                  >
+                    <span>
+                      {item.icone ? `${item.icone} ` : ""}
+                      {item.nome}
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency(item.total)} / {formatCurrency(item.limite)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
-        </div>
-      </section>
+
+          <section
+            style={{
+              borderRadius: `${cardRadius}px`,
+              padding: `${cardPadding}px`,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
+            }}
+          >
+            <h2
+              className="m-0 text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Ranking de categorias
+            </h2>
+            <div className="mt-2 space-y-2">
+              {categoryRanking.length === 0 ? (
+                <p
+                  className="m-0 text-xs"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Sem categorias no período.
+                </p>
+              ) : (
+                categoryRanking.map((item) => (
+                  <div key={item.id}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span style={{ color: "var(--text-primary)" }}>
+                        {item.icone ? `${item.icone} ` : ""}
+                        {item.nome}
+                      </span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {formatCurrency(item.total)}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden"
+                      style={{ background: "var(--bg-surface-sunken)" }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(4, (Number(item.total || 0) / rankingMaxTotal) * 100)}%`,
+                          background: "var(--accent-600)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </>
+      )}
+
+      {chartsTab === "comparativo" && (
+        <section
+          style={{
+            borderRadius: `${cardRadius}px`,
+            padding: `${cardPadding}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+          }}
+        >
+          <h2
+            className="m-0 text-sm font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {currentMonthShortLabel} vs. {previousMonthShortLabel}
+          </h2>
+          <div className="mt-3 space-y-3">
+            {categoryComparisonData.length === 0 ? (
+              <p
+                className="m-0 text-xs"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                Sem dados para comparar no período.
+              </p>
+            ) : (
+              categoryComparisonData.map((item) => {
+                const maxValue = Math.max(
+                  1,
+                  item.currentTotal,
+                  item.previousTotal,
+                );
+                return (
+                  <div key={item.id}>
+                    <p
+                      className="m-0 text-xs font-medium mb-1"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {item.nome}
+                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className="text-[10px] w-14 shrink-0"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {currentMonthShortLabel}
+                      </span>
+                      <div
+                        className="h-2 flex-1 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(item.currentTotal / maxValue) * 100}%`,
+                            background: "var(--accent-600)",
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="text-[10px] w-16 shrink-0 text-right"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {formatCurrency(item.currentTotal)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-[10px] w-14 shrink-0"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {previousMonthShortLabel}
+                      </span>
+                      <div
+                        className="h-2 flex-1 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(item.previousTotal / maxValue) * 100}%`,
+                            background: "var(--border-strong)",
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="text-[10px] w-16 shrink-0 text-right"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {formatCurrency(item.previousTotal)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 
   const renderCardsScreen = () => (
     <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
       <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
       >
         <div className="flex items-center justify-between mb-2">
-          <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">Cartões</h2>
-          <p className="m-0 text-[11px] text-[#8f97b8]">Carrossel horizontal</p>
+          <h2
+            className="m-0 text-sm font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Cartões
+          </h2>
+          <p className="m-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            Deslize para o lado
+          </p>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
           {(cardSummaries.length > 0 ? cardSummaries : [null]).map(
             (summary, index) => {
               const cardId = String(summary?.cartao?.id || `empty-${index}`);
@@ -914,15 +1317,28 @@ const DashboardMobileView = ({
               return (
                 <article
                   key={cardId}
-                  className="min-w-[280px] max-w-[300px] rounded-2xl border border-[#304161] bg-[linear-gradient(145deg,rgba(28,38,70,0.95)_0%,rgba(17,26,49,0.94)_70%,rgba(14,21,42,0.98)_100%)] p-3"
+                  className="min-w-[280px] max-w-[300px] rounded-2xl p-3 snap-center"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    background: "var(--bg-surface-sunken)",
+                  }}
                 >
-                  <p className="m-0 text-xs text-[#dbe3ff] font-semibold">
+                  <p
+                    className="m-0 text-xs font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     {cardName}
                   </p>
-                  <p className="m-0 mt-1 text-[11px] text-[#9aa8cc]">
+                  <p
+                    className="m-0 mt-1 text-[11px]"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     Limite {formatCurrency(cardLimitTotal)}
                   </p>
-                  <p className="m-0 mt-0.5 text-[11px] text-[#9aa8cc]">
+                  <p
+                    className="m-0 mt-0.5 text-[11px]"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     Utilizado {formatCurrency(cardLimitUsed)}
                   </p>
                   <button
@@ -932,7 +1348,11 @@ const DashboardMobileView = ({
                         current === cardId ? null : cardId,
                       )
                     }
-                    className="mt-3 h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-medium flex items-center justify-center gap-1"
+                    className="mt-3 h-11 w-full rounded-xl text-sm font-medium flex items-center justify-center gap-1"
+                    style={{
+                      border: "1px solid var(--border-default)",
+                      color: "var(--text-primary)",
+                    }}
                   >
                     Ações
                     {expandedCardId === cardId ? (
@@ -942,18 +1362,31 @@ const DashboardMobileView = ({
                     )}
                   </button>
                   {expandedCardId === cardId ? (
-                    <div className="mt-2 space-y-2 rounded-xl border border-[#32486d] bg-[#0f1a31] p-2">
+                    <div
+                      className="mt-2 space-y-2 rounded-xl p-2"
+                      style={{
+                        border: "1px solid var(--border-subtle)",
+                        background: "var(--bg-surface)",
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={() => {
                           setOpenCardPurchaseMode(true);
                           setIsModalOpen(true);
                         }}
-                        className="h-11 w-full rounded-lg border border-[#356150] text-[#8fe7c4] text-xs font-semibold"
+                        className="h-11 w-full rounded-lg text-xs font-semibold"
+                        style={{
+                          border: "1px solid var(--success-border)",
+                          color: "var(--success-700)",
+                        }}
                       >
                         Nova compra no cartão
                       </button>
-                      <p className="m-0 text-[11px] text-[#8f97b8]">
+                      <p
+                        className="m-0 text-[11px]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
                         A compra será vinculada ao cartão ativo no lançamento.
                       </p>
                     </div>
@@ -968,105 +1401,11 @@ const DashboardMobileView = ({
   );
 
   const renderInvestmentsScreen = () => (
-    <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
-      <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
-      >
-        <h2 className="m-0 text-sm font-semibold text-[#dbe3ff]">
-          Investimentos ativos
-        </h2>
-        <div className="mt-2 space-y-2">
-          {investments.length === 0 ? (
-            <p className="m-0 text-xs text-[#8f97b8]">
-              Nenhum investimento ativo.
-            </p>
-          ) : (
-            investments.map((investment) => (
-              <article
-                key={investment.id}
-                className="rounded-xl border border-[#2f3d5f] bg-[#111c34] px-3 py-2"
-              >
-                <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
-                  {investment.nome}
-                </p>
-                <p className="m-0 mt-1 text-[11px] text-[#94a3cb]">
-                  Saldo {formatCurrency(Number(investment.saldoAtual || 0))}
-                </p>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section
-        className="border border-[#2a3554] bg-[#101a31]"
-        style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
-      >
-        <button
-          type="button"
-          onClick={() => setIsSimulatorExpanded((value) => !value)}
-          className="h-11 w-full rounded-xl border border-[#3c5078] text-[#dbe3ff] text-sm font-semibold flex items-center justify-between px-3"
-        >
-          Simulador de patrimônio
-          {isSimulatorExpanded ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
-        </button>
-
-        {isSimulatorExpanded ? (
-          <div className="mt-3 space-y-2">
-            <label className="block text-xs text-[#a4b1d6]">
-              Aporte mensal
-              <input
-                type="number"
-                value={simulatorForm.aporteMensal}
-                onChange={(event) =>
-                  setSimulatorForm((current) => ({
-                    ...current,
-                    aporteMensal: event.target.value,
-                  }))
-                }
-                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
-              />
-            </label>
-            <label className="block text-xs text-[#a4b1d6]">
-              Taxa anual (%)
-              <input
-                type="number"
-                value={simulatorForm.taxaAnual}
-                onChange={(event) =>
-                  setSimulatorForm((current) => ({
-                    ...current,
-                    taxaAnual: event.target.value,
-                  }))
-                }
-                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
-              />
-            </label>
-            <label className="block text-xs text-[#a4b1d6]">
-              Período (anos)
-              <input
-                type="number"
-                value={simulatorForm.periodoAnos}
-                onChange={(event) =>
-                  setSimulatorForm((current) => ({
-                    ...current,
-                    periodoAnos: event.target.value,
-                  }))
-                }
-                className="mt-1 h-11 w-full rounded-lg border border-[#334266] bg-[#111a2f] px-3 text-sm text-[#dbe3ff]"
-              />
-            </label>
-            <p className="m-0 rounded-xl border border-[#2f4566] bg-[#111c34] px-3 py-2 text-sm font-semibold text-[#8fe7c4]">
-              Resultado estimado: {formatCurrency(simulatorResult)}
-            </p>
-          </div>
-        ) : null}
-      </section>
-    </div>
+    <InvestmentsView
+      investmentAmount={investmentAmount}
+      investments={investments}
+      fetchData={fetchData}
+    />
   );
 
   const renderActiveScreen = () => {

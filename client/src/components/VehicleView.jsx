@@ -210,14 +210,14 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
   if (veiculos.length === 0) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="rounded-2xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] p-8 text-center">
-          <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-[#2f2330] text-[#f0ae8f] flex items-center justify-center">
+        <div className="rounded-2xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] p-8 text-center">
+          <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-[var(--warning-100)] text-[var(--warning-700)] flex items-center justify-center">
             <Gauge size={28} />
           </div>
-          <h2 className="text-xl font-bold text-[#dbe3ff] mb-2">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">
             Nenhum veículo cadastrado
           </h2>
-          <p className="text-[#9f9cb9] mb-6">
+          <p className="text-[var(--text-secondary)] mb-6">
             Cadastre o primeiro veículo para acompanhar revisões e gastos.
           </p>
           <button
@@ -227,7 +227,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 .getElementById("veiculo-form")
                 ?.scrollIntoView({ behavior: "smooth" })
             }
-            className="px-4 py-2 rounded-lg border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] font-medium hover:bg-[#5b4f2e] transition-colors"
+            className="px-4 py-2 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-100)] text-[var(--warning-700)] font-medium hover:bg-[var(--warning-100)] transition-colors"
           >
             Cadastrar primeiro veículo
           </button>
@@ -235,9 +235,9 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
 
         <div
           id="veiculo-form"
-          className="rounded-2xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] p-4"
+          className="rounded-2xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] p-4"
         >
-          <h3 className="font-bold text-[#f0ae8f] mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-[var(--warning-700)] mb-4 flex items-center gap-2">
             <Plus size={18} /> Novo veículo
           </h3>
           <form
@@ -249,7 +249,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-nome"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               placeholder="Nome"
               value={formVeiculo.nome}
               onChange={(e) =>
@@ -261,7 +261,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-marca"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               placeholder="Marca"
               value={formVeiculo.marca}
               onChange={(e) =>
@@ -273,7 +273,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-modelo"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               placeholder="Modelo"
               value={formVeiculo.modelo}
               onChange={(e) =>
@@ -285,7 +285,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-ano"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               type="number"
               placeholder="Ano"
               value={formVeiculo.ano}
@@ -298,7 +298,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-placa"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               placeholder="Placa"
               value={formVeiculo.placa}
               onChange={(e) =>
@@ -310,7 +310,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </label>
             <input
               id="vehicle-empty-alerta-km"
-              className="p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+              className="p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               type="number"
               placeholder="Alerta Km"
               value={formVeiculo.alertaKm}
@@ -321,7 +321,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             <div className="md:col-span-2 flex gap-2">
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] font-medium hover:bg-[#5b4f2e]"
+                className="px-4 py-2 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-100)] text-[var(--warning-700)] font-medium hover:bg-[var(--warning-100)]"
               >
                 Salvar
               </button>
@@ -329,7 +329,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 <button
                   type="button"
                   onClick={limparFormulario}
-                  className="px-4 py-2 rounded-lg border border-[#2a3554] bg-[#151f34] text-[#b9bfd8] font-medium hover:bg-[#1a2842]"
+                  className="px-4 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface-sunken)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-surface-sunken)]"
                 >
                   Cancelar
                 </button>
@@ -343,14 +343,14 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="rounded-2xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] p-4">
+      <div className="rounded-2xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[#dbe3ff]">Veículos</h2>
-            <p className="text-sm text-[#9f9cb9]">
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">Veículos</h2>
+            <p className="text-sm text-[var(--text-secondary)]">
               Selecione um veículo para ver alertas, custos e histórico.
             </p>
-            <p className="text-xs text-[#7f84a8] mt-1">
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
               {categoriaTransporte
                 ? `Movimentações vinculadas à categoria ${categoriaTransporte.nome}.`
                 : "Cadastre a categoria Transporte para vincular quilometragem nas movimentações."}
@@ -358,7 +358,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
           </div>
           <div className="flex gap-2 items-center">
             <select
-              className="p-2 border border-[#2a3554] rounded-lg min-w-72 bg-[#10152d] text-[#dbe3ff]"
+              className="p-2 border border-[var(--border-default)] rounded-lg min-w-72 bg-[var(--bg-surface-sunken)] text-[var(--text-primary)]"
               value={veiculoSelecionadoId || ""}
               onChange={(e) => setVeiculoSelecionadoId(e.target.value)}
             >
@@ -371,14 +371,14 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="px-3 py-2 rounded-lg border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] font-medium hover:bg-[#5b4f2e] flex items-center gap-2"
+              className="px-3 py-2 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-100)] text-[var(--warning-700)] font-medium hover:bg-[var(--warning-100)] flex items-center gap-2"
             >
               <Plus size={16} /> Nova Manutenção
             </button>
             <button
               type="button"
               onClick={buscarMovimentacoes}
-              className="px-3 py-2 rounded-lg border border-[#2a3554] text-[#b9bfd8] hover:bg-[#1a2842] flex items-center gap-2"
+              className="px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-sunken)] flex items-center gap-2"
             >
               <RefreshCw size={16} /> Atualizar
             </button>
@@ -389,28 +389,28 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
       {veiculoSelecionado && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)]">
-              <p className="text-sm text-[#9f9cb9] mb-1">Total gasto</p>
-              <h3 className="text-2xl font-bold text-[#dbe3ff]">
+            <div className="p-4 rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)]">
+              <p className="text-sm text-[var(--text-secondary)] mb-1">Total gasto</p>
+              <h3 className="text-2xl font-bold text-[var(--text-primary)]">
                 {formatCurrency(totalGasto)}
               </h3>
             </div>
-            <div className="p-4 rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)]">
-              <p className="text-sm text-[#9f9cb9] mb-1">Km atual</p>
-              <h3 className="text-2xl font-bold text-[#dbe3ff]">
+            <div className="p-4 rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)]">
+              <p className="text-sm text-[var(--text-secondary)] mb-1">Km atual</p>
+              <h3 className="text-2xl font-bold text-[var(--text-primary)]">
                 {kmAtual != null ? kmAtual.toLocaleString("pt-BR") : "---"}
               </h3>
             </div>
-            <div className="p-4 rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)]">
-              <p className="text-sm text-[#9f9cb9] mb-1">Próxima revisão</p>
-              <h3 className="text-2xl font-bold text-[#dbe3ff]">
+            <div className="p-4 rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)]">
+              <p className="text-sm text-[var(--text-secondary)] mb-1">Próxima revisão</p>
+              <h3 className="text-2xl font-bold text-[var(--text-primary)]">
                 {kmParaRevisao != null
                   ? `${kmParaRevisao.toLocaleString("pt-BR")} km`
                   : "---"}
               </h3>
             </div>
-            <div className="p-4 rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] flex flex-col justify-between">
-              <p className="text-sm text-[#9f9cb9] mb-2">Status</p>
+            <div className="p-4 rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] flex flex-col justify-between">
+              <p className="text-sm text-[var(--text-secondary)] mb-2">Status</p>
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -430,7 +430,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                   <button
                     type="button"
                     onClick={confirmarRevisao}
-                    className="px-3 py-1.5 rounded-lg border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] text-sm font-medium hover:bg-[#5b4f2e]"
+                    className="px-3 py-1.5 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-100)] text-[var(--warning-700)] text-sm font-medium hover:bg-[var(--warning-100)]"
                   >
                     Confirmar revisão feita
                   </button>
@@ -441,9 +441,9 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-1">
-              <div className="rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] overflow-hidden sticky top-24">
-                <div className="bg-[#131a33] p-4 border-b border-[#2a3554] flex justify-between items-center">
-                  <h3 className="font-bold flex items-center gap-2 text-[#f0ae8f]">
+              <div className="rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] overflow-hidden sticky top-24">
+                <div className="bg-[var(--bg-surface-sunken)] p-4 border-b border-[var(--border-default)] flex justify-between items-center">
+                  <h3 className="font-bold flex items-center gap-2 text-[var(--warning-700)]">
                     {isEditingVeiculo ? (
                       <Edit3 size={18} />
                     ) : (
@@ -458,7 +458,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                   </label>
                   <input
                     id="vehicle-main-nome"
-                    className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                    className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                     placeholder="Nome"
                     value={formVeiculo.nome}
                     onChange={(e) =>
@@ -471,7 +471,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     </label>
                     <input
                       id="vehicle-main-marca"
-                      className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                      className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                       placeholder="Marca"
                       value={formVeiculo.marca}
                       onChange={(e) =>
@@ -486,7 +486,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     </label>
                     <input
                       id="vehicle-main-modelo"
-                      className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                      className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                       placeholder="Modelo"
                       value={formVeiculo.modelo}
                       onChange={(e) =>
@@ -503,7 +503,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     </label>
                     <input
                       id="vehicle-main-ano"
-                      className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                      className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                       type="number"
                       placeholder="Ano"
                       value={formVeiculo.ano}
@@ -516,7 +516,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                     </label>
                     <input
                       id="vehicle-main-placa"
-                      className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                      className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                       placeholder="Placa"
                       value={formVeiculo.placa}
                       onChange={(e) =>
@@ -532,7 +532,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                   </label>
                   <input
                     id="vehicle-main-alerta-km"
-                    className="w-full p-2 border border-[#2a3554] rounded-lg bg-[#10152d] text-[#dbe3ff] placeholder:text-[#7f84a8]"
+                    className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                     type="number"
                     placeholder="Alerta Km"
                     value={formVeiculo.alertaKm}
@@ -546,7 +546,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      className="flex-1 border border-[#6a5932] bg-[#4f4428] text-[#f9ddb0] py-2 rounded-lg font-bold hover:bg-[#5b4f2e] transition-colors"
+                      className="flex-1 border border-[var(--warning-border)] bg-[var(--warning-100)] text-[var(--warning-700)] py-2 rounded-lg font-bold hover:bg-[var(--warning-100)] transition-colors"
                     >
                       {isEditingVeiculo ? "Atualizar" : "Registrar"}
                     </button>
@@ -554,7 +554,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                       <button
                         type="button"
                         onClick={limparFormulario}
-                        className="px-4 py-2 bg-[#151f34] border border-[#2a3554] text-[#b9bfd8] rounded-lg hover:bg-[#1a2842]"
+                        className="px-4 py-2 bg-[var(--bg-surface-sunken)] border border-[var(--border-default)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--bg-surface-sunken)]"
                       >
                         Cancelar
                       </button>
@@ -565,15 +565,15 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
             </div>
 
             <div className="lg:col-span-2 space-y-6">
-              <div className="rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] overflow-hidden">
-                <div className="p-4 border-b border-[#2a3554] flex justify-between items-center">
-                  <h3 className="font-bold flex items-center gap-2 text-[#dbe3ff]">
-                    <Calendar size={18} className="text-[#8f94b4]" /> Histórico
+              <div className="rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] overflow-hidden">
+                <div className="p-4 border-b border-[var(--border-default)] flex justify-between items-center">
+                  <h3 className="font-bold flex items-center gap-2 text-[var(--text-primary)]">
+                    <Calendar size={18} className="text-[var(--text-tertiary)]" /> Histórico
                     de movimentações
                   </h3>
                   <button
                     onClick={buscarMovimentacoes}
-                    className="text-[#9ec2ff] text-sm font-medium hover:underline flex items-center gap-1"
+                    className="text-[var(--accent-600)] text-sm font-medium hover:underline flex items-center gap-1"
                   >
                     <RefreshCw size={14} /> Atualizar
                   </button>
@@ -582,7 +582,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-[#131a33] text-[10px] uppercase tracking-wider text-[#8f94b4] border-b border-[#2a3554]">
+                      <tr className="bg-[var(--bg-surface-sunken)] text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
                         <th className="p-4 font-bold">Data</th>
                         <th className="p-4 font-bold">Título</th>
                         <th className="p-4 font-bold">Km</th>
@@ -590,10 +590,10 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         <th className="p-4 font-bold">Tipo</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#202a4a] text-[#dbe3ff]">
+                    <tbody className="divide-y divide-[var(--border-subtle)] text-[var(--text-primary)]">
                       {loadingMov ? (
                         <tr>
-                          <td className="p-6 text-[#9f9cb9]" colSpan={5}>
+                          <td className="p-6 text-[var(--text-secondary)]" colSpan={5}>
                             Carregando histórico...
                           </td>
                         </tr>
@@ -601,16 +601,16 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         movimentacoesDoVeiculo.map((item) => (
                           <tr
                             key={item.id}
-                            className="hover:bg-[#141d36] transition-colors"
+                            className="hover:bg-[var(--bg-surface-sunken)] transition-colors"
                           >
                             <td className="p-4 text-sm">
                               {new Date(item.data).toLocaleDateString("pt-BR")}
                             </td>
                             <td className="p-4">
-                              <p className="font-medium text-[#dbe3ff]">
+                              <p className="font-medium text-[var(--text-primary)]">
                                 {item.titulo}
                               </p>
-                              <p className="text-xs text-[#8f94b4]">
+                              <p className="text-xs text-[var(--text-tertiary)]">
                                 {item.descricao || "---"}
                               </p>
                             </td>
@@ -619,7 +619,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                                 ? item.km.toLocaleString("pt-BR")
                                 : "---"}
                             </td>
-                            <td className="p-4 text-sm font-semibold text-[#dbe3ff]">
+                            <td className="p-4 text-sm font-semibold text-[var(--text-primary)]">
                               {formatCurrency(item.valor)}
                             </td>
                             <td className="p-4">
@@ -642,7 +642,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         ))
                       ) : (
                         <tr>
-                          <td className="p-6 text-[#9f9cb9]" colSpan={5}>
+                          <td className="p-6 text-[var(--text-secondary)]" colSpan={5}>
                             Nenhuma movimentação vinculada a este veículo.
                           </td>
                         </tr>
@@ -652,13 +652,13 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                 </div>
               </div>
 
-              <div className="rounded-xl shadow-sm border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(16,22,38,0.96)_100%)] overflow-hidden">
-                <div className="p-4 border-b border-[#2a3554] flex justify-between items-center">
-                  <h3 className="font-bold text-[#dbe3ff]">
+              <div className="rounded-xl shadow-sm border border-[var(--border-default)] bg-[var(--bg-surface)] overflow-hidden">
+                <div className="p-4 border-b border-[var(--border-default)] flex justify-between items-center">
+                  <h3 className="font-bold text-[var(--text-primary)]">
                     Veículos cadastrados
                   </h3>
                 </div>
-                <div className="divide-y divide-[#202a4a]">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {veiculos.map((veiculo) => (
                     <div
                       key={veiculo.id}
@@ -669,12 +669,12 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                         onClick={() => setVeiculoSelecionadoId(veiculo.id)}
                         className={`text-left flex-1 ${
                           veiculoSelecionadoId === veiculo.id
-                            ? "text-[#f0ae8f]"
-                            : "text-[#dbe3ff]"
+                            ? "text-[var(--warning-700)]"
+                            : "text-[var(--text-primary)]"
                         }`}
                       >
                         <p className="font-bold">{veiculo.nome}</p>
-                        <p className="text-sm text-[#9f9cb9]">
+                        <p className="text-sm text-[var(--text-secondary)]">
                           {veiculo.marca} • {veiculo.modelo} • {veiculo.ano}
                         </p>
                       </button>
@@ -683,7 +683,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                           type="button"
                           onClick={() => editarVeiculo(veiculo)}
                           aria-label={`Editar veículo ${veiculo.nome}`}
-                          className="p-2 rounded-lg hover:bg-[#1a2842] text-[#8f94b4] hover:text-[#f0ae8f]"
+                          className="p-2 rounded-lg hover:bg-[var(--bg-surface-sunken)] text-[var(--text-tertiary)] hover:text-[var(--warning-700)]"
                         >
                           <Edit3 size={16} />
                         </button>
@@ -691,7 +691,7 @@ const VehicleView = ({ veiculos = [], fetchVeiculos, categorias = [] }) => {
                           type="button"
                           onClick={() => deletarVeiculo(veiculo.id)}
                           aria-label={`Excluir veículo ${veiculo.nome}`}
-                          className="p-2 rounded-lg hover:bg-[#351e2a] text-[#8f94b4] hover:text-[#f08f9f]"
+                          className="p-2 rounded-lg hover:bg-[var(--danger-100)] text-[var(--text-tertiary)] hover:text-[var(--danger-700)]"
                         >
                           <Trash2 size={16} />
                         </button>
