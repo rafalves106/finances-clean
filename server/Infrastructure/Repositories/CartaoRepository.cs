@@ -101,6 +101,18 @@ public class CartaoRepository(FinanceDbContext context) : ICartaoRepository
       faturaProximaNovaRegra + faturaProximaLegado);
   }
 
+  public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia)
+  {
+    // Le apenas pela CompetenciaFatura ja gravada (regra atual, sem fallback
+    // legado): navegar fatura por mes arbitrario exige uma competencia exata,
+    // e o fallback por intervalo de datas usado em ObterPrevisaoFatura so faz
+    // sentido relativo a "hoje". Registros antigos com CompetenciaFatura nula
+    // devem ser regularizados via ferramenta de backfill antes de aparecerem aqui.
+    return context.Saidas
+      .Where(s => s.CartaoId == cartaoId && s.CompetenciaFatura == competencia)
+      .Sum(s => (decimal?)s.Valor) ?? 0m;
+  }
+
   private static DateTime NormalizarDiaMes(int ano, int mes, int dia)
   {
     var ultimoDia = DateTime.DaysInMonth(ano, mes);

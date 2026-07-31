@@ -1,26 +1,25 @@
 using Finance.Core.Application.DTOs;
+using Finance.Core.Domain;
 using Finance.Core.Repositories;
 
 namespace Finance.Core.UseCases;
 
 public class ListarResumosCartoesUseCase(ICartaoRepository cartaoRepository)
 {
-  public IReadOnlyCollection<CartaoResumoDTO> Executar(Guid usuarioId)
+  public IReadOnlyCollection<CartaoResumoDTO> Executar(Guid usuarioId, int? mes = null, int? ano = null)
   {
     return cartaoRepository
       .ListarAtivosPorUsuario(usuarioId)
       .Take(3)
-      .Select(ProjetarResumo)
+      .Select(cartao => ProjetarResumo(cartao, mes, ano))
       .ToList();
   }
 
-  private CartaoResumoDTO ProjetarResumo(Finance.Core.Domain.CartaoManual cartao)
+  private CartaoResumoDTO ProjetarResumo(CartaoManual cartao, int? mes, int? ano)
   {
-    var referenciaUtc = DateTime.UtcNow;
-    var (faturaAtual, faturaProxima) = cartaoRepository.ObterPrevisaoFatura(
-      cartao.Id,
-      referenciaUtc,
-      cartao.DiaFechamento);
+    var (faturaAtual, faturaProxima) = mes.HasValue && ano.HasValue
+      ? ObterFaturaPorMesSelecionado(cartao, mes.Value, ano.Value)
+      : cartaoRepository.ObterPrevisaoFatura(cartao.Id, DateTime.UtcNow, cartao.DiaFechamento);
 
     var utilizado = faturaAtual;
     var disponivel = Math.Max(0, cartao.LimiteTotal - utilizado);
@@ -41,5 +40,16 @@ public class ListarResumosCartoesUseCase(ICartaoRepository cartaoRepository)
         cartao.UpdatedAtUtc),
       new CartaoLimiteResumoDTO(utilizado, disponivel, percentualUso),
       new CartaoPrevisaoFaturaDTO(faturaAtual, faturaProxima));
+  }
+
+  private (decimal faturaAtual, decimal faturaProxima) ObterFaturaPorMesSelecionado(
+    CartaoManual cartao, int mes, int ano)
+  {
+    var competenciaSelecionada = (ano * 100) + mes;
+    var competenciaProxima = CompetenciaFaturaCalculator.ProximaCompetencia(competenciaSelecionada);
+
+    return (
+      cartaoRepository.ObterFaturaPorCompetencia(cartao.Id, competenciaSelecionada),
+      cartaoRepository.ObterFaturaPorCompetencia(cartao.Id, competenciaProxima));
   }
 }

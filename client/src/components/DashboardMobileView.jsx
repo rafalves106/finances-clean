@@ -132,7 +132,12 @@ const DashboardMobileView = ({
     try {
       setCardSummaryError("");
 
-      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos`, {
+      const query =
+        selectedMes && selectedAno
+          ? `?${new URLSearchParams({ mes: selectedMes, ano: selectedAno })}`
+          : "";
+
+      const multiResponse = await fetch(`${API_CARTAO_URL}/resumos${query}`, {
         method: "GET",
         credentials: "include",
       });
@@ -168,7 +173,7 @@ const DashboardMobileView = ({
         return;
       }
 
-      const response = await fetch(`${API_CARTAO_URL}/resumo`, {
+      const response = await fetch(`${API_CARTAO_URL}/resumo${query}`, {
         method: "GET",
         credentials: "include",
       });
@@ -199,7 +204,7 @@ const DashboardMobileView = ({
       setCardSummaryError("Erro ao carregar resumo do cartão.");
       setCardSummaries([]);
     }
-  }, []);
+  }, [selectedMes, selectedAno]);
 
   useEffect(() => {
     const onResize = () => {
@@ -492,7 +497,9 @@ const DashboardMobileView = ({
         className="border border-[#2a3554] bg-[#101a31]"
         style={{ borderRadius: `${cardRadius}px`, padding: `${cardPadding}px` }}
       >
-        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">Cartão ativo</p>
+        <p className="m-0 text-xs font-semibold text-[#dbe3ff]">
+          Fatura de {currentMonthLabel}
+        </p>
         <p className="m-0 mt-1 text-sm text-[#cdd6f4]">{activeCardName}</p>
         <p className={`m-0 mt-1 text-[#98a4c6] ${kpiHelperClassName}`}>
           Limite {formatCurrency(activeCardLimit)} · Utilizado{" "}

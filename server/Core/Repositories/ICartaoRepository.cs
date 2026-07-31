@@ -12,4 +12,5 @@ public interface ICartaoRepository
   IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId);
   int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null);
   (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento);
+  decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia);
 }
