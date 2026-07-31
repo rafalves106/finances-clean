@@ -39,32 +39,21 @@ const buildFetchMock = () =>
           {
             cartao: {
               nome: "Cartao Principal",
+              limiteTotal: 3000,
               diaFechamento: 27,
               diaVencimento: 5,
             },
-            limite: {
-              limiteTotal: 3000,
-              limiteDisponivel: 1800,
-              limiteUtilizado: 1200,
-            },
+            limite: { utilizado: 1200, disponivel: 1800, percentualUso: 40 },
             previsaoFatura: { atual: 1200, proxima: 980 },
           },
           {
-            cartao: { nome: "Cartao Secundario" },
-            limite: {
-              limiteTotal: 2000,
-              limiteDisponivel: 1700,
-              limiteUtilizado: 300,
-            },
+            cartao: { nome: "Cartao Secundario", limiteTotal: 2000 },
+            limite: { utilizado: 300, disponivel: 1700, percentualUso: 15 },
             previsaoFatura: { atual: 300, proxima: 220 },
           },
           {
-            cartao: { nome: "Cartao Reserva" },
-            limite: {
-              limiteTotal: 1500,
-              limiteDisponivel: 1200,
-              limiteUtilizado: 300,
-            },
+            cartao: { nome: "Cartao Reserva", limiteTotal: 1500 },
+            limite: { utilizado: 300, disponivel: 1200, percentualUso: 20 },
             previsaoFatura: { atual: 300, proxima: 150 },
           },
         ],
@@ -76,12 +65,8 @@ const buildFetchMock = () =>
         ok: true,
         status: 200,
         json: async () => ({
-          cartao: { nome: "Cartao Principal" },
-          limite: {
-            limiteTotal: 3000,
-            limiteDisponivel: 1800,
-            limiteUtilizado: 1200,
-          },
+          cartao: { nome: "Cartao Principal", limiteTotal: 3000 },
+          limite: { utilizado: 1200, disponivel: 1800, percentualUso: 40 },
           previsaoFatura: { atual: 1200, proxima: 980 },
         }),
       };
