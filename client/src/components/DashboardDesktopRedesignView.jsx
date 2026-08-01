@@ -1796,7 +1796,7 @@ const DashboardDesktopRedesignView = ({
                       >
                         Faltam{" "}
                         {formatCurrency(
-                          Math.max(0, goal.valor - goal.valorAcumulado),
+                          Math.max(0, goal.valor - Math.max(0, goal.valorAcumulado)),
                         )}
                       </p>
                     </div>
