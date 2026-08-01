@@ -29,7 +29,6 @@ import {
 } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
-import { useBudgetAlerts } from "../hooks/useBudgetAlerts";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
@@ -69,6 +68,7 @@ const DashboardMobileView = ({
   fetchData,
   saldoAnterior = 0,
   onOpenCategoryManager,
+  budgetAlerts = [],
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -255,8 +255,6 @@ const DashboardMobileView = ({
     selectedAno,
     saldoAnterior,
   });
-
-  const { budgetAlerts } = useBudgetAlerts({ selectedMes, selectedAno });
 
   const totalIncome = useMemo(
     () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
