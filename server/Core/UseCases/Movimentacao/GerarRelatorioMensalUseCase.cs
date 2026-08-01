@@ -117,7 +117,8 @@ public class GerarRelatorioMensalUseCase(
         var anterior = saidasAnterior.GetValueOrDefault(categoria);
         var variacao = anterior == 0 ? (atual == 0 ? 0 : 100) : Math.Round((atual - anterior) / anterior * 100, 1);
         var classeVariacao = variacao > 0 ? "negativo" : variacao < 0 ? "positivo" : string.Empty;
-        sb.Append($"<tr><td>{WebUtility.HtmlEncode(categoria)}</td><td class=\"valor\">{FormatarMoeda(atual)}</td><td class=\"valor\">{FormatarMoeda(anterior)}</td><td class=\"valor {classeVariacao}\">{variacao:+0.#;-0.#;0}%</td></tr>");
+        var variacaoFormatada = variacao.ToString("+0.#;-0.#;0", PtBr);
+        sb.Append($"<tr><td>{WebUtility.HtmlEncode(categoria)}</td><td class=\"valor\">{FormatarMoeda(atual)}</td><td class=\"valor\">{FormatarMoeda(anterior)}</td><td class=\"valor {classeVariacao}\">{variacaoFormatada}%</td></tr>");
       }
       sb.Append("</tbody></table>");
     }
