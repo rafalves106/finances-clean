@@ -478,36 +478,28 @@ body {
   margin: 0;
 }
 
-/* Dashboard Tags - Positive Trend (Green/Verde) */
+/* Dashboard Tags - Positive Trend (Green) */
 .tag-positive {
-  border: 1px solid var(--color-verde-border);
-  background: linear-gradient(
-    180deg,
-    var(--color-verde-gradient-1) 0%,
-    var(--color-verde-gradient-2) 100%
-  );
-  color: var(--color-verde-text);
+  border: 1px solid var(--success-border);
+  background: var(--success-100);
+  color: var(--success-700);
 }
 
-/* Dashboard Tags - Negative Trend (Red/Vermelho) */
+/* Dashboard Tags - Negative Trend (Red) */
 .tag-negative {
-  border: 1px solid var(--color-vermelho-border);
-  background: linear-gradient(
-    180deg,
-    var(--color-vermelho-gradient-1) 0%,
-    var(--color-vermelho-gradient-2) 100%
-  );
-  color: var(--color-vermelho-text);
+  border: 1px solid var(--danger-border);
+  background: var(--danger-100);
+  color: var(--danger-700);
 }
 
 /* Text color for positive trend */
 .text-positive {
-  color: var(--color-verde-text);
+  color: var(--success-700);
 }
 
 /* Text color for negative trend */
 .text-negative {
-  color: var(--color-vermelho-text);
+  color: var(--danger-700);
 }
 
 /* ── Desktop 1440x900 ─────────────────────────────────────────

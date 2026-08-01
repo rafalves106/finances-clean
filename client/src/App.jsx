@@ -658,7 +658,7 @@ const App = () => {
             style={{ borderBottom: "1px solid var(--border-subtle)" }}
           >
             <h1
-              className="text-2xl font-semibold tracking-wide capitalize"
+              className="text-2xl font-semibold tracking-wide"
               style={{ color: "var(--text-primary)" }}
             >
               {activeTab === "investments" && "Planejador de Futuro"}
