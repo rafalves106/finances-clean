@@ -1,10 +1,12 @@
 import { X } from "lucide-react";
-import { setLastSeenVersion } from "../util/releaseNotes";
+import { parseReleaseNotes, setLastSeenVersion } from "../util/releaseNotes";
 
 const ReleaseNotesModal = ({ isOpen, version, releaseNotes, onClose }) => {
   if (!isOpen || !releaseNotes) {
     return null;
   }
+
+  const blocks = parseReleaseNotes(releaseNotes);
 
   const handleClose = () => {
     setLastSeenVersion(version);
@@ -37,10 +39,38 @@ const ReleaseNotesModal = ({ isOpen, version, releaseNotes, onClose }) => {
           </button>
         </div>
 
-        <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 max-h-80 overflow-auto">
-          <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-            {releaseNotes}
-          </pre>
+        <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 max-h-80 overflow-auto space-y-2">
+          {blocks.map((block, index) => {
+            if (block.type === "heading") {
+              return (
+                <h3
+                  key={index}
+                  className="text-sm font-semibold text-slate-800 mt-3 first:mt-0"
+                >
+                  {block.text}
+                </h3>
+              );
+            }
+
+            if (block.type === "list") {
+              return (
+                <ul
+                  key={index}
+                  className="list-disc pl-5 text-sm text-slate-700 leading-relaxed space-y-1"
+                >
+                  {block.items.map((item, itemIndex) => (
+                    <li key={itemIndex}>{item}</li>
+                  ))}
+                </ul>
+              );
+            }
+
+            return (
+              <p key={index} className="text-sm text-slate-700 leading-relaxed">
+                {block.text}
+              </p>
+            );
+          })}
         </div>
 
         <div className="pt-4 flex justify-end">

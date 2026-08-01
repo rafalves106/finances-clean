@@ -2042,7 +2042,7 @@ const DashboardDesktopRedesignView = ({
                       <span
                         className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
-                        Saldo total
+                        Saldo do mês
                       </span>
                       <span
                         className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${saldoTagClassName}`}
