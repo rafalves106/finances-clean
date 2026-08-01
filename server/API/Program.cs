@@ -64,6 +64,7 @@ builder.Services.AddScoped<ListarCartoesManuaisUseCase>();
 builder.Services.AddScoped<ListarResumosCartoesUseCase>();
 builder.Services.AddScoped<ObterResumoCartaoUseCase>();
 builder.Services.AddScoped<ObterPrevisaoFaturaUseCase>();
+builder.Services.AddScoped<ObterPrevisaoFaturaFuturaUseCase>();
 builder.Services.AddScoped<ExecutarPreviewBackfillCompetenciaCartaoUseCase>();
 builder.Services.AddScoped<ExecutarApplyBackfillCompetenciaCartaoUseCase>();
 builder.Services.AddScoped<ExecutarRollbackBackfillCompetenciaCartaoUseCase>();

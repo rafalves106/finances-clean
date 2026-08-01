@@ -26,9 +26,11 @@ import { formatCurrency } from "../util/formatCurrency";
 import { useViewportDensity } from "../hooks/useViewportDensity";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
 import { useCardSummaries } from "../hooks/useCardSummaries";
+import { useBudgetAlerts } from "../hooks/useBudgetAlerts";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionActions } from "../hooks/useTransactionActions";
 import { useCsvExport } from "../hooks/useCsvExport";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import {
   UPCOMING_ITEM_TITLE_MAX_LENGTH,
   formatDateLabel,
@@ -143,6 +145,7 @@ const DashboardDesktopRedesignView = ({
     newCardStatusBySlot,
     isCreatingCardBySlot,
     cardTransactionsById,
+    futureInvoicesByCardId,
     cardColumns,
     cardSummary,
     backCardSummaries,
@@ -161,6 +164,10 @@ const DashboardDesktopRedesignView = ({
 
   const { dialogRef: cardFormDialogRef, handleDialogKeyDown: handleCardFormDialogKeyDown } =
     useFocusTrap(Boolean(openCardFormId), () => setOpenCardFormId(null));
+
+  const { budgetAlerts } = useBudgetAlerts({ selectedMes, selectedAno });
+  const budgetAlertsLeftColumn = budgetAlerts.slice(0, 4);
+  const budgetAlertsRightColumn = budgetAlerts.slice(4, 8);
 
   const {
     totalIncome,
@@ -187,8 +194,6 @@ const DashboardDesktopRedesignView = ({
     slideCategoryRanking,
     slideCategoryLeftColumn,
     slideCategoryRightColumn,
-    exceededAlertsLeftColumn,
-    exceededAlertsRightColumn,
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,
@@ -243,6 +248,12 @@ const DashboardDesktopRedesignView = ({
     loadCardSummaries,
     simulatedTransactions,
     setSimulatedTransactions,
+  });
+
+  useKeyboardShortcuts({
+    onNewTransaction: handleOpenNewTransaction,
+    onPreviousMonth: handlePreviousMonth,
+    onNextMonth: handleNextMonth,
   });
 
   if (loading) {
@@ -350,6 +361,7 @@ const DashboardDesktopRedesignView = ({
           slideContentHeight={slideContentHeight}
           cardColumns={cardColumns}
           cardTransactionsById={cardTransactionsById}
+          futureInvoicesByCardId={futureInvoicesByCardId}
           onOpenCreateCard={(index) => {
             const slotKey = String(index);
             setOpenCardFormId(`new-${slotKey}`);
@@ -1004,59 +1016,62 @@ const DashboardDesktopRedesignView = ({
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
-                        {[
-                          exceededAlertsLeftColumn,
-                          exceededAlertsRightColumn,
-                        ].map((alertsColumn, columnIndex) => (
-                          <div
-                            key={`exceeded-alerts-column-${columnIndex}`}
-                            className="space-y-2"
-                          >
-                            {alertsColumn.length === 0 ? (
-                              columnIndex === 0 ? (
-                                <p
-                                  className="text-xs"
-                                  style={{ color: "var(--text-tertiary)" }}
-                                >
-                                  Nenhum limite excedido.
-                                </p>
-                              ) : null
-                            ) : (
-                              alertsColumn.map((item) => (
-                                <p
-                                  key={`alert-${item.id}`}
-                                  className="text-xs font-medium"
-                                  style={{
-                                    color: "var(--danger-700)",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
+                        {[budgetAlertsLeftColumn, budgetAlertsRightColumn].map(
+                          (alertsColumn, columnIndex) => (
+                            <div
+                              key={`budget-alerts-column-${columnIndex}`}
+                              className="space-y-2"
+                            >
+                              {alertsColumn.length === 0 ? (
+                                columnIndex === 0 ? (
+                                  <p
+                                    className="text-xs"
+                                    style={{ color: "var(--text-tertiary)" }}
                                   >
-                                    Limite da categoria {item.nome} excedido em
-                                  </span>{" "}
-                                  <span
-                                    className="font-semibold"
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
-                                  >
-                                    {formatCurrency(item.total - item.limite)}
-                                  </span>
-                                  <span
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
-                                  >
-                                    .
-                                  </span>
-                                </p>
-                              ))
-                            )}
-                          </div>
-                        ))}
+                                    Nenhum alerta de orçamento.
+                                  </p>
+                                ) : null
+                              ) : (
+                                alertsColumn.map((item) => {
+                                  const alertColor =
+                                    item.estado === "Estourado"
+                                      ? "var(--danger-700)"
+                                      : "var(--warning-700)";
+
+                                  return (
+                                    <p
+                                      key={`alert-${item.id}`}
+                                      className="text-xs font-medium"
+                                      style={{ color: alertColor }}
+                                    >
+                                      {item.estado === "Estourado" ? (
+                                        <>
+                                          Limite da categoria {item.nome}{" "}
+                                          excedido em{" "}
+                                          <span className="font-semibold">
+                                            {formatCurrency(
+                                              item.total - item.limite,
+                                            )}
+                                          </span>
+                                          .
+                                        </>
+                                      ) : (
+                                        <>
+                                          Categoria {item.nome} já consumiu{" "}
+                                          <span className="font-semibold">
+                                            {Math.round(item.percentual)}%
+                                          </span>{" "}
+                                          do orçamento ({formatCurrency(item.total)}{" "}
+                                          de {formatCurrency(item.limite)}).
+                                        </>
+                                      )}
+                                    </p>
+                                  );
+                                })
+                              )}
+                            </div>
+                          ),
+                        )}
                       </div>
                     </div>
 

@@ -29,6 +29,8 @@ import {
 } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
+import { useBudgetAlerts } from "../hooks/useBudgetAlerts";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
 
@@ -241,7 +243,6 @@ const DashboardMobileView = ({
 
   const {
     slideCategoryRanking: categoryRanking,
-    exceededCategoryAlerts,
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,
@@ -254,6 +255,8 @@ const DashboardMobileView = ({
     selectedAno,
     saldoAnterior,
   });
+
+  const { budgetAlerts } = useBudgetAlerts({ selectedMes, selectedAno });
 
   const totalIncome = useMemo(
     () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
@@ -419,6 +422,12 @@ const DashboardMobileView = ({
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
+
+  useKeyboardShortcuts({
+    onNewTransaction: handleOpenNewTransaction,
+    onPreviousMonth: handlePreviousMonth,
+    onNextMonth: handleNextMonth,
+  });
 
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
@@ -1106,7 +1115,7 @@ const DashboardMobileView = ({
             </div>
           </section>
 
-          {exceededCategoryAlerts.length > 0 && (
+          {budgetAlerts.length > 0 && (
             <section
               style={{
                 borderRadius: `${cardRadius}px`,
@@ -1119,24 +1128,31 @@ const DashboardMobileView = ({
                 className="m-0 text-sm font-semibold"
                 style={{ color: "var(--warning-700)" }}
               >
-                Orçamento estourado
+                Alertas de orçamento
               </h2>
               <div className="mt-2 space-y-1.5">
-                {exceededCategoryAlerts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-xs"
-                    style={{ color: "var(--warning-700)" }}
-                  >
-                    <span>
-                      {item.icone ? `${item.icone} ` : ""}
-                      {item.nome}
-                    </span>
-                    <span className="font-semibold">
-                      {formatCurrency(item.total)} / {formatCurrency(item.limite)}
-                    </span>
-                  </div>
-                ))}
+                {budgetAlerts.map((item) => {
+                  const alertColor =
+                    item.estado === "Estourado"
+                      ? "var(--danger-700)"
+                      : "var(--warning-700)";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-xs"
+                      style={{ color: alertColor }}
+                    >
+                      <span>
+                        {item.icone ? `${item.icone} ` : ""}
+                        {item.nome}
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(item.total)} / {formatCurrency(item.limite)}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
