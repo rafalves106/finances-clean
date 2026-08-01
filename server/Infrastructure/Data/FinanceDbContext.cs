@@ -116,6 +116,18 @@ public class FinanceDbContext : DbContext
             entity.Property(e => e.Valor).HasPrecision(18, 2);
             entity.Property(e => e.UsuarioId).IsRequired();
 
+            entity.HasOne<Categoria>()
+                  .WithMany()
+                  .HasForeignKey(m => m.CategoriaId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne<Investimento>()
+                  .WithMany()
+                  .HasForeignKey(m => m.InvestimentoId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasQueryFilter(m =>
                 _currentUserService == null ||
                 !_currentUserService.UsuarioId.HasValue ||

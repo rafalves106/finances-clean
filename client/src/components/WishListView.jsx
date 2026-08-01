@@ -13,10 +13,13 @@ const WishListView = ({
   hourlyRate,
   workHoursPerMonth,
   setWorkHoursPerMonth,
+  categorias = [],
+  investments = [],
 }) => {
   const [wishes, setWishes] = useState([]);
   const [wishName, setWishName] = useState("");
   const [wishPrice, setWishPrice] = useState("");
+  const [wishLinkTo, setWishLinkTo] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -26,7 +29,15 @@ const WishListView = ({
         if (res.ok) {
           const data = await res.json();
           setWishes(
-            data.map((m) => ({ id: m.id, name: m.descricao, price: m.valor })),
+            data.map((m) => ({
+              id: m.id,
+              name: m.descricao,
+              price: m.valor,
+              categoriaId: m.categoriaId,
+              investimentoId: m.investimentoId,
+              valorAcumulado: Number(m.valorAcumulado || 0),
+              percentualProgresso: Number(m.percentualProgresso || 0),
+            })),
           );
         }
       } catch (e) {
@@ -41,9 +52,13 @@ const WishListView = ({
     e.preventDefault();
     if (!wishName || !wishPrice) return;
 
+    const [linkType, linkId] = wishLinkTo.split(":");
+
     const novaMeta = {
       descricao: wishName,
       valor: parseFloat(wishPrice),
+      categoriaId: linkType === "categoria" ? linkId : null,
+      investimentoId: linkType === "investimento" ? linkId : null,
     };
 
     try {
@@ -57,6 +72,7 @@ const WishListView = ({
         setRefreshKey((prev) => prev + 1);
         setWishName("");
         setWishPrice("");
+        setWishLinkTo("");
       } else {
         console.error("Erro ao salvar meta no servidor.");
       }
@@ -144,6 +160,42 @@ const WishListView = ({
               value={wishPrice}
               onChange={(e) => setWishPrice(e.target.value)}
             />
+            <label htmlFor="wish-link-to" className="sr-only">
+              Vincular a categoria ou investimento
+            </label>
+            <select
+              id="wish-link-to"
+              className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)]"
+              value={wishLinkTo}
+              onChange={(e) => setWishLinkTo(e.target.value)}
+            >
+              <option value="">Sem vínculo (progresso manual)</option>
+              {categorias.length > 0 ? (
+                <optgroup label="Categoria">
+                  {categorias.map((categoria) => (
+                    <option
+                      key={categoria.id}
+                      value={`categoria:${categoria.id}`}
+                    >
+                      {categoria.icone ? `${categoria.icone} ` : ""}
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {investments.length > 0 ? (
+                <optgroup label="Investimento">
+                  {investments.map((investimento) => (
+                    <option
+                      key={investimento.id}
+                      value={`investimento:${investimento.id}`}
+                    >
+                      {investimento.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+            </select>
             <button className="w-full border border-[var(--border-default)] bg-[var(--bg-surface-sunken)] text-[var(--accent-600)] py-2 rounded-lg font-medium hover:bg-[var(--bg-surface-sunken)] transition-colors">
               Adicionar à Lista
             </button>
@@ -167,6 +219,27 @@ const WishListView = ({
                   <p className="text-[var(--text-secondary)] font-medium">
                     {formatCurrency(wish.price)}
                   </p>
+                  {wish.categoriaId || wish.investimentoId ? (
+                    <div className="mt-2 max-w-xs">
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, wish.percentualProgresso)}%`,
+                            background: "var(--accent-600)",
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                        {formatCurrency(wish.valorAcumulado)} de{" "}
+                        {formatCurrency(wish.price)} (
+                        {Math.round(wish.percentualProgresso)}%)
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-6">
