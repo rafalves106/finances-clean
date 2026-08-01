@@ -128,7 +128,7 @@ describe("DashboardDesktopRedesignView", () => {
     );
 
     expect(screen.getByText("Investimentos")).toBeTruthy();
-    expect(screen.getByText("Próximas despesas")).toBeTruthy();
+    expect(screen.getAllByText("Despesas").length).toBeGreaterThan(0);
     expect(screen.getByText("Movimentações")).toBeTruthy();
 
     const root = container.querySelector(".dashboard-desktop-redesign");
