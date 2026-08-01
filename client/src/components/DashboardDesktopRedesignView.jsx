@@ -79,6 +79,7 @@ const DashboardDesktopRedesignView = ({
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
+  const [chartsSlideTab, setChartsSlideTab] = useState("fluxo");
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -306,12 +307,20 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Investimentos
             </h2>
           </div>
@@ -893,21 +902,62 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Análise Gráfica
             </h2>
             <button
               type="button"
               onClick={(e) => onOpenCategoryManager(e.currentTarget)}
-              className="ml-auto text-xs font-medium text-[#7f84a8] border border-[#2a3554] rounded-lg px-3 py-1.5 hover:bg-[#1e2340] transition-colors"
+              className="ml-auto text-xs font-medium rounded-lg px-3 py-1.5 transition-colors"
+              style={{
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border-default)",
+              }}
             >
               Gerenciar Categorias
             </button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {[
+              { id: "fluxo", label: "Fluxo" },
+              { id: "categorias", label: "Categorias" },
+              { id: "comparativo", label: "Comparativo" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setChartsSlideTab(tab.id)}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={
+                  chartsSlideTab === tab.id
+                    ? {
+                        background: "var(--accent-50)",
+                        color: "var(--accent-600)",
+                        border: "1px solid var(--accent-100)",
+                      }
+                    : {
+                        color: "var(--text-tertiary)",
+                        border: "1px solid transparent",
+                      }
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div
@@ -917,18 +967,30 @@ const DashboardDesktopRedesignView = ({
               height: `${slideContentHeight}px`,
             }}
           >
+            {chartsSlideTab === "fluxo" && (
             <section
-              className="border rounded-2xl shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
+              className="border rounded-2xl shadow-sm flex flex-col overflow-hidden"
               style={{
                 flex: "1 1 0",
                 minHeight: 0,
                 padding: `${slideInnerPadding}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
               }}
             >
               <div className="flex-1 min-h-0">
                 {chartData.length === 0 ? (
-                  <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
-                    <p className="text-sm text-[#9fb0d3]">
+                  <div
+                    className="h-full rounded-xl border flex items-center justify-center px-6 text-center"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
+                  >
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Ainda não há dados no período para montar o gráfico.
                     </p>
                   </div>
@@ -994,13 +1056,13 @@ const DashboardDesktopRedesignView = ({
                       <CartesianGrid
                         strokeDasharray="4 10"
                         vertical={false}
-                        stroke="#2a2f52"
+                        stroke="#e7e9f0"
                       />
                       <XAxis
                         dataKey="data"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                       />
                       <YAxis
                         axisLine={false}
@@ -1008,13 +1070,13 @@ const DashboardDesktopRedesignView = ({
                         domain={[0, chartYAxisMax]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                         width={chartYAxisWidth}
                       />
                       <Tooltip
                         content={renderChartTooltip}
                         cursor={{
-                          stroke: "#b9bfd8",
+                          stroke: "#c4c9da",
                           strokeWidth: 2,
                           strokeDasharray: "6 6",
                         }}
@@ -1046,41 +1108,35 @@ const DashboardDesktopRedesignView = ({
                       <Line
                         type="monotone"
                         dataKey="entrada"
-                        stroke={CHART_THEME_COLORS.entrada.line}
+                        stroke={CHART_THEME_COLORS.entrada.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.entrada.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="entrada"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saida"
-                        stroke={CHART_THEME_COLORS.saida.line}
+                        stroke={CHART_THEME_COLORS.saida.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.saida.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="saida"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saldo"
-                        stroke={CHART_THEME_COLORS.saldo.line}
+                        stroke={CHART_THEME_COLORS.saldo.fill}
                         strokeWidth={2}
                         dot={false}
                         name="saldo"
@@ -1091,18 +1147,25 @@ const DashboardDesktopRedesignView = ({
                 )}
               </div>
             </section>
+            )}
 
+            {chartsSlideTab === "categorias" && (
             <section
-              className="rounded-xl border shadow-sm flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
+              className="rounded-xl border shadow-sm flex flex-col overflow-hidden"
               style={{
                 flex: "1 1 0",
                 minHeight: 0,
                 padding: `${Math.max(10, slideInnerPadding + 2)}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
               }}
             >
               <div className="flex-1 min-h-0">
                 {slideCategoryRanking.length === 0 ? (
-                  <p className="text-sm text-[#7f84a8]">
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhum gasto registrado neste mês
                   </p>
                 ) : (
@@ -1118,7 +1181,10 @@ const DashboardDesktopRedesignView = ({
                             className="overflow-y-auto pr-1 space-y-4"
                           >
                             {column.length === 0 ? (
-                              <p className="text-xs text-[#7f84a8]">
+                              <p
+                                className="text-xs"
+                                style={{ color: "var(--text-tertiary)" }}
+                              >
                                 Sem categorias nesta coluna
                               </p>
                             ) : (
@@ -1131,8 +1197,8 @@ const DashboardDesktopRedesignView = ({
                                     <div
                                       className="h-5 rounded-full border overflow-hidden"
                                       style={{
-                                        borderColor: "#2F2C46",
-                                        background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(standardColor.gradient2, 0.75)} 100%)`,
+                                        borderColor: "var(--border-subtle)",
+                                        background: "var(--bg-surface-sunken)",
                                       }}
                                     >
                                       <div
@@ -1159,7 +1225,10 @@ const DashboardDesktopRedesignView = ({
                                           {formatCurrency(item.total)}
                                         </span>
                                       </div>
-                                      <span className="font-semibold text-[#6A6785] whitespace-nowrap">
+                                      <span
+                                        className="font-semibold whitespace-nowrap"
+                                        style={{ color: "var(--text-tertiary)" }}
+                                      >
                                         {formatCurrency(
                                           item.limite > 0
                                             ? item.limite
@@ -1186,7 +1255,10 @@ const DashboardDesktopRedesignView = ({
                           >
                             {alertsColumn.length === 0 ? (
                               columnIndex === 0 ? (
-                                <p className="text-xs text-[#7f84a8]">
+                                <p
+                                  className="text-xs"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
                                   Nenhum limite excedido.
                                 </p>
                               ) : null
@@ -1196,12 +1268,12 @@ const DashboardDesktopRedesignView = ({
                                   key={`alert-${item.id}`}
                                   className="text-xs font-medium"
                                   style={{
-                                    color: "var(--color-vermelho-text)",
+                                    color: "var(--danger-700)",
                                   }}
                                 >
                                   <span
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     Limite da categoria {item.nome} excedido em
@@ -1209,14 +1281,14 @@ const DashboardDesktopRedesignView = ({
                                   <span
                                     className="font-semibold"
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     {formatCurrency(item.total - item.limite)}
                                   </span>
                                   <span
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     .
@@ -1229,10 +1301,19 @@ const DashboardDesktopRedesignView = ({
                       </div>
                     </div>
 
-                    <div className="min-h-0 grid grid-cols-2 gap-3">
-                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                    <div className="min-h-0">
+                      <div
+                        className="min-h-0 h-full rounded-lg border p-2"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          background: "var(--bg-surface-sunken)",
+                        }}
+                      >
                         {slideCategoryPieData.length === 0 ? (
-                          <p className="text-xs text-[#7f84a8] text-center pt-8">
+                          <p
+                            className="text-xs text-center pt-8"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
                             Sem dados para gráfico
                           </p>
                         ) : (
@@ -1302,95 +1383,107 @@ const DashboardDesktopRedesignView = ({
                           </ResponsiveContainer>
                         )}
                       </div>
-
-                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
-                        {categoryComparisonData.length === 0 ? (
-                          <p className="text-xs text-[#7f84a8] text-center pt-8">
-                            Sem histórico para comparar com{" "}
-                            {previousMonthShortLabel}
-                          </p>
-                        ) : (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={categoryComparisonData}
-                              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
-                              barGap={2}
-                            >
-                              <CartesianGrid
-                                strokeDasharray="4 10"
-                                vertical={false}
-                                stroke="#2a2f52"
-                              />
-                              <XAxis
-                                dataKey="shortName"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 9, fill: "#7f84a8" }}
-                              />
-                              <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tickFormatter={formatChartAxisTick}
-                                tick={{ fontSize: 9, fill: "#7f84a8" }}
-                                width={26}
-                              />
-                              <Tooltip
-                                content={renderCategoryComparisonTooltip}
-                                cursor={{
-                                  fill: "rgba(185, 191, 216, 0.12)",
-                                }}
-                              />
-                              <Bar
-                                dataKey="previousTotal"
-                                name={`Mês anterior (${previousMonthShortLabel})`}
-                                radius={[4, 4, 0, 0]}
-                              >
-                                {categoryComparisonData.map((item) => {
-                                  const standardColor =
-                                    getCategoryStandardColor(item.cor);
-                                  return (
-                                    <Cell
-                                      key={`previous-bar-${item.id}`}
-                                      fill={toHsla(
-                                        standardColor.gradient2,
-                                        0.95,
-                                      )}
-                                      stroke={standardColor.border}
-                                      strokeWidth={1}
-                                    />
-                                  );
-                                })}
-                              </Bar>
-                              <Bar
-                                dataKey="currentTotal"
-                                name={`Mês atual (${currentMonthShortLabel})`}
-                                radius={[4, 4, 0, 0]}
-                              >
-                                {categoryComparisonData.map((item) => {
-                                  const standardColor =
-                                    getCategoryStandardColor(item.cor);
-                                  return (
-                                    <Cell
-                                      key={`current-bar-${item.id}`}
-                                      fill={toHsla(
-                                        standardColor.gradient1,
-                                        0.95,
-                                      )}
-                                      stroke={standardColor.border}
-                                      strokeWidth={1}
-                                    />
-                                  );
-                                })}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        )}
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </section>
+            )}
+
+            {chartsSlideTab === "comparativo" && (
+            <section
+              className="rounded-xl border shadow-sm flex flex-col overflow-hidden"
+              style={{
+                flex: "1 1 0",
+                minHeight: 0,
+                padding: `${Math.max(10, slideInnerPadding + 2)}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+              }}
+            >
+              <div className="flex-1 min-h-0">
+                {categoryComparisonData.length === 0 ? (
+                  <p
+                    className="text-sm text-center pt-8"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Sem histórico para comparar com {previousMonthShortLabel}
+                  </p>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={categoryComparisonData}
+                      margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+                      barGap={2}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="4 10"
+                        vertical={false}
+                        stroke="#e7e9f0"
+                      />
+                      <XAxis
+                        dataKey="shortName"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#767c93" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={formatChartAxisTick}
+                        tick={{ fontSize: 11, fill: "#767c93" }}
+                        width={32}
+                      />
+                      <Tooltip
+                        content={renderCategoryComparisonTooltip}
+                        cursor={{
+                          fill: "rgba(79, 70, 229, 0.06)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="previousTotal"
+                        name={`Mês anterior (${previousMonthShortLabel})`}
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {categoryComparisonData.map((item) => {
+                          const standardColor = getCategoryStandardColor(
+                            item.cor,
+                          );
+                          return (
+                            <Cell
+                              key={`previous-bar-${item.id}`}
+                              fill={standardColor.gradient1}
+                              stroke={standardColor.border}
+                              strokeWidth={1}
+                            />
+                          );
+                        })}
+                      </Bar>
+                      <Bar
+                        dataKey="currentTotal"
+                        name={`Mês atual (${currentMonthShortLabel})`}
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {categoryComparisonData.map((item) => {
+                          const standardColor = getCategoryStandardColor(
+                            item.cor,
+                          );
+                          return (
+                            <Cell
+                              key={`current-bar-${item.id}`}
+                              fill={standardColor.border}
+                              stroke={standardColor.text}
+                              strokeWidth={1}
+                            />
+                          );
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>
+            )}
           </div>
         </div>
       ) : (
@@ -2001,7 +2094,7 @@ const DashboardDesktopRedesignView = ({
                       {monthComparison.currentInvestment <= 0 ? (
                         <span
                           className="font-semibold"
-                          style={{ color: "var(--color-vermelho-text)" }}
+                          style={{ color: "var(--danger-700)" }}
                         >
                           Você não investiu este mês
                         </span>

@@ -148,10 +148,10 @@ export const getCategoryStandardColor = (categoryColor) => {
   if (!categoryColor || typeof categoryColor !== "string") {
     // Fallback: cor padrão cinza
     return {
-      gradient1: "hsl(0, 0%, 20%)",
-      gradient2: "hsl(0, 0%, 12%)",
-      border: "hsl(0, 0%, 16%)",
-      text: "hsl(0, 0%, 38%)",
+      gradient1: "hsl(0, 0%, 94%)",
+      gradient2: "hsl(0, 0%, 90%)",
+      border: "hsl(0, 0%, 80%)",
+      text: "hsl(0, 0%, 35%)",
     };
   }
 
@@ -159,20 +159,20 @@ export const getCategoryStandardColor = (categoryColor) => {
     const hsl = hexToHsl(categoryColor);
     const hue = hsl.h;
 
-    // Aplica o padrão: HUE fixo, S e L padronizados
+    // Aplica o padrão: HUE fixo, S e L padronizados (light mode)
     return {
-      gradient1: `hsl(${hue}, 25%, 15%)`,
-      gradient2: `hsl(${hue}, 28%, 9%)`,
-      border: `hsl(${hue}, 23%, 22%)`,
-      text: `hsl(${hue}, 23%, 38%)`,
+      gradient1: `hsl(${hue}, 55%, 92%)`,
+      gradient2: `hsl(${hue}, 60%, 88%)`,
+      border: `hsl(${hue}, 45%, 78%)`,
+      text: `hsl(${hue}, 55%, 32%)`,
     };
   } catch {
     // Fallback se houver erro na conversão
     return {
-      gradient1: "hsl(0, 0%, 20%)",
-      gradient2: "hsl(0, 0%, 12%)",
-      border: "hsl(0, 0%, 16%)",
-      text: "hsl(0, 0%, 38%)",
+      gradient1: "hsl(0, 0%, 94%)",
+      gradient2: "hsl(0, 0%, 90%)",
+      border: "hsl(0, 0%, 80%)",
+      text: "hsl(0, 0%, 35%)",
     };
   }
 };
