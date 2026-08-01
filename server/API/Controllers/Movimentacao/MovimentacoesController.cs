@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -253,6 +253,37 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (ArgumentException)
         {
             return BadRequest("Dados inválidos para renumeração.");
+        }
+    }
+
+    [HttpGet("grupos/expirados")]
+    public IActionResult ListarGruposRecorrenciaExpirados()
+    {
+        try
+        {
+            return Ok(listarGruposRecorrenciaExpiradosUseCase.Executar(UsuarioId));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao listar grupos de recorrência expirados.");
+        }
+    }
+
+    [HttpPost("grupos/{grupoRecorrenciaId:guid}/renovar")]
+    public IActionResult RenovarGrupoRecorrencia(Guid grupoRecorrenciaId, [FromBody] RenovarGrupoRecorrenciaDTO dto)
+    {
+        try
+        {
+            var resultado = renovarGrupoRecorrenciaUseCase.Executar(grupoRecorrenciaId, UsuarioId, dto.Meses);
+            return Ok(resultado);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("Grupo de recorrência não encontrado.");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 

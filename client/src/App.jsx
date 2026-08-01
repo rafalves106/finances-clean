@@ -12,6 +12,7 @@ import ReleaseNotesModal from "./components/ReleaseNotesModal";
 import AlertsCenter from "./components/AlertsCenter";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useAlertsCenter } from "./hooks/useAlertsCenter";
+import { useRecurringRenewals } from "./hooks/useRecurringRenewals";
 
 import {
   API_URL,
@@ -39,6 +40,7 @@ const mapApiToFrontend = (item) => ({
   fixa: item.fixa,
   periodo: item.periodo,
   tipoRecorrencia: item.tipoRecorrencia,
+  grupoRecorrenciaId: item.grupoRecorrenciaId,
   investimentoId: item.investimentoId,
   cartaoId: item.cartaoId,
   categoriaId: item.categoriaId,
@@ -75,7 +77,8 @@ const App = () => {
   const [investments, setInvestments] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
   const [metas, setMetas] = useState([]);
-  const { alerts } = useAlertsCenter({ budgetAlerts, veiculos });
+  const { expiredGroups: recurringGroups, renovarGrupo } =
+    useRecurringRenewals({ enabled: isLoggedIn });
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
@@ -342,6 +345,20 @@ const App = () => {
       hasBootstrappedRef.current = true;
     }
   };
+
+  const handleRenewRecurringGroup = async (grupoRecorrenciaId) => {
+    const resultado = await renovarGrupo(grupoRecorrenciaId, 12);
+    if (resultado.ok) {
+      fetchData();
+    }
+  };
+
+  const { alerts } = useAlertsCenter({
+    budgetAlerts,
+    veiculos,
+    recurringGroups,
+    onRenewRecurringGroup: handleRenewRecurringGroup,
+  });
 
   useEffect(() => {
     if (isLoggedIn) {

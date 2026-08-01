@@ -56,6 +56,8 @@ builder.Services.AddScoped<BuscarSaidasPorPeriodoUseCase>();
 builder.Services.AddScoped<ObterResumoMensalUseCase>();
 builder.Services.AddScoped<ObterComparativoCategoriaMensalUseCase>();
 builder.Services.AddScoped<RenumerarGrupoUseCase>();
+builder.Services.AddScoped<ListarGruposRecorrenciaExpiradosUseCase>();
+builder.Services.AddScoped<RenovarGrupoRecorrenciaUseCase>();
 builder.Services.AddScoped<ExportarMovimentacoesCsvUseCase>();
 builder.Services.AddScoped<CadastrarCartaoManualUseCase>();
 builder.Services.AddScoped<EditarCartaoManualUseCase>();

@@ -102,6 +102,16 @@ const AlertsCenter = ({ alerts, panelPosition = "top-right" }) => {
                     >
                       {alert.description}
                     </p>
+                    {alert.action ? (
+                      <button
+                        type="button"
+                        onClick={alert.action.onClick}
+                        className="mt-1 text-[11px] font-semibold underline"
+                        style={{ color: "var(--accent-600)" }}
+                      >
+                        {alert.action.label}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ))
