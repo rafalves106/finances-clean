@@ -2303,21 +2303,40 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handlePreviousMonth}
-          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Mês anterior"
           title="Mês anterior"
         >
           <span className="text-xl leading-none">‹</span>
         </button>
 
-        <div className="h-12 min-w-[84px] px-3 bg-[#171b40] border border-[#2f355d] text-[#cfd5f3] rounded-full shadow-lg flex items-center justify-center text-xs font-semibold uppercase tracking-[0.08em] pointer-events-none select-none">
+        <div
+          className="h-12 min-w-[84px] px-3 rounded-full shadow-lg flex items-center justify-center text-xs font-semibold uppercase tracking-[0.08em] pointer-events-none select-none"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+          }}
+        >
           {currentMonthLabel}
         </div>
 
         <button
           type="button"
           onClick={handleNextMonth}
-          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Próximo mês"
           title="Próximo mês"
         >
@@ -2327,7 +2346,13 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handleOpenSimulation}
-          className="bg-amber-500 hover:bg-amber-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Simular transação"
           title="Simular transação"
         >
@@ -2337,7 +2362,13 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={() => setIsExportModalOpen(true)}
-          className="bg-sky-500 hover:bg-sky-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Exportar movimentações em CSV"
           title="Exportar CSV"
         >
@@ -2347,7 +2378,18 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handleOpenNewTransaction}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--accent-600)",
+            color: "var(--text-on-accent)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--accent-500)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--accent-600)";
+          }}
           aria-label="Adicionar nova transação"
         >
           <Plus size={20} />
