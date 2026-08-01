@@ -209,6 +209,10 @@ const DashboardDesktopRedesignView = ({
     setSlideTransactionSearch,
     slideTransactionFilter,
     setSlideTransactionFilter,
+    slideTransactionCategoryFilter,
+    setSlideTransactionCategoryFilter,
+    slideTransactionCardFilter,
+    setSlideTransactionCardFilter,
     slideTransactions,
   } = useTransactionFilters({ allTransactions });
 
@@ -730,28 +734,48 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Movimentações do Mês
             </h2>
             <button
               type="button"
               onClick={handleOpenNewTransaction}
-              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-[#26513f] bg-[#143325] px-3 py-2 text-xs font-semibold text-[#8ef0c6] hover:bg-[#194130] transition-colors"
+              className="ml-auto inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
+              style={{
+                background: "var(--accent-600)",
+                color: "var(--text-on-accent)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--accent-500)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--accent-600)";
+              }}
             >
               <Plus size={14} /> Nova transação
             </button>
           </div>
 
           <section
-            className="rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] shadow-sm min-h-0 overflow-hidden flex flex-col"
+            className="rounded-2xl shadow-sm min-h-0 overflow-hidden flex flex-col"
             style={{
               height: `${slideContentHeight}px`,
               padding: `${slideInnerPadding}px`,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
             }}
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -762,41 +786,118 @@ const DashboardDesktopRedesignView = ({
                   setSlideTransactionSearch(event.target.value)
                 }
                 placeholder="Buscar movimentação"
-                className="w-56 sm:w-72 px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9] placeholder:text-[#7f84a8]"
+                className="w-56 sm:w-72 px-2 py-1.5 rounded-md text-xs"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
               />
-              <select
-                value={slideTransactionFilter}
-                onChange={(event) =>
-                  setSlideTransactionFilter(event.target.value)
-                }
-                className="px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9]"
-              >
-                <option value="todas">Todas</option>
-                <option value="entradas">Somente entradas</option>
-                <option value="saidas">Somente saídas</option>
-              </select>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={slideTransactionFilter}
+                  onChange={(event) =>
+                    setSlideTransactionFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todas</option>
+                  <option value="entradas">Somente entradas</option>
+                  <option value="saidas">Somente saídas</option>
+                </select>
+                <select
+                  value={slideTransactionCategoryFilter}
+                  onChange={(event) =>
+                    setSlideTransactionCategoryFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todas as categorias</option>
+                  {categorias.map((categoria) => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={slideTransactionCardFilter}
+                  onChange={(event) =>
+                    setSlideTransactionCardFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todos os cartões</option>
+                  {cardColumns
+                    .filter((summary) => summary?.cartao?.id)
+                    .map((summary) => (
+                      <option key={summary.cartao.id} value={summary.cartao.id}>
+                        {summary.cartao.nome}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
 
-            <div className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg border border-[#2a3554]">
+            <div
+              className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg"
+              style={{ border: "1px solid var(--border-default)" }}
+            >
               {slideTransactions.length === 0 ? (
                 <div className="h-full flex items-center justify-center px-6 text-center">
-                  <p className="text-sm text-[#7f84a8]">
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhuma movimentação cadastrada para os filtros aplicados.
                   </p>
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse">
+                  <caption className="sr-only">
+                    Movimentações do mês, filtradas por tipo, categoria e
+                    cartão
+                  </caption>
                   <thead>
-                    <tr className="bg-[#131a33] text-[10px] uppercase tracking-wider text-[#8f94b4] border-b border-[#2a3554]">
-                      <th className="p-3 font-bold">Data</th>
-                      <th className="p-3 font-bold">Título</th>
-                      <th className="p-3 font-bold">Categoria</th>
-                      <th className="p-3 font-bold">Valor</th>
-                      <th className="p-3 font-bold">Tipo</th>
-                      <th className="p-3 font-bold text-right">Ações</th>
+                    <tr
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{
+                        background: "var(--bg-surface-sunken)",
+                        color: "var(--text-tertiary)",
+                        borderBottom: "1px solid var(--border-default)",
+                      }}
+                    >
+                      <th scope="col" className="p-3 font-bold">
+                        Data
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Título
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Categoria
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Valor
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Tipo
+                      </th>
+                      <th scope="col" className="p-3 font-bold text-right">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#202a4a]">
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
                     {slideTransactions.map((item) => {
                       const itemType = item.type || item.tipo;
                       const isEntrada = itemType === "Entrada";
@@ -804,32 +905,53 @@ const DashboardDesktopRedesignView = ({
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-[#141d36] transition-colors"
+                          className="transition-colors"
+                          style={{ background: "var(--bg-surface)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--bg-surface-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--bg-surface)";
+                          }}
                         >
-                          <td className="p-3 text-xs text-[#9f9cb9] whitespace-nowrap">
+                          <td
+                            className="p-3 text-xs whitespace-nowrap"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
                             {item.date || item.data
                               ? formatDateLabel(item.date || item.data)
                               : "--/--"}
                           </td>
                           <td className="p-3">
-                            <p className="text-sm font-semibold text-[#dbe3ff]">
+                            <p
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--text-primary)" }}
+                            >
                               {item.name || item.titulo || "Movimentação"}
                             </p>
-                            <p className="text-xs text-[#7f84a8] truncate max-w-[320px]">
+                            <p
+                              className="text-xs truncate max-w-[320px]"
+                              style={{ color: "var(--text-tertiary)" }}
+                            >
                               {item.description ||
                                 item.descricao ||
                                 "Sem descrição"}
                             </p>
                           </td>
-                          <td className="p-3 text-xs text-[#9f9cb9]">
+                          <td
+                            className="p-3 text-xs"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
                             {item.categoria?.nome || "Sem categoria"}
                           </td>
                           <td
                             className="p-3 text-sm font-semibold whitespace-nowrap"
                             style={{
                               color: isEntrada
-                                ? "var(--color-verde-text)"
-                                : "var(--color-vermelho-text)",
+                                ? "var(--success-700)"
+                                : "var(--danger-700)",
                             }}
                           >
                             {isEntrada ? "+" : "-"}
@@ -837,11 +959,15 @@ const DashboardDesktopRedesignView = ({
                           </td>
                           <td className="p-3">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                isEntrada
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-rose-100 text-rose-700"
-                              }`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style={{
+                                background: isEntrada
+                                  ? "var(--success-100)"
+                                  : "var(--danger-100)",
+                                color: isEntrada
+                                  ? "var(--success-700)"
+                                  : "var(--danger-700)",
+                              }}
                             >
                               {itemType}
                             </span>
@@ -851,14 +977,22 @@ const DashboardDesktopRedesignView = ({
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditTransaction(item)}
-                                className="text-xs font-medium text-[#9ec2ff] border border-[#2f4566] rounded-md px-2 py-1 hover:bg-[#1a2842] transition-colors"
+                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                style={{
+                                  color: "var(--accent-600)",
+                                  border: "1px solid var(--accent-100)",
+                                }}
                               >
                                 Editar
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTransaction(item)}
-                                className="text-xs font-medium text-[#f08f9f] border border-[#6b3040] rounded-md px-2 py-1 hover:bg-[#351e2a] transition-colors"
+                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                style={{
+                                  color: "var(--danger-700)",
+                                  border: "1px solid var(--danger-border)",
+                                }}
                               >
                                 Excluir
                               </button>
