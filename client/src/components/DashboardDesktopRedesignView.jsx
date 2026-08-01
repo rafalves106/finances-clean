@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   Download,
   Plus,
-  RefreshCw,
   Sparkles,
   X,
 } from "lucide-react";
@@ -78,9 +77,10 @@ const DashboardDesktopRedesignView = ({
   onOpenCategoryManager,
   headerHeight = 96,
   budgetAlerts = [],
+  metas = [],
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
-  const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
+  const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
   const [activeSlide, setActiveSlide] = useState(null);
   const [chartsSlideTab, setChartsSlideTab] = useState("fluxo");
   const summaryRef = useRef(null);
@@ -262,6 +262,32 @@ const DashboardDesktopRedesignView = ({
       </div>
     );
   }
+
+  const linkedGoals = metas
+    .filter((meta) => meta.categoriaId || meta.investimentoId)
+    .map((meta) => ({
+      id: meta.id,
+      nome: meta.descricao,
+      valor: meta.valor,
+      valorAcumulado: Number(meta.valorAcumulado || 0),
+      percentual: Number(meta.percentualProgresso || 0),
+    }))
+    .sort((a, b) => b.percentual - a.percentual)
+    .slice(0, 4);
+
+  const vehicleInsights = veiculos.map((veiculo) => ({
+    id: veiculo.id,
+    nome: veiculo.nome,
+    alertaPendente: Boolean(veiculo.alertaPendente),
+    kmAtual: veiculo.kmAtual,
+    kmRestante:
+      veiculo.kmAtual != null
+        ? Math.max(
+            0,
+            veiculo.alertaKm - (veiculo.kmAtual - veiculo.ultimoKmAlerta),
+          )
+        : null,
+  }));
 
   const activeCardFormContext = (() => {
     if (!openCardFormId) return null;
@@ -1644,89 +1670,175 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden cursor-pointer"
+              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden"
               style={{
                 background: "var(--bg-surface)",
                 borderColor: "var(--border-default)",
               }}
-              onClick={() => setActiveSlide("transactions")}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setActiveSlide("transactions");
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Abrir slide de movimentações"
             >
-              <div className="sticky top-0 flex items-center justify-between">
-                <h3
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {showUpcomingReceipts
-                    ? "Próximas receitas"
-                    : "Próximas despesas"}
-                </h3>
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setShowUpcomingReceipts(!showUpcomingReceipts);
-                  }}
-                  className="rounded-lg transition-colors duration-200"
-                  title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
-                >
-                  <RefreshCw size={16} style={{ color: "var(--text-tertiary)" }} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto pt-2 space-y-2">
-                {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
-                  .length === 0 ? (
-                  <p
-                    className="text-xs text-center py-4"
-                    style={{ color: "var(--text-tertiary)" }}
+              <div className="flex items-center gap-1 flex-shrink-0 overflow-x-auto">
+                {[
+                  { id: "despesas", label: "Despesas" },
+                  { id: "receitas", label: "Receitas" },
+                  ...(linkedGoals.length > 0
+                    ? [{ id: "metas", label: "Metas" }]
+                    : []),
+                  ...(vehicleInsights.length > 0
+                    ? [{ id: "veiculo", label: "Veículo" }]
+                    : []),
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setHomeWidgetTab(tab.id)}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors"
+                    style={
+                      homeWidgetTab === tab.id
+                        ? {
+                            background: "var(--accent-50)",
+                            color: "var(--accent-600)",
+                          }
+                        : { color: "var(--text-tertiary)" }
+                    }
                   >
-                    Nenhum item no período
-                  </p>
-                ) : (
-                  (showUpcomingReceipts
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {(homeWidgetTab === "despesas" || homeWidgetTab === "receitas") && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-2">
+                  {(homeWidgetTab === "receitas"
                     ? upcomingReceipts
                     : upcomingPayments
-                  ).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg flex items-center justify-between gap-2"
+                  ).length === 0 ? (
+                    <p
+                      className="text-xs text-center py-4"
+                      style={{ color: "var(--text-tertiary)" }}
                     >
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <span className="text-base">{item.icone}</span>
+                      Nenhum item no período
+                    </p>
+                  ) : (
+                    (homeWidgetTab === "receitas"
+                      ? upcomingReceipts
+                      : upcomingPayments
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveSlide("transactions")}
+                        className="w-full rounded-lg flex items-center justify-between gap-2 text-left"
+                      >
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <span className="text-base">{item.icone}</span>
+                          <span
+                            className="text-sm font-semibold whitespace-nowrap"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {formatCurrency(item.value)}
+                          </span>
+                          <span
+                            className="text-xs truncate"
+                            style={{ color: "var(--text-tertiary)" }}
+                            title={item.title}
+                          >
+                            {truncateWithThreeDots(
+                              item.title,
+                              UPCOMING_ITEM_TITLE_MAX_LENGTH,
+                            )}
+                          </span>
+                        </div>
                         <span
-                          className="text-sm font-semibold whitespace-nowrap"
+                          className="text-xs whitespace-nowrap"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {formatDateLabel(item.dueDate)}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {homeWidgetTab === "metas" && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+                  {linkedGoals.map((goal) => (
+                    <div key={goal.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span
+                          className="truncate"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {formatCurrency(item.value)}
+                          {goal.nome}
                         </span>
                         <span
-                          className="text-xs truncate"
-                          style={{ color: "var(--text-tertiary)" }}
-                          title={item.title}
+                          className="font-semibold whitespace-nowrap"
+                          style={{ color: "var(--text-secondary)" }}
                         >
-                          {truncateWithThreeDots(
-                            item.title,
-                            UPCOMING_ITEM_TITLE_MAX_LENGTH,
-                          )}
+                          {Math.round(goal.percentual)}%
                         </span>
                       </div>
-                      <span
-                        className="text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
                       >
-                        {formatDateLabel(item.dueDate)}
-                      </span>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, goal.percentual)}%`,
+                            background: "var(--accent-600)",
+                          }}
+                        />
+                      </div>
+                      <p
+                        className="text-[11px] mt-1"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        Faltam{" "}
+                        {formatCurrency(
+                          Math.max(0, goal.valor - goal.valorAcumulado),
+                        )}
+                      </p>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {homeWidgetTab === "veiculo" && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+                  {vehicleInsights.map((veiculo) => (
+                    <div key={veiculo.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span
+                          className="truncate"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {veiculo.nome}
+                        </span>
+                        {veiculo.alertaPendente ? (
+                          <span
+                            className="font-semibold whitespace-nowrap"
+                            style={{ color: "var(--danger-700)" }}
+                          >
+                            Revisão pendente
+                          </span>
+                        ) : null}
+                      </div>
+                      <p
+                        className="text-[11px]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {veiculo.kmAtual != null
+                          ? `${veiculo.kmAtual.toLocaleString("pt-BR")} km rodados`
+                          : "Sem quilometragem registrada"}
+                        {veiculo.kmRestante != null && !veiculo.alertaPendente
+                          ? ` · faltam ${veiculo.kmRestante.toLocaleString("pt-BR")} km pra revisão`
+                          : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </article>
 
             <div

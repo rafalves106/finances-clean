@@ -741,6 +741,7 @@ const App = () => {
               onOpenCategoryManager={handleOpenCategoryManager}
               saldoAnterior={saldoAnterior}
               budgetAlerts={budgetAlerts}
+              metas={metas}
               budgetRefreshKey={budgetRefreshKey}
               headerHeight={headerHeight}
             />
