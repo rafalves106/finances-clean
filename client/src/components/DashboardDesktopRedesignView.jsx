@@ -26,7 +26,6 @@ import { formatCurrency } from "../util/formatCurrency";
 import { useViewportDensity } from "../hooks/useViewportDensity";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
 import { useCardSummaries } from "../hooks/useCardSummaries";
-import { useBudgetAlerts } from "../hooks/useBudgetAlerts";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionActions } from "../hooks/useTransactionActions";
 import { useCsvExport } from "../hooks/useCsvExport";
@@ -78,6 +77,7 @@ const DashboardDesktopRedesignView = ({
   saldoAnterior = 0,
   onOpenCategoryManager,
   headerHeight = 96,
+  budgetAlerts = [],
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
@@ -165,7 +165,6 @@ const DashboardDesktopRedesignView = ({
   const { dialogRef: cardFormDialogRef, handleDialogKeyDown: handleCardFormDialogKeyDown } =
     useFocusTrap(Boolean(openCardFormId), () => setOpenCardFormId(null));
 
-  const { budgetAlerts } = useBudgetAlerts({ selectedMes, selectedAno });
   const budgetAlertsLeftColumn = budgetAlerts.slice(0, 4);
   const budgetAlertsRightColumn = budgetAlerts.slice(4, 8);
 

@@ -9,6 +9,9 @@ import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
+import AlertsCenter from "./components/AlertsCenter";
+import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
+import { useAlertsCenter } from "./hooks/useAlertsCenter";
 
 import {
   API_URL,
@@ -58,6 +61,10 @@ const App = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
   const [selectedAno, setSelectedAno] = useState(new Date().getFullYear());
+  const { budgetAlerts } = useBudgetAlerts({
+    selectedMes: isLoggedIn ? selectedMes : null,
+    selectedAno: isLoggedIn ? selectedAno : null,
+  });
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -66,6 +73,7 @@ const App = () => {
   const [workHoursPerMonth, setWorkHoursPerMonth] = useState(120);
   const [investments, setInvestments] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
+  const { alerts } = useAlertsCenter({ budgetAlerts, veiculos });
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
@@ -450,18 +458,21 @@ const App = () => {
               {item.label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => {
-              removeToken();
-              setIsLoggedIn(false);
-            }}
-            aria-label="Sair"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ml-auto"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            <LogOut size={16} />
-          </button>
+          <div className="flex items-center gap-1 ml-auto">
+            <AlertsCenter alerts={alerts} />
+            <button
+              type="button"
+              onClick={() => {
+                removeToken();
+                setIsLoggedIn(false);
+              }}
+              aria-label="Sair"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </nav>
 
         {activeTab === "dashboard" && (
@@ -483,6 +494,7 @@ const App = () => {
             veiculos={veiculos}
             onOpenCategoryManager={handleOpenCategoryManager}
             saldoAnterior={saldoAnterior}
+            budgetAlerts={budgetAlerts}
             budgetRefreshKey={budgetRefreshKey}
           />
         )}
@@ -615,6 +627,12 @@ const App = () => {
             </div>
           ) : null}
 
+          <div
+            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
+          >
+            <AlertsCenter alerts={alerts} panelPosition="bottom-left" />
+          </div>
+
           <button
             onClick={() => {
               removeToken();
@@ -692,6 +710,7 @@ const App = () => {
               veiculos={veiculos}
               onOpenCategoryManager={handleOpenCategoryManager}
               saldoAnterior={saldoAnterior}
+              budgetAlerts={budgetAlerts}
               budgetRefreshKey={budgetRefreshKey}
               headerHeight={headerHeight}
             />
