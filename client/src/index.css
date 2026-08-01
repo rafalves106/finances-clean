@@ -190,14 +190,9 @@ body {
 
 .dashboard-desktop-redesign {
   border-radius: 34px;
-  border: 1px solid #1f1e2d;
-  background: linear-gradient(
-    145deg,
-    rgba(15, 14, 24, 0.96) 0%,
-    rgba(18, 16, 30, 0.92) 52%,
-    rgba(16, 14, 28, 0.95) 100%
-  );
-  box-shadow: 0 0 36px rgba(32, 28, 54, 0.3);
+  border: 1px solid var(--border-default);
+  background: var(--bg-app);
+  box-shadow: var(--shadow-panel);
   padding: var(--dashboard-panel-padding);
 }
 
