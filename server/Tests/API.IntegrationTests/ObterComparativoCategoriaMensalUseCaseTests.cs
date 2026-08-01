@@ -69,6 +69,7 @@ public class ObterComparativoCategoriaMensalUseCaseTests
     public IEnumerable<Movimentacao> ListarPorPeriodoPorUsuario(DateTime dataInicio, DateTime dataFim, Guid usuarioId)
         => _dados.Where(m => m.UsuarioId == usuarioId && m.Data >= dataInicio && m.Data <= dataFim);
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId) => _dados;
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia) => Enumerable.Empty<Movimentacao>();
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
     public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
   }

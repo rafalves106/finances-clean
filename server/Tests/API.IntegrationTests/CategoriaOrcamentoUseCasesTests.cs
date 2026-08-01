@@ -157,6 +157,7 @@ public class CategoriaOrcamentoUseCasesTests
       => _dados.Where(item => item.UsuarioId == usuarioId && item.Data >= dataInicio && item.Data <= dataFim);
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
       => _dados.Where(item => item.GrupoRecorrenciaId == grupoRecorrenciaId && item.UsuarioId == usuarioId);
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia) => Enumerable.Empty<Movimentacao>();
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
     public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
   }

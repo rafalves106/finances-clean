@@ -109,6 +109,17 @@ public class MovimentacaoRepository : IMovimentacaoRepository
             .ToList();
     }
 
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
+    {
+        return _context.Movimentacoes
+            .Where(m => m.UsuarioId == usuarioId && m.Fixa && m.GrupoRecorrenciaId != null)
+            .AsEnumerable()
+            .GroupBy(m => m.GrupoRecorrenciaId)
+            .Select(g => g.OrderByDescending(m => m.Data).ThenByDescending(m => m.Id).First())
+            .Where(m => m.Data < referencia)
+            .ToList();
+    }
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes)
     {
         _context.Movimentacoes.UpdateRange(movimentacoes);

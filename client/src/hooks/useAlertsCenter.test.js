@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useAlertsCenter } from "./useAlertsCenter";
 
@@ -50,5 +50,29 @@ describe("useAlertsCenter", () => {
 
     expect(result.current.alerts).toEqual([]);
     expect(result.current.count).toBe(0);
+  });
+
+  it("inclui alerta de grupo de recorrencia expirado com acao de renovacao", () => {
+    const recurringGroups = [
+      {
+        grupoRecorrenciaId: "grupo-1",
+        titulo: "Aluguel",
+        ultimaData: "2026-06-01T00:00:00",
+      },
+    ];
+    const onRenewRecurringGroup = vi.fn();
+
+    const { result } = renderHook(() =>
+      useAlertsCenter({ recurringGroups, onRenewRecurringGroup }),
+    );
+
+    expect(result.current.count).toBe(1);
+    const alert = result.current.alerts[0];
+    expect(alert.type).toBe("recorrencia");
+    expect(alert.label).toBe("Aluguel");
+    expect(alert.description).toContain("06/2026");
+
+    alert.action.onClick();
+    expect(onRenewRecurringGroup).toHaveBeenCalledWith("grupo-1");
   });
 });

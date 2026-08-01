@@ -348,6 +348,9 @@ public class CartaoUseCasesTests
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
         => movimentacoes.Where(m => m.GrupoRecorrenciaId == grupoRecorrenciaId && m.UsuarioId == usuarioId);
 
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
+        => Enumerable.Empty<Movimentacao>();
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> itens)
     {
       foreach (var item in itens)
