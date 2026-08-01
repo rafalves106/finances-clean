@@ -5,6 +5,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  X,
 } from "lucide-react";
 import {
   Area,
@@ -56,6 +57,7 @@ import {
 import ExportCsvModal from "./ExportCsvModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const DashboardDesktopRedesignView = ({
   incomes = [],
@@ -155,6 +157,9 @@ const DashboardDesktopRedesignView = ({
     handleCreateCardFormSubmit,
   } = useCardSummaries({ allTransactions, selectedMes, selectedAno });
 
+  const { dialogRef: cardFormDialogRef, handleDialogKeyDown: handleCardFormDialogKeyDown } =
+    useFocusTrap(Boolean(openCardFormId), () => setOpenCardFormId(null));
+
   const {
     totalIncome,
     totalExpense,
@@ -246,6 +251,44 @@ const DashboardDesktopRedesignView = ({
     );
   }
 
+  const activeCardFormContext = (() => {
+    if (!openCardFormId) return null;
+
+    if (openCardFormId.startsWith("new-")) {
+      const slotKey = openCardFormId.replace("new-", "");
+      const index = Number(slotKey);
+      return {
+        mode: "create",
+        slotKey,
+        index,
+        values: newCardFormBySlot[slotKey] || getInitialCardCreateForm(index),
+        statusMessage: newCardStatusBySlot[slotKey],
+        isBusy: Boolean(isCreatingCardBySlot[slotKey]),
+      };
+    }
+
+    const summary = cardColumns.find(
+      (item) => item?.cartao?.id && String(item.cartao.id) === openCardFormId,
+    );
+    if (!summary) return null;
+
+    const card = summary.cartao;
+    return {
+      mode: "edit",
+      cardId: openCardFormId,
+      cardNome: card.nome || "Cartão",
+      values: cardFormById[openCardFormId] || {
+        nome: card.nome || "",
+        limiteTotal: String(card.limiteTotal || ""),
+        diaFechamento: String(card.diaFechamento || ""),
+        diaVencimento: String(card.diaVencimento || ""),
+        corTema: normalizeCardTheme(card.corTema),
+      },
+      statusMessage: cardFormStatusById[openCardFormId],
+      isBusy: Boolean(isSavingCardById[openCardFormId]),
+    };
+  })();
+
   return (
     <div
       className="dashboard-desktop-redesign overflow-hidden"
@@ -299,171 +342,77 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Gestão dos Cartões
             </h2>
           </div>
 
           {cardSummaryError ? (
-            <p
-              className="text-xs"
-              style={{ color: "var(--color-vermelho-text)" }}
-            >
+            <p className="text-xs" style={{ color: "var(--danger-700)" }}>
               {cardSummaryError}
             </p>
           ) : null}
 
           <section
-            className="grid grid-cols-3 min-h-0 items-stretch overflow-hidden"
+            className="grid min-h-0 items-stretch overflow-hidden"
             style={{
               gap: `${sectionGap}px`,
               height: `${slideContentHeight}px`,
+              gridTemplateColumns: `repeat(${cardColumns.length}, minmax(0, 1fr))`,
             }}
           >
             {cardColumns.map((summary, index) => {
               if (!summary?.cartao?.id) {
                 const slotKey = String(index);
                 const createFormId = `new-${slotKey}`;
-                const isCreateOpen = openCardFormId === createFormId;
-                const createFormValues =
-                  newCardFormBySlot[slotKey] || getInitialCardCreateForm(index);
-                const createStatusMessage = newCardStatusBySlot[slotKey];
-                const isCreating = Boolean(isCreatingCardBySlot[slotKey]);
 
                 return (
                   <article
                     key={`empty-card-column-${index}`}
-                    className="rounded-xl border border-dashed border-[#324066] bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.22)_0%,rgba(18,24,40,0.95)_45%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] p-4 min-h-0 max-h-full overflow-y-auto flex flex-col items-center justify-center gap-3 shadow-[0_16px_30px_rgba(6,10,22,0.38)]"
+                    className="rounded-xl border border-dashed p-4 min-h-0 max-h-full overflow-y-auto flex flex-col items-center justify-center gap-3"
+                    style={{
+                      borderColor: "var(--border-strong)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
                   >
-                    <p className="text-sm text-[#9f9cb9] text-center">
-                      Sem cartão nesta coluna.
+                    <p
+                      className="text-sm text-center"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Nenhum cartão cadastrado aqui ainda.
                     </p>
 
                     <button
                       type="button"
                       onClick={() => {
-                        setOpenCardFormId((current) =>
-                          current === createFormId ? null : createFormId,
-                        );
+                        setOpenCardFormId(createFormId);
                         setNewCardFormBySlot((current) => ({
                           ...current,
                           [slotKey]:
                             current[slotKey] || getInitialCardCreateForm(index),
                         }));
                       }}
-                      className="text-xs font-semibold text-[#8ef0c6] border border-[#26513f] rounded-lg px-3 py-2 bg-[#143325] hover:bg-[#194130] transition-colors"
+                      className="text-xs font-semibold rounded-lg px-3 py-2 transition-colors"
+                      style={{
+                        color: "var(--text-on-accent)",
+                        background: "var(--accent-600)",
+                      }}
                     >
-                      {isCreateOpen ? "Fechar criação" : "Criar novo cartão"}
+                      Criar novo cartão
                     </button>
-
-                    {isCreateOpen ? (
-                      <form
-                        onSubmit={(event) =>
-                          handleCreateCardFormSubmit(event, index)
-                        }
-                        className="w-full rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
-                      >
-                        <input
-                          type="text"
-                          value={createFormValues.nome}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "nome",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Nome do cartão"
-                          className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={createFormValues.limiteTotal}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "limiteTotal",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Limite total"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="color"
-                          value={createFormValues.corTema || DEFAULT_CARD_THEME}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "corTema",
-                              event.target.value,
-                            )
-                          }
-                          className="h-8 rounded-md border border-[#2a3554] bg-transparent"
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={createFormValues.diaFechamento}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "diaFechamento",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Dia fechamento"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={createFormValues.diaVencimento}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "diaVencimento",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Dia vencimento"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <button
-                          type="submit"
-                          disabled={isCreating}
-                          className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
-                        >
-                          {isCreating ? "Criando..." : "Salvar novo cartão"}
-                        </button>
-                      </form>
-                    ) : null}
-
-                    {createStatusMessage ? (
-                      <p
-                        className="text-xs text-center"
-                        style={{
-                          color: createStatusMessage.includes("sucesso")
-                            ? "var(--color-verde-text)"
-                            : "var(--color-vermelho-text)",
-                        }}
-                      >
-                        {createStatusMessage}
-                      </p>
-                    ) : null}
                   </article>
                 );
               }
@@ -491,26 +440,20 @@ const DashboardDesktopRedesignView = ({
 
               const cardMovements = (
                 cardTransactionsById.get(cardId) || []
-              ).slice(0, 8);
-
-              const formValues = cardFormById[cardId] || {
-                nome: card.nome || "",
-                limiteTotal: String(card.limiteTotal || ""),
-                diaFechamento: String(card.diaFechamento || ""),
-                diaVencimento: String(card.diaVencimento || ""),
-                corTema: normalizeCardTheme(card.corTema),
-              };
-
-              const statusMessage = cardFormStatusById[cardId];
-              const isSaving = Boolean(isSavingCardById[cardId]);
+              ).slice(0, 5);
 
               return (
                 <article
                   key={cardId}
-                  className="rounded-xl border border-[#324066] shadow-[0_16px_30px_rgba(6,10,22,0.45)] p-3 min-h-0 max-h-full overflow-y-auto flex flex-col gap-3 bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.24)_0%,rgba(18,24,40,0.92)_42%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)]"
+                  className="rounded-xl p-3 min-h-0 max-h-full overflow-y-auto flex flex-col gap-3"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    background: "var(--bg-surface)",
+                    boxShadow: "var(--shadow-panel)",
+                  }}
                 >
                   <div
-                    className="rounded-xl border p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                    className="rounded-xl border p-3"
                     style={getFrontLayerStyle(themeColor)}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -535,7 +478,10 @@ const DashboardDesktopRedesignView = ({
                         Limite {formatCurrency(cardLimitTotal)}
                       </span>
                     </div>
-                    <div className="mt-2 h-2 rounded-full border border-[#2a3554] overflow-hidden">
+                    <div
+                      className="mt-2 h-2 rounded-full border overflow-hidden"
+                      style={{ borderColor: palette.progressTrackBorder }}
+                    >
                       <div
                         className="h-full"
                         style={{
@@ -544,7 +490,10 @@ const DashboardDesktopRedesignView = ({
                         }}
                       />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-[#9f9cb9]">
+                    <div
+                      className="mt-2 flex items-center justify-between text-xs"
+                      style={{ color: palette.usedText }}
+                    >
                       <span>
                         Fechamento {String(card.diaFechamento).padStart(2, "0")}
                       </span>
@@ -554,13 +503,38 @@ const DashboardDesktopRedesignView = ({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.88)_0%,rgba(15,20,36,0.9)_100%)] p-3 min-h-0 flex-1 flex flex-col">
-                    <h3 className="text-xs font-semibold text-[#b9bfd8] mb-2">
-                      Movimentações do Cartão
-                    </h3>
+                  <div
+                    className="rounded-xl p-3 min-h-0 flex-1 flex flex-col"
+                    style={{
+                      border: "1px solid var(--border-subtle)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Movimentações do Cartão
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSlideTransactionCardFilter(cardId);
+                          setActiveSlide("transactions");
+                        }}
+                        className="text-[11px] font-semibold"
+                        style={{ color: "var(--accent-600)" }}
+                      >
+                        Ver todas
+                      </button>
+                    </div>
                     <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
                       {cardMovements.length === 0 ? (
-                        <p className="text-xs text-[#7f84a8]">
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
                           Nenhuma movimentação vinculada.
                         </p>
                       ) : (
@@ -573,10 +547,16 @@ const DashboardDesktopRedesignView = ({
                               className="flex items-center justify-between gap-2"
                             >
                               <div className="min-w-0">
-                                <p className="text-xs text-[#dbe3ff] truncate">
+                                <p
+                                  className="text-xs truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
                                   {item.name || item.titulo || "Movimentação"}
                                 </p>
-                                <p className="text-[11px] text-[#7f84a8]">
+                                <p
+                                  className="text-[11px]"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
                                   {item.date || item.data
                                     ? formatDateLabel(item.date || item.data)
                                     : "--/--"}
@@ -586,8 +566,8 @@ const DashboardDesktopRedesignView = ({
                                 className="text-xs font-semibold whitespace-nowrap"
                                 style={{
                                   color: isEntrada
-                                    ? "var(--color-verde-text)"
-                                    : "var(--color-vermelho-text)",
+                                    ? "var(--success-700)"
+                                    : "var(--danger-700)",
                                 }}
                               >
                                 {isEntrada ? "+" : "-"}
@@ -600,123 +580,17 @@ const DashboardDesktopRedesignView = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenCardFormId((current) =>
-                          current === cardId ? null : cardId,
-                        )
-                      }
-                      className="w-full text-xs font-medium text-[#cfd5f3] border border-[#2a3554] rounded-lg px-3 py-2 hover:bg-[#1e2340] transition-colors"
-                    >
-                      {openCardFormId === cardId
-                        ? "Fechar Formulário"
-                        : "Editar Cartão"}
-                    </button>
-                  </div>
-
-                  {openCardFormId === cardId ? (
-                    <form
-                      onSubmit={(event) => handleCardFormSubmit(event, cardId)}
-                      className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={formValues.nome}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "nome",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Nome do cartão"
-                        className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formValues.limiteTotal}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "limiteTotal",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Limite total"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="color"
-                        value={formValues.corTema || DEFAULT_CARD_THEME}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "corTema",
-                            event.target.value,
-                          )
-                        }
-                        className="h-8 rounded-md border border-[#2a3554] bg-transparent"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formValues.diaFechamento}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "diaFechamento",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Dia fechamento"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formValues.diaVencimento}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "diaVencimento",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Dia vencimento"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
-                      >
-                        {isSaving ? "Salvando..." : "Salvar alterações"}
-                      </button>
-                    </form>
-                  ) : null}
-
-                  {statusMessage ? (
-                    <p
-                      className="text-xs"
-                      style={{
-                        color: statusMessage.includes("sucesso")
-                          ? "var(--color-verde-text)"
-                          : "var(--color-vermelho-text)",
-                      }}
-                    >
-                      {statusMessage}
-                    </p>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setOpenCardFormId(cardId)}
+                    className="w-full text-xs font-medium rounded-lg px-3 py-2 transition-colors"
+                    style={{
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border-default)",
+                    }}
+                  >
+                    Editar Cartão
+                  </button>
                 </article>
               );
             })}
@@ -2514,6 +2388,215 @@ const DashboardDesktopRedesignView = ({
         editingItem={null}
         isSimulation={true}
       />
+
+      {activeCardFormContext ? (
+        <div className="fixed inset-0 z-50 bg-[rgba(18,20,28,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
+          <div
+            ref={cardFormDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="card-form-modal-title"
+            tabIndex={-1}
+            onKeyDown={handleCardFormDialogKeyDown}
+            className="w-full max-w-md rounded-2xl p-6"
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
+              boxShadow: "var(--shadow-modal)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2
+                id="card-form-modal-title"
+                className="text-lg font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {activeCardFormContext.mode === "create"
+                  ? "Novo cartão"
+                  : `Editar ${activeCardFormContext.cardNome}`}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setOpenCardFormId(null)}
+                aria-label="Fechar"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(event) =>
+                activeCardFormContext.mode === "create"
+                  ? handleCreateCardFormSubmit(event, activeCardFormContext.index)
+                  : handleCardFormSubmit(event, activeCardFormContext.cardId)
+              }
+              className="grid grid-cols-2 gap-3"
+            >
+              <input
+                type="text"
+                value={activeCardFormContext.values.nome}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "nome",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "nome",
+                        event.target.value,
+                      )
+                }
+                placeholder="Nome do cartão"
+                className="col-span-2 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={activeCardFormContext.values.limiteTotal}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "limiteTotal",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "limiteTotal",
+                        event.target.value,
+                      )
+                }
+                placeholder="Limite total"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="color"
+                value={activeCardFormContext.values.corTema || DEFAULT_CARD_THEME}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "corTema",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "corTema",
+                        event.target.value,
+                      )
+                }
+                className="h-10 rounded-lg"
+                style={{ border: "1px solid var(--border-default)" }}
+              />
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={activeCardFormContext.values.diaFechamento}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "diaFechamento",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "diaFechamento",
+                        event.target.value,
+                      )
+                }
+                placeholder="Dia fechamento"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={activeCardFormContext.values.diaVencimento}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "diaVencimento",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "diaVencimento",
+                        event.target.value,
+                      )
+                }
+                placeholder="Dia vencimento"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+
+              {activeCardFormContext.statusMessage ? (
+                <p
+                  className="col-span-2 text-xs"
+                  style={{
+                    color: activeCardFormContext.statusMessage.includes(
+                      "sucesso",
+                    )
+                      ? "var(--success-700)"
+                      : "var(--danger-700)",
+                  }}
+                >
+                  {activeCardFormContext.statusMessage}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={activeCardFormContext.isBusy}
+                className="col-span-2 text-sm font-semibold rounded-lg px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: "var(--accent-600)",
+                  color: "var(--text-on-accent)",
+                }}
+              >
+                {activeCardFormContext.isBusy
+                  ? "Salvando..."
+                  : activeCardFormContext.mode === "create"
+                    ? "Salvar novo cartão"
+                    : "Salvar alterações"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

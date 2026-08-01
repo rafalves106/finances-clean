@@ -151,10 +151,14 @@ export const useCardSummaries = ({ allTransactions, selectedMes, selectedAno }) 
     return grouped;
   }, [allTransactions]);
 
-  const cardColumns = useMemo(
-    () => Array.from({ length: 3 }, (_, index) => cardSummaries[index] || null),
-    [cardSummaries],
-  );
+  // Backend limita a 3 cartões ativos (ver CadastrarCartao_QuartoCartaoAtivo_DeveRetornar409).
+  const MAX_CARTOES_ATIVOS = 3;
+  const cardColumns = useMemo(() => {
+    if (cardSummaries.length >= MAX_CARTOES_ATIVOS) {
+      return cardSummaries;
+    }
+    return [...cardSummaries, null];
+  }, [cardSummaries]);
 
   const cardSummary = cardSummaries[0] || null;
   const backCardSummaries = cardSummaries.slice(1, 3);
