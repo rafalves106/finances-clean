@@ -493,6 +493,8 @@ const App = () => {
               hourlyRate={hourlyRate}
               workHoursPerMonth={workHoursPerMonth}
               setWorkHoursPerMonth={setWorkHoursPerMonth}
+              categorias={categorias}
+              investments={investments}
             />
           </div>
         )}
@@ -700,6 +702,8 @@ const App = () => {
               hourlyRate={hourlyRate}
               workHoursPerMonth={workHoursPerMonth}
               setWorkHoursPerMonth={setWorkHoursPerMonth}
+              categorias={categorias}
+              investments={investments}
             />
           )}
           {activeTab === "vehicle" && (
