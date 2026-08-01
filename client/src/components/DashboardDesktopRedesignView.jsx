@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
+  ArrowUpRight,
   ChevronLeft,
   Download,
   Plus,
@@ -1299,7 +1300,7 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-2 border rounded-2xl p-2 min-h-0 flex flex-col cursor-pointer"
+              className="relative col-span-2 border rounded-2xl p-2 min-h-0 flex flex-col cursor-pointer"
               style={{
                 background: "var(--bg-surface)",
                 borderColor: "var(--border-default)",
@@ -1316,6 +1317,15 @@ const DashboardDesktopRedesignView = ({
               }}
               aria-label="Ver análise gráfica detalhada"
             >
+              <span
+                className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                style={{
+                  background: "var(--bg-surface)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                <ArrowUpRight size={12} />
+              </span>
               <div className="flex-1 min-h-0 cursor-pointer">
                 {chartData.length === 0 ? (
                   <div
@@ -1846,7 +1856,7 @@ const DashboardDesktopRedesignView = ({
               style={{ rowGap: `${sectionGap}px` }}
             >
               <article
-                className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 cursor-pointer"
+                className="relative bg-white border border-slate-200 rounded-2xl shadow-sm p-4 cursor-pointer"
                 onClick={() => setActiveSlide("transactions")}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -1858,6 +1868,15 @@ const DashboardDesktopRedesignView = ({
                 tabIndex={0}
                 aria-label="Abrir slide de movimentações"
               >
+                <span
+                  className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                  style={{
+                    background: "var(--bg-surface)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  <ArrowUpRight size={12} />
+                </span>
                 <div
                   className="grid grid-cols-3"
                   style={{ columnGap: `${sectionGap}px` }}
@@ -2027,7 +2046,7 @@ const DashboardDesktopRedesignView = ({
           >
             <div className="min-h-0 order-2">
               <article
-                className="bg-white border border-slate-200 rounded-xl shadow-sm h-full overflow-hidden flex flex-col p-4 cursor-pointer"
+                className="relative bg-white border border-slate-200 rounded-xl shadow-sm h-full overflow-hidden flex flex-col p-4 cursor-pointer"
                 style={{
                   minHeight: `${sectionThreeCardMinHeight}px`,
                   maxHeight: `${sectionThreeMaxHeight}px`,
@@ -2043,6 +2062,15 @@ const DashboardDesktopRedesignView = ({
                 tabIndex={0}
                 aria-label="Ver análise de categorias detalhada"
               >
+                <span
+                  className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                  style={{
+                    background: "var(--bg-surface)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  <ArrowUpRight size={12} />
+                </span>
                 <div className="sticky top-0 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                     Gastos por Categoria
@@ -2189,7 +2217,7 @@ const DashboardDesktopRedesignView = ({
             </div>
 
             <article
-              className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4 cursor-pointer"
+              className="relative bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4 cursor-pointer"
               style={{ maxHeight: `${sectionThreeMaxHeight}px` }}
               onClick={() => setActiveSlide("transactions")}
               onKeyDown={(event) => {
@@ -2203,8 +2231,13 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                   Movimentações
+                  <ArrowUpRight
+                    size={14}
+                    className="pointer-events-none"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
                 </h3>
                 <div className="flex items-center gap-2">
                   <input
