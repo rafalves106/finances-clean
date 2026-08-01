@@ -164,6 +164,100 @@ public class CartaoControllerTests : IClassFixture<ApiWebApplicationFactory>
     Assert.Equal(0m, resumoJunho.GetProperty("previsaoFatura").GetProperty("proxima").GetDecimal());
   }
 
+  [Fact]
+  public async Task ObterPrevisaoFutura_ComComprasEmCompetenciasDiferentes_DeveSomarPorMes()
+  {
+    using var client = BuildAuthenticatedClient();
+
+    using var cadastro = BuildRequest(
+        HttpMethod.Post,
+        "/api/v1/cartao",
+        new
+        {
+          nome = "Cartão Futuro",
+          limiteTotal = 5000,
+          diaFechamento = 28,
+          diaVencimento = 5
+        });
+    var cadastroResponse = await client.SendAsync(cadastro);
+    Assert.Equal(HttpStatusCode.Created, cadastroResponse.StatusCode);
+    using var cadastroDocument = JsonDocument.Parse(await cadastroResponse.Content.ReadAsStringAsync());
+    var cartaoId = cadastroDocument.RootElement.GetProperty("id").GetGuid();
+
+    // dia 1 do mes, com fechamento 28, sempre cai na competencia do proprio mes.
+    var competenciaAtual = CompetenciaFaturaCalculator.CalcularCompetencia(DateTime.UtcNow, 28);
+    var competenciaProxima = CompetenciaFaturaCalculator.ProximaCompetencia(competenciaAtual);
+
+    await CriarCompraNoCartao(client, cartaoId, valor: 300, data: PrimeiroDiaDaCompetencia(competenciaAtual));
+    await CriarCompraNoCartao(client, cartaoId, valor: 450, data: PrimeiroDiaDaCompetencia(competenciaProxima));
+
+    using var request = new HttpRequestMessage(
+        HttpMethod.Get, $"/api/v1/cartao/{cartaoId}/previsao-futura?meses=3");
+    request.Headers.TryAddWithoutValidation("Origin", "http://allowed.example.com");
+    var response = await client.SendAsync(request);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+    using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    var meses = document.RootElement.GetProperty("meses").EnumerateArray().ToList();
+
+    Assert.Equal(3, meses.Count);
+    Assert.Equal(competenciaAtual, meses[0].GetProperty("competencia").GetInt32());
+    Assert.Equal(300m, meses[0].GetProperty("valor").GetDecimal());
+    Assert.Equal(competenciaProxima, meses[1].GetProperty("competencia").GetInt32());
+    Assert.Equal(450m, meses[1].GetProperty("valor").GetDecimal());
+    Assert.Equal(0m, meses[2].GetProperty("valor").GetDecimal());
+  }
+
+  [Fact]
+  public async Task ObterPrevisaoFutura_ComCartaoDeOutroUsuario_DeveRetornar404()
+  {
+    using var client = BuildAuthenticatedClient();
+    using var outroClient = BuildAuthenticatedClient();
+
+    using var cadastro = BuildRequest(
+        HttpMethod.Post,
+        "/api/v1/cartao",
+        new { nome = "Cartão privado", limiteTotal = 1000, diaFechamento = 10, diaVencimento = 20 });
+    var cadastroResponse = await client.SendAsync(cadastro);
+    using var cadastroDocument = JsonDocument.Parse(await cadastroResponse.Content.ReadAsStringAsync());
+    var cartaoId = cadastroDocument.RootElement.GetProperty("id").GetGuid();
+
+    using var request = new HttpRequestMessage(
+        HttpMethod.Get, $"/api/v1/cartao/{cartaoId}/previsao-futura");
+    request.Headers.TryAddWithoutValidation("Origin", "http://allowed.example.com");
+    var response = await outroClient.SendAsync(request);
+
+    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+  }
+
+  [Fact]
+  public async Task ObterPrevisaoFutura_ComMesesForaDoIntervalo_DeveRetornar400()
+  {
+    using var client = BuildAuthenticatedClient();
+
+    using var cadastro = BuildRequest(
+        HttpMethod.Post,
+        "/api/v1/cartao",
+        new { nome = "Cartão", limiteTotal = 1000, diaFechamento = 10, diaVencimento = 20 });
+    var cadastroResponse = await client.SendAsync(cadastro);
+    using var cadastroDocument = JsonDocument.Parse(await cadastroResponse.Content.ReadAsStringAsync());
+    var cartaoId = cadastroDocument.RootElement.GetProperty("id").GetGuid();
+
+    using var request = new HttpRequestMessage(
+        HttpMethod.Get, $"/api/v1/cartao/{cartaoId}/previsao-futura?meses=13");
+    request.Headers.TryAddWithoutValidation("Origin", "http://allowed.example.com");
+    var response = await client.SendAsync(request);
+
+    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+  }
+
+  private static DateTime PrimeiroDiaDaCompetencia(int competencia)
+  {
+    var ano = competencia / 100;
+    var mes = competencia % 100;
+    return new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+  }
+
   private static async Task CriarCompraNoCartao(HttpClient client, Guid cartaoId, decimal valor, DateTime data)
   {
     using var request = BuildRequest(
