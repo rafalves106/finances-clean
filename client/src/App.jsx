@@ -18,6 +18,7 @@ import {
   API_INVESTIMENTOS_URL,
   API_CATEGORIAS_URL,
   API_VEICULOS_URL,
+  API_METAS_URL,
 } from "./services/api";
 import { getAuthHeaders, isAuthenticated, removeToken } from "./services/auth";
 import changelogRaw from "../../CHANGELOG.md?raw";
@@ -73,6 +74,7 @@ const App = () => {
   const [workHoursPerMonth, setWorkHoursPerMonth] = useState(120);
   const [investments, setInvestments] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
+  const [metas, setMetas] = useState([]);
   const { alerts } = useAlertsCenter({ budgetAlerts, veiculos });
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
@@ -183,6 +185,27 @@ const App = () => {
       }
     } catch (err) {
       console.error("Erro ao buscar veículos:", err);
+    }
+  };
+
+  const fetchMetas = async () => {
+    try {
+      const response = await fetch(API_METAS_URL, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        setMetas(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar metas:", err);
     }
   };
 
@@ -334,6 +357,10 @@ const App = () => {
 
   useEffect(() => {
     if (isLoggedIn) fetchVeiculos();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchMetas();
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -495,6 +522,7 @@ const App = () => {
             onOpenCategoryManager={handleOpenCategoryManager}
             saldoAnterior={saldoAnterior}
             budgetAlerts={budgetAlerts}
+            metas={metas}
             budgetRefreshKey={budgetRefreshKey}
           />
         )}
@@ -507,6 +535,8 @@ const App = () => {
               setWorkHoursPerMonth={setWorkHoursPerMonth}
               categorias={categorias}
               investments={investments}
+              metas={metas}
+              onMetasChange={fetchMetas}
             />
           </div>
         )}
@@ -723,6 +753,8 @@ const App = () => {
               setWorkHoursPerMonth={setWorkHoursPerMonth}
               categorias={categorias}
               investments={investments}
+              metas={metas}
+              onMetasChange={fetchMetas}
             />
           )}
           {activeTab === "vehicle" && (

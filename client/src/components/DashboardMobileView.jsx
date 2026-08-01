@@ -69,6 +69,7 @@ const DashboardMobileView = ({
   saldoAnterior = 0,
   onOpenCategoryManager,
   budgetAlerts = [],
+  metas = [],
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -255,6 +256,22 @@ const DashboardMobileView = ({
     selectedAno,
     saldoAnterior,
   });
+
+  const linkedGoals = useMemo(
+    () =>
+      metas
+        .filter((meta) => meta.categoriaId || meta.investimentoId)
+        .map((meta) => ({
+          id: meta.id,
+          nome: meta.descricao,
+          valor: meta.valor,
+          valorAcumulado: Number(meta.valorAcumulado || 0),
+          percentual: Number(meta.percentualProgresso || 0),
+        }))
+        .sort((a, b) => b.percentual - a.percentual)
+        .slice(0, 3),
+    [metas],
+  );
 
   const totalIncome = useMemo(
     () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
@@ -1151,6 +1168,62 @@ const DashboardMobileView = ({
                     </div>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {linkedGoals.length > 0 && (
+            <section
+              style={{
+                borderRadius: `${cardRadius}px`,
+                padding: `${cardPadding}px`,
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+              }}
+            >
+              <h2
+                className="m-0 text-sm font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Metas
+              </h2>
+              <div className="mt-2 space-y-3">
+                {linkedGoals.map((goal) => (
+                  <div key={goal.id}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span style={{ color: "var(--text-primary)" }}>
+                        {goal.nome}
+                      </span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {Math.round(goal.percentual)}%
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden"
+                      style={{ background: "var(--bg-surface-sunken)" }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(100, goal.percentual)}%`,
+                          background: "var(--accent-600)",
+                        }}
+                      />
+                    </div>
+                    <p
+                      className="text-[11px] mt-1"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Faltam{" "}
+                      {formatCurrency(
+                        Math.max(0, goal.valor - goal.valorAcumulado),
+                      )}
+                    </p>
+                  </div>
+                ))}
               </div>
             </section>
           )}

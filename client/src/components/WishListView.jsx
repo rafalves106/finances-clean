@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Trash2, Clock, Briefcase } from "lucide-react";
 
@@ -15,38 +15,22 @@ const WishListView = ({
   setWorkHoursPerMonth,
   categorias = [],
   investments = [],
+  metas = [],
+  onMetasChange = () => {},
 }) => {
-  const [wishes, setWishes] = useState([]);
   const [wishName, setWishName] = useState("");
   const [wishPrice, setWishPrice] = useState("");
   const [wishLinkTo, setWishLinkTo] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    const fetchMetas = async () => {
-      try {
-        const res = await fetch(API_METAS_URL, { headers: getAuthHeaders() });
-        if (res.ok) {
-          const data = await res.json();
-          setWishes(
-            data.map((m) => ({
-              id: m.id,
-              name: m.descricao,
-              price: m.valor,
-              categoriaId: m.categoriaId,
-              investimentoId: m.investimentoId,
-              valorAcumulado: Number(m.valorAcumulado || 0),
-              percentualProgresso: Number(m.percentualProgresso || 0),
-            })),
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    fetchMetas();
-  }, [refreshKey]);
+  const wishes = metas.map((m) => ({
+    id: m.id,
+    name: m.descricao,
+    price: m.valor,
+    categoriaId: m.categoriaId,
+    investimentoId: m.investimentoId,
+    valorAcumulado: Number(m.valorAcumulado || 0),
+    percentualProgresso: Number(m.percentualProgresso || 0),
+  }));
 
   const addWish = async (e) => {
     e.preventDefault();
@@ -69,7 +53,7 @@ const WishListView = ({
       });
 
       if (res.ok) {
-        setRefreshKey((prev) => prev + 1);
+        onMetasChange();
         setWishName("");
         setWishPrice("");
         setWishLinkTo("");
@@ -87,7 +71,7 @@ const WishListView = ({
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      setWishes(wishes.filter((w) => w.id !== id));
+      onMetasChange();
     } catch (err) {
       console.error("Erro ao deletar meta:", err);
     }
