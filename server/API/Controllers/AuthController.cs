@@ -15,6 +15,7 @@ public class AuthController(
 LoginUseCase loginUseCase,
 IUsuarioRepository usuarioRepository,
 Finance.Core.Services.ITokenService tokenService,
+Finance.Core.Services.IPasswordHasher passwordHasher,
 IConfiguration configuration) : ControllerBase
 {
   [HttpPost("login")]
@@ -55,7 +56,7 @@ IConfiguration configuration) : ControllerBase
 
     var usuario = usuarioRepository.BuscarPorEmail(dto.Email);
 
-    if (usuario is null || !usuario.VerificarSenha(dto.Senha))
+    if (usuario is null || !passwordHasher.Verify(dto.Senha, usuario.SenhaHash))
       return Unauthorized("Email ou senha inválidos.");
 
     if (!usuario.Ativo)
@@ -121,7 +122,7 @@ IConfiguration configuration) : ControllerBase
     if (usuarioRepository.ExistePorEmail(dto.Email))
       return BadRequest("Email já cadastrado.");
 
-    var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
+    var senhaHash = passwordHasher.Hash(dto.Senha);
     var usuario = new Finance.Core.Domain.Usuario(dto.Nome, dto.Email, senhaHash);
 
     usuarioRepository.Adicionar(usuario);
@@ -138,7 +139,7 @@ IConfiguration configuration) : ControllerBase
     if (usuarioRepository.ExistePorEmail(dto.Email))
       return BadRequest("Email já cadastrado.");
 
-    var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
+    var senhaHash = passwordHasher.Hash(dto.Senha);
     var usuario = new Finance.Core.Domain.Usuario(dto.Nome, dto.Email, senhaHash, ativo: false);
 
     usuarioRepository.Adicionar(usuario);

@@ -24,8 +24,5 @@ public class Usuario
     IsAdmin = false;
   }
 
-  public bool VerificarSenha(string senha) =>
-      BCrypt.Net.BCrypt.Verify(senha, SenhaHash);
-
   public void Ativar() => Ativo = true;
 }

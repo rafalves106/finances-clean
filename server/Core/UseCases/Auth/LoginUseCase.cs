@@ -6,14 +6,15 @@ namespace Finance.Core.UseCases;
 
 public class LoginUseCase(
   IUsuarioRepository _usuarioRepository,
-  ITokenService _tokenService)
+  ITokenService _tokenService,
+  IPasswordHasher _passwordHasher)
 {
   public AuthResponseDTO Executar(LoginDTO dto)
   {
     var usuario = _usuarioRepository.BuscarPorEmail(dto.Email)
         ?? throw new UnauthorizedAccessException("Email ou senha inválidos.");
 
-    if (!usuario.VerificarSenha(dto.Senha))
+    if (!_passwordHasher.Verify(dto.Senha, usuario.SenhaHash))
       throw new UnauthorizedAccessException("Email ou senha inválidos.");
 
     if (!usuario.Ativo)
