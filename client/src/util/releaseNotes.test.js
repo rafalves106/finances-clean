@@ -3,6 +3,7 @@ import {
   LAST_SEEN_VERSION_KEY,
   extractReleaseNotesForVersion,
   getLastSeenVersion,
+  parseReleaseNotes,
   setLastSeenVersion,
 } from "./releaseNotes";
 
@@ -68,5 +69,24 @@ describe("releaseNotes util", () => {
     expect(getLastSeenVersion()).toBeNull();
     expect(setLastSeenVersion("0.4.0")).toBe(false);
     expect(setLastSeenVersion("")).toBe(false);
+  });
+
+  it("deve estruturar titulos, listas e paragrafos do markdown", () => {
+    const blocks = parseReleaseNotes(
+      "### Adicionado\n\n- Item um\n- Item dois\n\nTexto solto\n\n### Alterado\n\n- Outro item",
+    );
+
+    expect(blocks).toEqual([
+      { type: "heading", text: "Adicionado" },
+      { type: "list", items: ["Item um", "Item dois"] },
+      { type: "paragraph", text: "Texto solto" },
+      { type: "heading", text: "Alterado" },
+      { type: "list", items: ["Outro item"] },
+    ]);
+  });
+
+  it("deve retornar lista vazia para entrada vazia", () => {
+    expect(parseReleaseNotes("")).toEqual([]);
+    expect(parseReleaseNotes(null)).toEqual([]);
   });
 });
