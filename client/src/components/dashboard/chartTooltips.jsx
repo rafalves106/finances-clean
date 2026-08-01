@@ -72,22 +72,22 @@ export const renderChartTooltip = ({ active, payload, label }) => {
   return (
     <div
       style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
+        background: "var(--bg-inverse)",
+        border: "1px solid rgba(255,255,255,0.12)",
         borderRadius: "12px",
         boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
+        color: "var(--text-on-accent)",
         fontSize: "12px",
         padding: "10px 12px",
       }}
     >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+      <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 500, margin: "0 0 4px" }}>
         {label}
       </p>
       {items.map((item) => (
         <p
           key={item.dataKey}
-          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
+          style={{ color: "var(--text-on-accent)", padding: 0, margin: 0, lineHeight: 1.5 }}
         >
           {CHART_SERIES_LABEL[item.dataKey] ?? item.dataKey}:{" "}
           {formatCurrency(item.value)}
@@ -111,22 +111,22 @@ export const renderCategoryComparisonTooltip = ({ active, payload }) => {
   return (
     <div
       style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
+        background: "var(--bg-inverse)",
+        border: "1px solid rgba(255,255,255,0.12)",
         borderRadius: "12px",
         boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
+        color: "var(--text-on-accent)",
         fontSize: "12px",
         padding: "10px 12px",
       }}
     >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+      <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 500, margin: "0 0 4px" }}>
         {categoryName}
       </p>
       {payload.map((item) => (
         <p
           key={item.dataKey}
-          style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}
+          style={{ color: "var(--text-on-accent)", padding: 0, margin: 0, lineHeight: 1.5 }}
         >
           {item.name}: {formatCurrency(item.value)}
         </p>
@@ -150,19 +150,19 @@ export const renderCategoryPieTooltip = ({ active, payload }) => {
   return (
     <div
       style={{
-        background: "#15172a",
-        border: "1px solid #32375e",
+        background: "var(--bg-inverse)",
+        border: "1px solid rgba(255,255,255,0.12)",
         borderRadius: "12px",
         boxShadow: "0 12px 28px rgba(5, 9, 18, 0.45)",
-        color: "#dbe3ff",
+        color: "var(--text-on-accent)",
         fontSize: "12px",
         padding: "10px 12px",
       }}
     >
-      <p style={{ color: "#b9bfd8", fontWeight: 500, margin: "0 0 4px" }}>
+      <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 500, margin: "0 0 4px" }}>
         {categoryName}
       </p>
-      <p style={{ color: "#dbe3ff", padding: 0, margin: 0, lineHeight: 1.5 }}>
+      <p style={{ color: "var(--text-on-accent)", padding: 0, margin: 0, lineHeight: 1.5 }}>
         Gasto no mês: {formatCurrency(firstItem?.value || 0)}
       </p>
     </div>

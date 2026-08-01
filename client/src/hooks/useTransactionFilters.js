@@ -7,6 +7,10 @@ export const useTransactionFilters = ({ allTransactions }) => {
   const [slideTransactionSearch, setSlideTransactionSearch] = useState("");
   const [slideTransactionFilter, setSlideTransactionFilter] =
     useState("todas");
+  const [slideTransactionCategoryFilter, setSlideTransactionCategoryFilter] =
+    useState("todas");
+  const [slideTransactionCardFilter, setSlideTransactionCardFilter] =
+    useState("todas");
 
   const filteredTransactions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -57,6 +61,23 @@ export const useTransactionFilters = ({ allTransactions }) => {
           return false;
         }
 
+        const byCategory =
+          slideTransactionCategoryFilter === "todas" ||
+          String(item.categoriaId || item.categoria?.id || "") ===
+            slideTransactionCategoryFilter;
+
+        if (!byCategory) {
+          return false;
+        }
+
+        const byCard =
+          slideTransactionCardFilter === "todas" ||
+          String(item.cartaoId || "") === slideTransactionCardFilter;
+
+        if (!byCard) {
+          return false;
+        }
+
         if (!normalized) {
           return true;
         }
@@ -73,7 +94,13 @@ export const useTransactionFilters = ({ allTransactions }) => {
           category.includes(normalized)
         );
       });
-  }, [allTransactions, slideTransactionFilter, slideTransactionSearch]);
+  }, [
+    allTransactions,
+    slideTransactionFilter,
+    slideTransactionCategoryFilter,
+    slideTransactionCardFilter,
+    slideTransactionSearch,
+  ]);
 
   return {
     searchTerm,
@@ -86,6 +113,10 @@ export const useTransactionFilters = ({ allTransactions }) => {
     setSlideTransactionSearch,
     slideTransactionFilter,
     setSlideTransactionFilter,
+    slideTransactionCategoryFilter,
+    setSlideTransactionCategoryFilter,
+    slideTransactionCardFilter,
+    setSlideTransactionCardFilter,
     slideTransactions,
   };
 };
