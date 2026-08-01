@@ -218,7 +218,7 @@ const WishListView = ({
                         />
                       </div>
                       <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                        {formatCurrency(wish.valorAcumulado)} de{" "}
+                        {formatCurrency(Math.max(0, wish.valorAcumulado))} de{" "}
                         {formatCurrency(wish.price)} (
                         {Math.round(wish.percentualProgresso)}%)
                       </p>
