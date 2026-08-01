@@ -1871,7 +1871,11 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
+              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden cursor-pointer"
+              style={{
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+              }}
               onClick={() => setActiveSlide("transactions")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -1884,7 +1888,10 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {showUpcomingReceipts
                     ? "Próximas receitas"
                     : "Próximas despesas"}
@@ -1894,16 +1901,19 @@ const DashboardDesktopRedesignView = ({
                     event.stopPropagation();
                     setShowUpcomingReceipts(!showUpcomingReceipts);
                   }}
-                  className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
+                  className="rounded-lg transition-colors duration-200"
                   title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
                 >
-                  <RefreshCw size={16} className="text-[#7f84a8]" />
+                  <RefreshCw size={16} style={{ color: "var(--text-tertiary)" }} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto pt-2 space-y-2">
                 {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
                   .length === 0 ? (
-                  <p className="text-xs text-[#7f84a8] text-center py-4">
+                  <p
+                    className="text-xs text-center py-4"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhum item no período
                   </p>
                 ) : (
@@ -1917,11 +1927,15 @@ const DashboardDesktopRedesignView = ({
                     >
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         <span className="text-base">{item.icone}</span>
-                        <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                        <span
+                          className="text-sm font-semibold whitespace-nowrap"
+                          style={{ color: "var(--text-primary)" }}
+                        >
                           {formatCurrency(item.value)}
                         </span>
                         <span
-                          className="text-xs text-[#7f84a8] truncate"
+                          className="text-xs truncate"
+                          style={{ color: "var(--text-tertiary)" }}
                           title={item.title}
                         >
                           {truncateWithThreeDots(
@@ -1930,7 +1944,10 @@ const DashboardDesktopRedesignView = ({
                           )}
                         </span>
                       </div>
-                      <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                      <span
+                        className="text-xs whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         {formatDateLabel(item.dueDate)}
                       </span>
                     </div>
@@ -1963,7 +1980,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Receitas
                       </span>
@@ -1985,7 +2002,7 @@ const DashboardDesktopRedesignView = ({
                       {receitasDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(totalIncome)}
                     </p>
@@ -1993,7 +2010,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Despesas
                       </span>
@@ -2015,7 +2032,7 @@ const DashboardDesktopRedesignView = ({
                       {despesasDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(totalExpense)}
                     </p>
@@ -2023,7 +2040,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Saldo total
                       </span>
@@ -2045,7 +2062,7 @@ const DashboardDesktopRedesignView = ({
                       {saldoDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(monthComparison.currentBalance)}
                     </p>
@@ -2070,7 +2087,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Investimentos
                       </div>
@@ -2142,7 +2159,7 @@ const DashboardDesktopRedesignView = ({
                 aria-label="Ver análise de categorias detalhada"
               >
                 <div className="sticky top-0 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                     Gastos por Categoria
                   </h3>
                 </div>
@@ -2163,7 +2180,7 @@ const DashboardDesktopRedesignView = ({
                               <div
                                 className="h-5 rounded-full border overflow-hidden"
                                 style={{
-                                  borderColor: "#2F2C46",
+                                  borderColor: "var(--border-subtle)",
                                   background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(
                                     standardColor.gradient2,
                                     0.75,
@@ -2190,7 +2207,7 @@ const DashboardDesktopRedesignView = ({
                                 <span style={{ color: standardColor.text }}>
                                   {formatCurrency(item.total)}
                                 </span>
-                                <span className="font-semibold text-[#6A6785]">
+                                <span className="font-semibold text-[var(--text-tertiary)]">
                                   {formatCurrency(
                                     item.limite > 0 ? item.limite : item.total,
                                   )}
@@ -2294,7 +2311,7 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                   Movimentações
                 </h3>
                 <div className="flex items-center gap-2">
@@ -2304,13 +2321,13 @@ const DashboardDesktopRedesignView = ({
                     onChange={(event) => setSearchTerm(event.target.value)}
                     onClick={(event) => event.stopPropagation()}
                     placeholder="Buscar transação"
-                    className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
+                    className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[var(--border-default)] bg-transparent text-xs text-[var(--text-tertiary)] placeholder:text-[var(--text-tertiary)]"
                   />
                   <select
                     value={filterType}
                     onChange={(event) => setFilterType(event.target.value)}
                     onClick={(event) => event.stopPropagation()}
-                    className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
+                    className="px-2 py-1 rounded-md border border-[var(--border-default)] bg-transparent text-xs text-[var(--text-tertiary)]"
                   >
                     <option value="todas">Todas</option>
                     <option value="entradas">Somente entradas</option>
@@ -2330,8 +2347,8 @@ const DashboardDesktopRedesignView = ({
                     sortedMovimentacoes.map((item) => {
                       const isEntrada = (item.type || item.tipo) === "Entrada";
                       const iconClassName = isEntrada
-                        ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-                        : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+                        ? "border border-[var(--success-border)] bg-[var(--success-100)] text-[var(--success-700)]"
+                        : "border border-[var(--danger-border)] bg-[var(--danger-100)] text-[var(--danger-700)]";
 
                       return (
                         <div
@@ -2347,14 +2364,14 @@ const DashboardDesktopRedesignView = ({
                             <span className="text-base">
                               {item.categoria?.icone || "•"}
                             </span>
-                            <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                            <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
                               {formatCurrency(item.value || item.valor || 0)}
                             </span>
-                            <span className="text-xs text-[#7f84a8] truncate">
+                            <span className="text-xs text-[var(--text-tertiary)] truncate">
                               {item.name || item.titulo}
                             </span>
                           </div>
-                          <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                          <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">
                             {item.date || item.data
                               ? formatDateLabel(item.date || item.data)
                               : "--/--"}
