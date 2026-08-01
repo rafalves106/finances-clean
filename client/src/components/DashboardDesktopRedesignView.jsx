@@ -5,7 +5,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
-  TrendingUp,
+  X,
 } from "lucide-react";
 import {
   Area,
@@ -57,6 +57,7 @@ import {
 import ExportCsvModal from "./ExportCsvModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const DashboardDesktopRedesignView = ({
   incomes = [],
@@ -78,7 +79,7 @@ const DashboardDesktopRedesignView = ({
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
-  const [investmentSlideActions, setInvestmentSlideActions] = useState(null);
+  const [chartsSlideTab, setChartsSlideTab] = useState("fluxo");
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -157,6 +158,9 @@ const DashboardDesktopRedesignView = ({
     handleCreateCardFormSubmit,
   } = useCardSummaries({ allTransactions, selectedMes, selectedAno });
 
+  const { dialogRef: cardFormDialogRef, handleDialogKeyDown: handleCardFormDialogKeyDown } =
+    useFocusTrap(Boolean(openCardFormId), () => setOpenCardFormId(null));
+
   const {
     totalIncome,
     totalExpense,
@@ -211,6 +215,10 @@ const DashboardDesktopRedesignView = ({
     setSlideTransactionSearch,
     slideTransactionFilter,
     setSlideTransactionFilter,
+    slideTransactionCategoryFilter,
+    setSlideTransactionCategoryFilter,
+    slideTransactionCardFilter,
+    setSlideTransactionCardFilter,
     slideTransactions,
   } = useTransactionFilters({ allTransactions });
 
@@ -244,6 +252,44 @@ const DashboardDesktopRedesignView = ({
     );
   }
 
+  const activeCardFormContext = (() => {
+    if (!openCardFormId) return null;
+
+    if (openCardFormId.startsWith("new-")) {
+      const slotKey = openCardFormId.replace("new-", "");
+      const index = Number(slotKey);
+      return {
+        mode: "create",
+        slotKey,
+        index,
+        values: newCardFormBySlot[slotKey] || getInitialCardCreateForm(index),
+        statusMessage: newCardStatusBySlot[slotKey],
+        isBusy: Boolean(isCreatingCardBySlot[slotKey]),
+      };
+    }
+
+    const summary = cardColumns.find(
+      (item) => item?.cartao?.id && String(item.cartao.id) === openCardFormId,
+    );
+    if (!summary) return null;
+
+    const card = summary.cartao;
+    return {
+      mode: "edit",
+      cardId: openCardFormId,
+      cardNome: card.nome || "Cartão",
+      values: cardFormById[openCardFormId] || {
+        nome: card.nome || "",
+        limiteTotal: String(card.limiteTotal || ""),
+        diaFechamento: String(card.diaFechamento || ""),
+        diaVencimento: String(card.diaVencimento || ""),
+        corTema: normalizeCardTheme(card.corTema),
+      },
+      statusMessage: cardFormStatusById[openCardFormId],
+      isBusy: Boolean(isSavingCardById[openCardFormId]),
+    };
+  })();
+
   return (
     <div
       className="dashboard-desktop-redesign overflow-hidden"
@@ -257,45 +303,32 @@ const DashboardDesktopRedesignView = ({
             paddingBottom: `${slideBottomSafeArea}px`,
           }}
         >
-          <div className="flex items-center justify-between gap-3 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveSlide(null)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
-                aria-label="Voltar ao dashboard"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <h2 className="text-sm font-semibold text-[#b9bfd8]">
-                Investimentos
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => investmentSlideActions?.openInvestmentModal?.()}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#26513f] bg-[#143325] px-3 py-2 text-sm font-semibold text-[#8ef0c6] hover:bg-[#194130] transition-colors"
-              >
-                <Plus size={14} /> Nova aplicação
-              </button>
-              <button
-                type="button"
-                onClick={() => investmentSlideActions?.openAporteModal?.()}
-                disabled={!investmentSlideActions?.hasInvestments}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#2f4566] bg-[#151f34] px-3 py-2 text-sm font-semibold text-[#9ec2ff] hover:bg-[#1a2842] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <TrendingUp size={14} /> Novo aporte
-              </button>
-            </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveSlide(null)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
+              aria-label="Voltar ao dashboard"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Investimentos
+            </h2>
           </div>
 
           <section
-            className="min-h-0 grid grid-cols-1 xl:grid-cols-3 overflow-hidden rounded-2xl border border-[#33457a] bg-[radial-gradient(circle_at_12%_8%,rgba(90,118,199,0.2)_0%,rgba(33,44,78,0.16)_36%,rgba(16,23,44,0.88)_100%)] shadow-[inset_0_1px_0_rgba(163,182,255,0.05)]"
+            className="min-h-0 overflow-y-auto"
             style={{
               height: `${slideContentHeight}px`,
-              gap: `${sectionGap}px`,
               padding: `${slideInnerPadding}px`,
             }}
           >
@@ -303,8 +336,6 @@ const DashboardDesktopRedesignView = ({
               investmentAmount={investmentAmount}
               investments={investments}
               fetchData={fetchData}
-              isRedesign
-              onRegisterActions={setInvestmentSlideActions}
             />
           </section>
         </div>
@@ -320,171 +351,77 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Gestão dos Cartões
             </h2>
           </div>
 
           {cardSummaryError ? (
-            <p
-              className="text-xs"
-              style={{ color: "var(--color-vermelho-text)" }}
-            >
+            <p className="text-xs" style={{ color: "var(--danger-700)" }}>
               {cardSummaryError}
             </p>
           ) : null}
 
           <section
-            className="grid grid-cols-3 min-h-0 items-stretch overflow-hidden"
+            className="grid min-h-0 items-stretch overflow-hidden"
             style={{
               gap: `${sectionGap}px`,
               height: `${slideContentHeight}px`,
+              gridTemplateColumns: `repeat(${cardColumns.length}, minmax(0, 1fr))`,
             }}
           >
             {cardColumns.map((summary, index) => {
               if (!summary?.cartao?.id) {
                 const slotKey = String(index);
                 const createFormId = `new-${slotKey}`;
-                const isCreateOpen = openCardFormId === createFormId;
-                const createFormValues =
-                  newCardFormBySlot[slotKey] || getInitialCardCreateForm(index);
-                const createStatusMessage = newCardStatusBySlot[slotKey];
-                const isCreating = Boolean(isCreatingCardBySlot[slotKey]);
 
                 return (
                   <article
                     key={`empty-card-column-${index}`}
-                    className="rounded-xl border border-dashed border-[#324066] bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.22)_0%,rgba(18,24,40,0.95)_45%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] p-4 min-h-0 max-h-full overflow-y-auto flex flex-col items-center justify-center gap-3 shadow-[0_16px_30px_rgba(6,10,22,0.38)]"
+                    className="rounded-xl border border-dashed p-4 min-h-0 max-h-full overflow-y-auto flex flex-col items-center justify-center gap-3"
+                    style={{
+                      borderColor: "var(--border-strong)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
                   >
-                    <p className="text-sm text-[#9f9cb9] text-center">
-                      Sem cartão nesta coluna.
+                    <p
+                      className="text-sm text-center"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Nenhum cartão cadastrado aqui ainda.
                     </p>
 
                     <button
                       type="button"
                       onClick={() => {
-                        setOpenCardFormId((current) =>
-                          current === createFormId ? null : createFormId,
-                        );
+                        setOpenCardFormId(createFormId);
                         setNewCardFormBySlot((current) => ({
                           ...current,
                           [slotKey]:
                             current[slotKey] || getInitialCardCreateForm(index),
                         }));
                       }}
-                      className="text-xs font-semibold text-[#8ef0c6] border border-[#26513f] rounded-lg px-3 py-2 bg-[#143325] hover:bg-[#194130] transition-colors"
+                      className="text-xs font-semibold rounded-lg px-3 py-2 transition-colors"
+                      style={{
+                        color: "var(--text-on-accent)",
+                        background: "var(--accent-600)",
+                      }}
                     >
-                      {isCreateOpen ? "Fechar criação" : "Criar novo cartão"}
+                      Criar novo cartão
                     </button>
-
-                    {isCreateOpen ? (
-                      <form
-                        onSubmit={(event) =>
-                          handleCreateCardFormSubmit(event, index)
-                        }
-                        className="w-full rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
-                      >
-                        <input
-                          type="text"
-                          value={createFormValues.nome}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "nome",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Nome do cartão"
-                          className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={createFormValues.limiteTotal}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "limiteTotal",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Limite total"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="color"
-                          value={createFormValues.corTema || DEFAULT_CARD_THEME}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "corTema",
-                              event.target.value,
-                            )
-                          }
-                          className="h-8 rounded-md border border-[#2a3554] bg-transparent"
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={createFormValues.diaFechamento}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "diaFechamento",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Dia fechamento"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={createFormValues.diaVencimento}
-                          onChange={(event) =>
-                            handleCreateCardFormChange(
-                              index,
-                              "diaVencimento",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Dia vencimento"
-                          className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                          required
-                        />
-                        <button
-                          type="submit"
-                          disabled={isCreating}
-                          className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
-                        >
-                          {isCreating ? "Criando..." : "Salvar novo cartão"}
-                        </button>
-                      </form>
-                    ) : null}
-
-                    {createStatusMessage ? (
-                      <p
-                        className="text-xs text-center"
-                        style={{
-                          color: createStatusMessage.includes("sucesso")
-                            ? "var(--color-verde-text)"
-                            : "var(--color-vermelho-text)",
-                        }}
-                      >
-                        {createStatusMessage}
-                      </p>
-                    ) : null}
                   </article>
                 );
               }
@@ -512,26 +449,20 @@ const DashboardDesktopRedesignView = ({
 
               const cardMovements = (
                 cardTransactionsById.get(cardId) || []
-              ).slice(0, 8);
-
-              const formValues = cardFormById[cardId] || {
-                nome: card.nome || "",
-                limiteTotal: String(card.limiteTotal || ""),
-                diaFechamento: String(card.diaFechamento || ""),
-                diaVencimento: String(card.diaVencimento || ""),
-                corTema: normalizeCardTheme(card.corTema),
-              };
-
-              const statusMessage = cardFormStatusById[cardId];
-              const isSaving = Boolean(isSavingCardById[cardId]);
+              ).slice(0, 5);
 
               return (
                 <article
                   key={cardId}
-                  className="rounded-xl border border-[#324066] shadow-[0_16px_30px_rgba(6,10,22,0.45)] p-3 min-h-0 max-h-full overflow-y-auto flex flex-col gap-3 bg-[radial-gradient(circle_at_20%_0%,rgba(64,89,145,0.24)_0%,rgba(18,24,40,0.92)_42%),linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)]"
+                  className="rounded-xl p-3 min-h-0 max-h-full overflow-y-auto flex flex-col gap-3"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    background: "var(--bg-surface)",
+                    boxShadow: "var(--shadow-panel)",
+                  }}
                 >
                   <div
-                    className="rounded-xl border p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                    className="rounded-xl border p-3"
                     style={getFrontLayerStyle(themeColor)}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -556,7 +487,10 @@ const DashboardDesktopRedesignView = ({
                         Limite {formatCurrency(cardLimitTotal)}
                       </span>
                     </div>
-                    <div className="mt-2 h-2 rounded-full border border-[#2a3554] overflow-hidden">
+                    <div
+                      className="mt-2 h-2 rounded-full border overflow-hidden"
+                      style={{ borderColor: palette.progressTrackBorder }}
+                    >
                       <div
                         className="h-full"
                         style={{
@@ -565,7 +499,10 @@ const DashboardDesktopRedesignView = ({
                         }}
                       />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-[#9f9cb9]">
+                    <div
+                      className="mt-2 flex items-center justify-between text-xs"
+                      style={{ color: palette.usedText }}
+                    >
                       <span>
                         Fechamento {String(card.diaFechamento).padStart(2, "0")}
                       </span>
@@ -575,13 +512,38 @@ const DashboardDesktopRedesignView = ({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.88)_0%,rgba(15,20,36,0.9)_100%)] p-3 min-h-0 flex-1 flex flex-col">
-                    <h3 className="text-xs font-semibold text-[#b9bfd8] mb-2">
-                      Movimentações do Cartão
-                    </h3>
+                  <div
+                    className="rounded-xl p-3 min-h-0 flex-1 flex flex-col"
+                    style={{
+                      border: "1px solid var(--border-subtle)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Movimentações do Cartão
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSlideTransactionCardFilter(cardId);
+                          setActiveSlide("transactions");
+                        }}
+                        className="text-[11px] font-semibold"
+                        style={{ color: "var(--accent-600)" }}
+                      >
+                        Ver todas
+                      </button>
+                    </div>
                     <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
                       {cardMovements.length === 0 ? (
-                        <p className="text-xs text-[#7f84a8]">
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
                           Nenhuma movimentação vinculada.
                         </p>
                       ) : (
@@ -594,10 +556,16 @@ const DashboardDesktopRedesignView = ({
                               className="flex items-center justify-between gap-2"
                             >
                               <div className="min-w-0">
-                                <p className="text-xs text-[#dbe3ff] truncate">
+                                <p
+                                  className="text-xs truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
                                   {item.name || item.titulo || "Movimentação"}
                                 </p>
-                                <p className="text-[11px] text-[#7f84a8]">
+                                <p
+                                  className="text-[11px]"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
                                   {item.date || item.data
                                     ? formatDateLabel(item.date || item.data)
                                     : "--/--"}
@@ -607,8 +575,8 @@ const DashboardDesktopRedesignView = ({
                                 className="text-xs font-semibold whitespace-nowrap"
                                 style={{
                                   color: isEntrada
-                                    ? "var(--color-verde-text)"
-                                    : "var(--color-vermelho-text)",
+                                    ? "var(--success-700)"
+                                    : "var(--danger-700)",
                                 }}
                               >
                                 {isEntrada ? "+" : "-"}
@@ -621,123 +589,17 @@ const DashboardDesktopRedesignView = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenCardFormId((current) =>
-                          current === cardId ? null : cardId,
-                        )
-                      }
-                      className="w-full text-xs font-medium text-[#cfd5f3] border border-[#2a3554] rounded-lg px-3 py-2 hover:bg-[#1e2340] transition-colors"
-                    >
-                      {openCardFormId === cardId
-                        ? "Fechar Formulário"
-                        : "Editar Cartão"}
-                    </button>
-                  </div>
-
-                  {openCardFormId === cardId ? (
-                    <form
-                      onSubmit={(event) => handleCardFormSubmit(event, cardId)}
-                      className="rounded-xl border border-[#2a3554] bg-[linear-gradient(180deg,rgba(20,26,44,0.9)_0%,rgba(16,21,37,0.92)_100%)] p-3 grid grid-cols-2 gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={formValues.nome}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "nome",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Nome do cartão"
-                        className="col-span-2 px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formValues.limiteTotal}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "limiteTotal",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Limite total"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="color"
-                        value={formValues.corTema || DEFAULT_CARD_THEME}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "corTema",
-                            event.target.value,
-                          )
-                        }
-                        className="h-8 rounded-md border border-[#2a3554] bg-transparent"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formValues.diaFechamento}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "diaFechamento",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Dia fechamento"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formValues.diaVencimento}
-                        onChange={(event) =>
-                          handleCardFormChange(
-                            cardId,
-                            "diaVencimento",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Dia vencimento"
-                        className="px-2 py-1.5 rounded-md border border-[#2a3554] bg-transparent text-xs text-[#dbe3ff]"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="col-span-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-3 py-2"
-                      >
-                        {isSaving ? "Salvando..." : "Salvar alterações"}
-                      </button>
-                    </form>
-                  ) : null}
-
-                  {statusMessage ? (
-                    <p
-                      className="text-xs"
-                      style={{
-                        color: statusMessage.includes("sucesso")
-                          ? "var(--color-verde-text)"
-                          : "var(--color-vermelho-text)",
-                      }}
-                    >
-                      {statusMessage}
-                    </p>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setOpenCardFormId(cardId)}
+                    className="w-full text-xs font-medium rounded-lg px-3 py-2 transition-colors"
+                    style={{
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border-default)",
+                    }}
+                  >
+                    Editar Cartão
+                  </button>
                 </article>
               );
             })}
@@ -755,28 +617,48 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Movimentações do Mês
             </h2>
             <button
               type="button"
               onClick={handleOpenNewTransaction}
-              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-[#26513f] bg-[#143325] px-3 py-2 text-xs font-semibold text-[#8ef0c6] hover:bg-[#194130] transition-colors"
+              className="ml-auto inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
+              style={{
+                background: "var(--accent-600)",
+                color: "var(--text-on-accent)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--accent-500)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--accent-600)";
+              }}
             >
               <Plus size={14} /> Nova transação
             </button>
           </div>
 
           <section
-            className="rounded-2xl border border-[#2a3554] bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] shadow-sm min-h-0 overflow-hidden flex flex-col"
+            className="rounded-2xl shadow-sm min-h-0 overflow-hidden flex flex-col"
             style={{
               height: `${slideContentHeight}px`,
               padding: `${slideInnerPadding}px`,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
             }}
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -787,41 +669,118 @@ const DashboardDesktopRedesignView = ({
                   setSlideTransactionSearch(event.target.value)
                 }
                 placeholder="Buscar movimentação"
-                className="w-56 sm:w-72 px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9] placeholder:text-[#7f84a8]"
+                className="w-56 sm:w-72 px-2 py-1.5 rounded-md text-xs"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                }}
               />
-              <select
-                value={slideTransactionFilter}
-                onChange={(event) =>
-                  setSlideTransactionFilter(event.target.value)
-                }
-                className="px-2 py-1.5 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#9f9cb9]"
-              >
-                <option value="todas">Todas</option>
-                <option value="entradas">Somente entradas</option>
-                <option value="saidas">Somente saídas</option>
-              </select>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={slideTransactionFilter}
+                  onChange={(event) =>
+                    setSlideTransactionFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todas</option>
+                  <option value="entradas">Somente entradas</option>
+                  <option value="saidas">Somente saídas</option>
+                </select>
+                <select
+                  value={slideTransactionCategoryFilter}
+                  onChange={(event) =>
+                    setSlideTransactionCategoryFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todas as categorias</option>
+                  {categorias.map((categoria) => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={slideTransactionCardFilter}
+                  onChange={(event) =>
+                    setSlideTransactionCardFilter(event.target.value)
+                  }
+                  className="px-2 py-1.5 rounded-md text-xs"
+                  style={{
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <option value="todas">Todos os cartões</option>
+                  {cardColumns
+                    .filter((summary) => summary?.cartao?.id)
+                    .map((summary) => (
+                      <option key={summary.cartao.id} value={summary.cartao.id}>
+                        {summary.cartao.nome}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
 
-            <div className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg border border-[#2a3554]">
+            <div
+              className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg"
+              style={{ border: "1px solid var(--border-default)" }}
+            >
               {slideTransactions.length === 0 ? (
                 <div className="h-full flex items-center justify-center px-6 text-center">
-                  <p className="text-sm text-[#7f84a8]">
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhuma movimentação cadastrada para os filtros aplicados.
                   </p>
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse">
+                  <caption className="sr-only">
+                    Movimentações do mês, filtradas por tipo, categoria e
+                    cartão
+                  </caption>
                   <thead>
-                    <tr className="bg-[#131a33] text-[10px] uppercase tracking-wider text-[#8f94b4] border-b border-[#2a3554]">
-                      <th className="p-3 font-bold">Data</th>
-                      <th className="p-3 font-bold">Título</th>
-                      <th className="p-3 font-bold">Categoria</th>
-                      <th className="p-3 font-bold">Valor</th>
-                      <th className="p-3 font-bold">Tipo</th>
-                      <th className="p-3 font-bold text-right">Ações</th>
+                    <tr
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{
+                        background: "var(--bg-surface-sunken)",
+                        color: "var(--text-tertiary)",
+                        borderBottom: "1px solid var(--border-default)",
+                      }}
+                    >
+                      <th scope="col" className="p-3 font-bold">
+                        Data
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Título
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Categoria
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Valor
+                      </th>
+                      <th scope="col" className="p-3 font-bold">
+                        Tipo
+                      </th>
+                      <th scope="col" className="p-3 font-bold text-right">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#202a4a]">
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
                     {slideTransactions.map((item) => {
                       const itemType = item.type || item.tipo;
                       const isEntrada = itemType === "Entrada";
@@ -829,32 +788,53 @@ const DashboardDesktopRedesignView = ({
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-[#141d36] transition-colors"
+                          className="transition-colors"
+                          style={{ background: "var(--bg-surface)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--bg-surface-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--bg-surface)";
+                          }}
                         >
-                          <td className="p-3 text-xs text-[#9f9cb9] whitespace-nowrap">
+                          <td
+                            className="p-3 text-xs whitespace-nowrap"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
                             {item.date || item.data
                               ? formatDateLabel(item.date || item.data)
                               : "--/--"}
                           </td>
                           <td className="p-3">
-                            <p className="text-sm font-semibold text-[#dbe3ff]">
+                            <p
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--text-primary)" }}
+                            >
                               {item.name || item.titulo || "Movimentação"}
                             </p>
-                            <p className="text-xs text-[#7f84a8] truncate max-w-[320px]">
+                            <p
+                              className="text-xs truncate max-w-[320px]"
+                              style={{ color: "var(--text-tertiary)" }}
+                            >
                               {item.description ||
                                 item.descricao ||
                                 "Sem descrição"}
                             </p>
                           </td>
-                          <td className="p-3 text-xs text-[#9f9cb9]">
+                          <td
+                            className="p-3 text-xs"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
                             {item.categoria?.nome || "Sem categoria"}
                           </td>
                           <td
                             className="p-3 text-sm font-semibold whitespace-nowrap"
                             style={{
                               color: isEntrada
-                                ? "var(--color-verde-text)"
-                                : "var(--color-vermelho-text)",
+                                ? "var(--success-700)"
+                                : "var(--danger-700)",
                             }}
                           >
                             {isEntrada ? "+" : "-"}
@@ -862,11 +842,15 @@ const DashboardDesktopRedesignView = ({
                           </td>
                           <td className="p-3">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                isEntrada
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-rose-100 text-rose-700"
-                              }`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style={{
+                                background: isEntrada
+                                  ? "var(--success-100)"
+                                  : "var(--danger-100)",
+                                color: isEntrada
+                                  ? "var(--success-700)"
+                                  : "var(--danger-700)",
+                              }}
                             >
                               {itemType}
                             </span>
@@ -876,14 +860,22 @@ const DashboardDesktopRedesignView = ({
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditTransaction(item)}
-                                className="text-xs font-medium text-[#9ec2ff] border border-[#2f4566] rounded-md px-2 py-1 hover:bg-[#1a2842] transition-colors"
+                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                style={{
+                                  color: "var(--accent-600)",
+                                  border: "1px solid var(--accent-100)",
+                                }}
                               >
                                 Editar
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTransaction(item)}
-                                className="text-xs font-medium text-[#f08f9f] border border-[#6b3040] rounded-md px-2 py-1 hover:bg-[#351e2a] transition-colors"
+                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                style={{
+                                  color: "var(--danger-700)",
+                                  border: "1px solid var(--danger-border)",
+                                }}
                               >
                                 Excluir
                               </button>
@@ -910,21 +902,62 @@ const DashboardDesktopRedesignView = ({
             <button
               type="button"
               onClick={() => setActiveSlide(null)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Voltar ao dashboard"
             >
               <ChevronLeft size={16} />
             </button>
-            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+            <h2
+              className="text-sm font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               Análise Gráfica
             </h2>
             <button
               type="button"
               onClick={(e) => onOpenCategoryManager(e.currentTarget)}
-              className="ml-auto text-xs font-medium text-[#7f84a8] border border-[#2a3554] rounded-lg px-3 py-1.5 hover:bg-[#1e2340] transition-colors"
+              className="ml-auto text-xs font-medium rounded-lg px-3 py-1.5 transition-colors"
+              style={{
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border-default)",
+              }}
             >
               Gerenciar Categorias
             </button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {[
+              { id: "fluxo", label: "Fluxo" },
+              { id: "categorias", label: "Categorias" },
+              { id: "comparativo", label: "Comparativo" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setChartsSlideTab(tab.id)}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={
+                  chartsSlideTab === tab.id
+                    ? {
+                        background: "var(--accent-50)",
+                        color: "var(--accent-600)",
+                        border: "1px solid var(--accent-100)",
+                      }
+                    : {
+                        color: "var(--text-tertiary)",
+                        border: "1px solid transparent",
+                      }
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div
@@ -934,18 +967,30 @@ const DashboardDesktopRedesignView = ({
               height: `${slideContentHeight}px`,
             }}
           >
+            {chartsSlideTab === "fluxo" && (
             <section
-              className="border rounded-2xl shadow-sm flex flex-col bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] overflow-hidden"
+              className="border rounded-2xl shadow-sm flex flex-col overflow-hidden"
               style={{
                 flex: "1 1 0",
                 minHeight: 0,
                 padding: `${slideInnerPadding}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
               }}
             >
               <div className="flex-1 min-h-0">
                 {chartData.length === 0 ? (
-                  <div className="h-full rounded-xl border border-[#2f3b5d] bg-[linear-gradient(160deg,rgba(17,23,39,0.82)_0%,rgba(15,20,36,0.9)_100%)] flex items-center justify-center px-6 text-center">
-                    <p className="text-sm text-[#9fb0d3]">
+                  <div
+                    className="h-full rounded-xl border flex items-center justify-center px-6 text-center"
+                    style={{
+                      borderColor: "var(--border-default)",
+                      background: "var(--bg-surface-sunken)",
+                    }}
+                  >
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Ainda não há dados no período para montar o gráfico.
                     </p>
                   </div>
@@ -1011,13 +1056,13 @@ const DashboardDesktopRedesignView = ({
                       <CartesianGrid
                         strokeDasharray="4 10"
                         vertical={false}
-                        stroke="#2a2f52"
+                        stroke="#e7e9f0"
                       />
                       <XAxis
                         dataKey="data"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                       />
                       <YAxis
                         axisLine={false}
@@ -1025,13 +1070,13 @@ const DashboardDesktopRedesignView = ({
                         domain={[0, chartYAxisMax]}
                         ticks={chartYTicks}
                         tickFormatter={formatChartAxisTick}
-                        tick={{ fontSize: chartTickFontSize, fill: "#7f84a8" }}
+                        tick={{ fontSize: chartTickFontSize, fill: "#767c93" }}
                         width={chartYAxisWidth}
                       />
                       <Tooltip
                         content={renderChartTooltip}
                         cursor={{
-                          stroke: "#b9bfd8",
+                          stroke: "#c4c9da",
                           strokeWidth: 2,
                           strokeDasharray: "6 6",
                         }}
@@ -1063,41 +1108,35 @@ const DashboardDesktopRedesignView = ({
                       <Line
                         type="monotone"
                         dataKey="entrada"
-                        stroke={CHART_THEME_COLORS.entrada.line}
+                        stroke={CHART_THEME_COLORS.entrada.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.entrada.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="entrada"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.entrada.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saida"
-                        stroke={CHART_THEME_COLORS.saida.line}
+                        stroke={CHART_THEME_COLORS.saida.fill}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{
-                          r: 7,
-                          fill: "#7aa8ff",
-                          stroke: "#cfd5ff",
+                          r: 5,
+                          fill: CHART_THEME_COLORS.saida.fill,
+                          stroke: "#ffffff",
                           strokeWidth: 2,
                         }}
                         name="saida"
-                        style={{
-                          filter: `drop-shadow(0 0 4px ${CHART_THEME_COLORS.saida.glow})`,
-                        }}
                       />
                       <Line
                         type="monotone"
                         dataKey="saldo"
-                        stroke={CHART_THEME_COLORS.saldo.line}
+                        stroke={CHART_THEME_COLORS.saldo.fill}
                         strokeWidth={2}
                         dot={false}
                         name="saldo"
@@ -1108,18 +1147,25 @@ const DashboardDesktopRedesignView = ({
                 )}
               </div>
             </section>
+            )}
 
+            {chartsSlideTab === "categorias" && (
             <section
-              className="rounded-xl border shadow-sm flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554]"
+              className="rounded-xl border shadow-sm flex flex-col overflow-hidden"
               style={{
                 flex: "1 1 0",
                 minHeight: 0,
                 padding: `${Math.max(10, slideInnerPadding + 2)}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
               }}
             >
               <div className="flex-1 min-h-0">
                 {slideCategoryRanking.length === 0 ? (
-                  <p className="text-sm text-[#7f84a8]">
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhum gasto registrado neste mês
                   </p>
                 ) : (
@@ -1135,7 +1181,10 @@ const DashboardDesktopRedesignView = ({
                             className="overflow-y-auto pr-1 space-y-4"
                           >
                             {column.length === 0 ? (
-                              <p className="text-xs text-[#7f84a8]">
+                              <p
+                                className="text-xs"
+                                style={{ color: "var(--text-tertiary)" }}
+                              >
                                 Sem categorias nesta coluna
                               </p>
                             ) : (
@@ -1148,8 +1197,8 @@ const DashboardDesktopRedesignView = ({
                                     <div
                                       className="h-5 rounded-full border overflow-hidden"
                                       style={{
-                                        borderColor: "#2F2C46",
-                                        background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(standardColor.gradient2, 0.75)} 100%)`,
+                                        borderColor: "var(--border-subtle)",
+                                        background: "var(--bg-surface-sunken)",
                                       }}
                                     >
                                       <div
@@ -1176,7 +1225,10 @@ const DashboardDesktopRedesignView = ({
                                           {formatCurrency(item.total)}
                                         </span>
                                       </div>
-                                      <span className="font-semibold text-[#6A6785] whitespace-nowrap">
+                                      <span
+                                        className="font-semibold whitespace-nowrap"
+                                        style={{ color: "var(--text-tertiary)" }}
+                                      >
                                         {formatCurrency(
                                           item.limite > 0
                                             ? item.limite
@@ -1203,7 +1255,10 @@ const DashboardDesktopRedesignView = ({
                           >
                             {alertsColumn.length === 0 ? (
                               columnIndex === 0 ? (
-                                <p className="text-xs text-[#7f84a8]">
+                                <p
+                                  className="text-xs"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
                                   Nenhum limite excedido.
                                 </p>
                               ) : null
@@ -1213,12 +1268,12 @@ const DashboardDesktopRedesignView = ({
                                   key={`alert-${item.id}`}
                                   className="text-xs font-medium"
                                   style={{
-                                    color: "var(--color-vermelho-text)",
+                                    color: "var(--danger-700)",
                                   }}
                                 >
                                   <span
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     Limite da categoria {item.nome} excedido em
@@ -1226,14 +1281,14 @@ const DashboardDesktopRedesignView = ({
                                   <span
                                     className="font-semibold"
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     {formatCurrency(item.total - item.limite)}
                                   </span>
                                   <span
                                     style={{
-                                      color: "var(--color-vermelho-text)",
+                                      color: "var(--danger-700)",
                                     }}
                                   >
                                     .
@@ -1246,10 +1301,19 @@ const DashboardDesktopRedesignView = ({
                       </div>
                     </div>
 
-                    <div className="min-h-0 grid grid-cols-2 gap-3">
-                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
+                    <div className="min-h-0">
+                      <div
+                        className="min-h-0 h-full rounded-lg border p-2"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          background: "var(--bg-surface-sunken)",
+                        }}
+                      >
                         {slideCategoryPieData.length === 0 ? (
-                          <p className="text-xs text-[#7f84a8] text-center pt-8">
+                          <p
+                            className="text-xs text-center pt-8"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
                             Sem dados para gráfico
                           </p>
                         ) : (
@@ -1319,95 +1383,107 @@ const DashboardDesktopRedesignView = ({
                           </ResponsiveContainer>
                         )}
                       </div>
-
-                      <div className="min-h-0 rounded-lg border border-[#2F2C46] bg-[linear-gradient(145deg,rgba(17,22,38,0.95)_0%,rgba(14,19,34,0.98)_100%)] p-2">
-                        {categoryComparisonData.length === 0 ? (
-                          <p className="text-xs text-[#7f84a8] text-center pt-8">
-                            Sem histórico para comparar com{" "}
-                            {previousMonthShortLabel}
-                          </p>
-                        ) : (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={categoryComparisonData}
-                              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
-                              barGap={2}
-                            >
-                              <CartesianGrid
-                                strokeDasharray="4 10"
-                                vertical={false}
-                                stroke="#2a2f52"
-                              />
-                              <XAxis
-                                dataKey="shortName"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 9, fill: "#7f84a8" }}
-                              />
-                              <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tickFormatter={formatChartAxisTick}
-                                tick={{ fontSize: 9, fill: "#7f84a8" }}
-                                width={26}
-                              />
-                              <Tooltip
-                                content={renderCategoryComparisonTooltip}
-                                cursor={{
-                                  fill: "rgba(185, 191, 216, 0.12)",
-                                }}
-                              />
-                              <Bar
-                                dataKey="previousTotal"
-                                name={`Mês anterior (${previousMonthShortLabel})`}
-                                radius={[4, 4, 0, 0]}
-                              >
-                                {categoryComparisonData.map((item) => {
-                                  const standardColor =
-                                    getCategoryStandardColor(item.cor);
-                                  return (
-                                    <Cell
-                                      key={`previous-bar-${item.id}`}
-                                      fill={toHsla(
-                                        standardColor.gradient2,
-                                        0.95,
-                                      )}
-                                      stroke={standardColor.border}
-                                      strokeWidth={1}
-                                    />
-                                  );
-                                })}
-                              </Bar>
-                              <Bar
-                                dataKey="currentTotal"
-                                name={`Mês atual (${currentMonthShortLabel})`}
-                                radius={[4, 4, 0, 0]}
-                              >
-                                {categoryComparisonData.map((item) => {
-                                  const standardColor =
-                                    getCategoryStandardColor(item.cor);
-                                  return (
-                                    <Cell
-                                      key={`current-bar-${item.id}`}
-                                      fill={toHsla(
-                                        standardColor.gradient1,
-                                        0.95,
-                                      )}
-                                      stroke={standardColor.border}
-                                      strokeWidth={1}
-                                    />
-                                  );
-                                })}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        )}
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </section>
+            )}
+
+            {chartsSlideTab === "comparativo" && (
+            <section
+              className="rounded-xl border shadow-sm flex flex-col overflow-hidden"
+              style={{
+                flex: "1 1 0",
+                minHeight: 0,
+                padding: `${Math.max(10, slideInnerPadding + 2)}px`,
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+              }}
+            >
+              <div className="flex-1 min-h-0">
+                {categoryComparisonData.length === 0 ? (
+                  <p
+                    className="text-sm text-center pt-8"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Sem histórico para comparar com {previousMonthShortLabel}
+                  </p>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={categoryComparisonData}
+                      margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+                      barGap={2}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="4 10"
+                        vertical={false}
+                        stroke="#e7e9f0"
+                      />
+                      <XAxis
+                        dataKey="shortName"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#767c93" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={formatChartAxisTick}
+                        tick={{ fontSize: 11, fill: "#767c93" }}
+                        width={32}
+                      />
+                      <Tooltip
+                        content={renderCategoryComparisonTooltip}
+                        cursor={{
+                          fill: "rgba(79, 70, 229, 0.06)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="previousTotal"
+                        name={`Mês anterior (${previousMonthShortLabel})`}
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {categoryComparisonData.map((item) => {
+                          const standardColor = getCategoryStandardColor(
+                            item.cor,
+                          );
+                          return (
+                            <Cell
+                              key={`previous-bar-${item.id}`}
+                              fill={standardColor.gradient1}
+                              stroke={standardColor.border}
+                              strokeWidth={1}
+                            />
+                          );
+                        })}
+                      </Bar>
+                      <Bar
+                        dataKey="currentTotal"
+                        name={`Mês atual (${currentMonthShortLabel})`}
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {categoryComparisonData.map((item) => {
+                          const standardColor = getCategoryStandardColor(
+                            item.cor,
+                          );
+                          return (
+                            <Cell
+                              key={`current-bar-${item.id}`}
+                              fill={standardColor.border}
+                              stroke={standardColor.text}
+                              strokeWidth={1}
+                            />
+                          );
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>
+            )}
           </div>
         </div>
       ) : (
@@ -1795,7 +1871,11 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden bg-[linear-gradient(145deg,rgba(18,24,40,0.98)_0%,rgba(17,22,38,0.95)_55%,rgba(14,19,34,0.98)_100%)] border-[#2a3554] cursor-pointer"
+              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden cursor-pointer"
+              style={{
+                background: "var(--bg-surface)",
+                borderColor: "var(--border-default)",
+              }}
               onClick={() => setActiveSlide("transactions")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -1808,7 +1888,10 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {showUpcomingReceipts
                     ? "Próximas receitas"
                     : "Próximas despesas"}
@@ -1818,16 +1901,19 @@ const DashboardDesktopRedesignView = ({
                     event.stopPropagation();
                     setShowUpcomingReceipts(!showUpcomingReceipts);
                   }}
-                  className="hover:bg-[#3a4558] rounded-lg transition-colors duration-200"
+                  className="rounded-lg transition-colors duration-200"
                   title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
                 >
-                  <RefreshCw size={16} className="text-[#7f84a8]" />
+                  <RefreshCw size={16} style={{ color: "var(--text-tertiary)" }} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto pt-2 space-y-2">
                 {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
                   .length === 0 ? (
-                  <p className="text-xs text-[#7f84a8] text-center py-4">
+                  <p
+                    className="text-xs text-center py-4"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Nenhum item no período
                   </p>
                 ) : (
@@ -1841,11 +1927,15 @@ const DashboardDesktopRedesignView = ({
                     >
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         <span className="text-base">{item.icone}</span>
-                        <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                        <span
+                          className="text-sm font-semibold whitespace-nowrap"
+                          style={{ color: "var(--text-primary)" }}
+                        >
                           {formatCurrency(item.value)}
                         </span>
                         <span
-                          className="text-xs text-[#7f84a8] truncate"
+                          className="text-xs truncate"
+                          style={{ color: "var(--text-tertiary)" }}
                           title={item.title}
                         >
                           {truncateWithThreeDots(
@@ -1854,7 +1944,10 @@ const DashboardDesktopRedesignView = ({
                           )}
                         </span>
                       </div>
-                      <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                      <span
+                        className="text-xs whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         {formatDateLabel(item.dueDate)}
                       </span>
                     </div>
@@ -1887,7 +1980,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Receitas
                       </span>
@@ -1909,7 +2002,7 @@ const DashboardDesktopRedesignView = ({
                       {receitasDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(totalIncome)}
                     </p>
@@ -1917,7 +2010,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Despesas
                       </span>
@@ -1939,7 +2032,7 @@ const DashboardDesktopRedesignView = ({
                       {despesasDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(totalExpense)}
                     </p>
@@ -1947,7 +2040,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="rounded-lg p-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Saldo total
                       </span>
@@ -1969,7 +2062,7 @@ const DashboardDesktopRedesignView = ({
                       {saldoDiffDirection} este mês
                     </p>
                     <p
-                      className={`${kpiValueClassName} font-bold text-[#ABA8C2] mt-1`}
+                      className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
                       {formatCurrency(monthComparison.currentBalance)}
                     </p>
@@ -1994,7 +2087,7 @@ const DashboardDesktopRedesignView = ({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`${kpiTitleClassName} font-light text-[#b9bfd8] leading-none`}
+                        className={`${kpiTitleClassName} font-light text-[var(--text-primary)] leading-none`}
                       >
                         Investimentos
                       </div>
@@ -2018,7 +2111,7 @@ const DashboardDesktopRedesignView = ({
                       {monthComparison.currentInvestment <= 0 ? (
                         <span
                           className="font-semibold"
-                          style={{ color: "var(--color-vermelho-text)" }}
+                          style={{ color: "var(--danger-700)" }}
                         >
                           Você não investiu este mês
                         </span>
@@ -2066,7 +2159,7 @@ const DashboardDesktopRedesignView = ({
                 aria-label="Ver análise de categorias detalhada"
               >
                 <div className="sticky top-0 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                     Gastos por Categoria
                   </h3>
                 </div>
@@ -2087,7 +2180,7 @@ const DashboardDesktopRedesignView = ({
                               <div
                                 className="h-5 rounded-full border overflow-hidden"
                                 style={{
-                                  borderColor: "#2F2C46",
+                                  borderColor: "var(--border-subtle)",
                                   background: `linear-gradient(180deg, ${toRgba(standardColor.gradient1, 0.2)} 0%, ${toRgba(
                                     standardColor.gradient2,
                                     0.75,
@@ -2114,7 +2207,7 @@ const DashboardDesktopRedesignView = ({
                                 <span style={{ color: standardColor.text }}>
                                   {formatCurrency(item.total)}
                                 </span>
-                                <span className="font-semibold text-[#6A6785]">
+                                <span className="font-semibold text-[var(--text-tertiary)]">
                                   {formatCurrency(
                                     item.limite > 0 ? item.limite : item.total,
                                   )}
@@ -2218,7 +2311,7 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-[#b9bfd8]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                   Movimentações
                 </h3>
                 <div className="flex items-center gap-2">
@@ -2228,13 +2321,13 @@ const DashboardDesktopRedesignView = ({
                     onChange={(event) => setSearchTerm(event.target.value)}
                     onClick={(event) => event.stopPropagation()}
                     placeholder="Buscar transação"
-                    className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785] placeholder:text-[#6A6785]"
+                    className="w-44 sm:w-56 px-2 py-1 rounded-md border border-[var(--border-default)] bg-transparent text-xs text-[var(--text-tertiary)] placeholder:text-[var(--text-tertiary)]"
                   />
                   <select
                     value={filterType}
                     onChange={(event) => setFilterType(event.target.value)}
                     onClick={(event) => event.stopPropagation()}
-                    className="px-2 py-1 rounded-md border border-[#6A6785] bg-transparent text-xs text-[#6A6785]"
+                    className="px-2 py-1 rounded-md border border-[var(--border-default)] bg-transparent text-xs text-[var(--text-tertiary)]"
                   >
                     <option value="todas">Todas</option>
                     <option value="entradas">Somente entradas</option>
@@ -2254,8 +2347,8 @@ const DashboardDesktopRedesignView = ({
                     sortedMovimentacoes.map((item) => {
                       const isEntrada = (item.type || item.tipo) === "Entrada";
                       const iconClassName = isEntrada
-                        ? "border border-[#4A7750] bg-[linear-gradient(180deg,#1C2F1D_0%,#101D11_100%)] text-[#4A7750]"
-                        : "border border-[#895253] bg-[linear-gradient(180deg,#2F1C1D_0%,#1D1011_100%)] text-[#895253]";
+                        ? "border border-[var(--success-border)] bg-[var(--success-100)] text-[var(--success-700)]"
+                        : "border border-[var(--danger-border)] bg-[var(--danger-100)] text-[var(--danger-700)]";
 
                       return (
                         <div
@@ -2271,14 +2364,14 @@ const DashboardDesktopRedesignView = ({
                             <span className="text-base">
                               {item.categoria?.icone || "•"}
                             </span>
-                            <span className="text-sm font-semibold text-[#dbe3ff] whitespace-nowrap">
+                            <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
                               {formatCurrency(item.value || item.valor || 0)}
                             </span>
-                            <span className="text-xs text-[#7f84a8] truncate">
+                            <span className="text-xs text-[var(--text-tertiary)] truncate">
                               {item.name || item.titulo}
                             </span>
                           </div>
-                          <span className="text-xs text-[#9f9cb9] whitespace-nowrap">
+                          <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">
                             {item.date || item.data
                               ? formatDateLabel(item.date || item.data)
                               : "--/--"}
@@ -2320,21 +2413,40 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handlePreviousMonth}
-          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Mês anterior"
           title="Mês anterior"
         >
           <span className="text-xl leading-none">‹</span>
         </button>
 
-        <div className="h-12 min-w-[84px] px-3 bg-[#171b40] border border-[#2f355d] text-[#cfd5f3] rounded-full shadow-lg flex items-center justify-center text-xs font-semibold uppercase tracking-[0.08em] pointer-events-none select-none">
+        <div
+          className="h-12 min-w-[84px] px-3 rounded-full shadow-lg flex items-center justify-center text-xs font-semibold uppercase tracking-[0.08em] pointer-events-none select-none"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+          }}
+        >
           {currentMonthLabel}
         </div>
 
         <button
           type="button"
           onClick={handleNextMonth}
-          className="bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Próximo mês"
           title="Próximo mês"
         >
@@ -2344,7 +2456,13 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handleOpenSimulation}
-          className="bg-amber-500 hover:bg-amber-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Simular transação"
           title="Simular transação"
         >
@@ -2354,7 +2472,13 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={() => setIsExportModalOpen(true)}
-          className="bg-sky-500 hover:bg-sky-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
           aria-label="Exportar movimentações em CSV"
           title="Exportar CSV"
         >
@@ -2364,7 +2488,18 @@ const DashboardDesktopRedesignView = ({
         <button
           type="button"
           onClick={handleOpenNewTransaction}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+          style={{
+            background: "var(--accent-600)",
+            color: "var(--text-on-accent)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--accent-500)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--accent-600)";
+          }}
           aria-label="Adicionar nova transação"
         >
           <Plus size={20} />
@@ -2405,6 +2540,215 @@ const DashboardDesktopRedesignView = ({
         editingItem={null}
         isSimulation={true}
       />
+
+      {activeCardFormContext ? (
+        <div className="fixed inset-0 z-50 bg-[rgba(18,20,28,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
+          <div
+            ref={cardFormDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="card-form-modal-title"
+            tabIndex={-1}
+            onKeyDown={handleCardFormDialogKeyDown}
+            className="w-full max-w-md rounded-2xl p-6"
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
+              boxShadow: "var(--shadow-modal)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2
+                id="card-form-modal-title"
+                className="text-lg font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {activeCardFormContext.mode === "create"
+                  ? "Novo cartão"
+                  : `Editar ${activeCardFormContext.cardNome}`}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setOpenCardFormId(null)}
+                aria-label="Fechar"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(event) =>
+                activeCardFormContext.mode === "create"
+                  ? handleCreateCardFormSubmit(event, activeCardFormContext.index)
+                  : handleCardFormSubmit(event, activeCardFormContext.cardId)
+              }
+              className="grid grid-cols-2 gap-3"
+            >
+              <input
+                type="text"
+                value={activeCardFormContext.values.nome}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "nome",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "nome",
+                        event.target.value,
+                      )
+                }
+                placeholder="Nome do cartão"
+                className="col-span-2 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={activeCardFormContext.values.limiteTotal}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "limiteTotal",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "limiteTotal",
+                        event.target.value,
+                      )
+                }
+                placeholder="Limite total"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="color"
+                value={activeCardFormContext.values.corTema || DEFAULT_CARD_THEME}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "corTema",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "corTema",
+                        event.target.value,
+                      )
+                }
+                className="h-10 rounded-lg"
+                style={{ border: "1px solid var(--border-default)" }}
+              />
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={activeCardFormContext.values.diaFechamento}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "diaFechamento",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "diaFechamento",
+                        event.target.value,
+                      )
+                }
+                placeholder="Dia fechamento"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={activeCardFormContext.values.diaVencimento}
+                onChange={(event) =>
+                  activeCardFormContext.mode === "create"
+                    ? handleCreateCardFormChange(
+                        activeCardFormContext.index,
+                        "diaVencimento",
+                        event.target.value,
+                      )
+                    : handleCardFormChange(
+                        activeCardFormContext.cardId,
+                        "diaVencimento",
+                        event.target.value,
+                      )
+                }
+                placeholder="Dia vencimento"
+                className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{
+                  border: "1px solid var(--border-default)",
+                  color: "var(--text-primary)",
+                  "--tw-ring-color": "var(--accent-600)",
+                }}
+                required
+              />
+
+              {activeCardFormContext.statusMessage ? (
+                <p
+                  className="col-span-2 text-xs"
+                  style={{
+                    color: activeCardFormContext.statusMessage.includes(
+                      "sucesso",
+                    )
+                      ? "var(--success-700)"
+                      : "var(--danger-700)",
+                  }}
+                >
+                  {activeCardFormContext.statusMessage}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={activeCardFormContext.isBusy}
+                className="col-span-2 text-sm font-semibold rounded-lg px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: "var(--accent-600)",
+                  color: "var(--text-on-accent)",
+                }}
+              >
+                {activeCardFormContext.isBusy
+                  ? "Salvando..."
+                  : activeCardFormContext.mode === "create"
+                    ? "Salvar novo cartão"
+                    : "Salvar alterações"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
