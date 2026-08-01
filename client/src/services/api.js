@@ -16,7 +16,6 @@ if (!globalThis.__financeFetchCredentialsPatched) {
 
 export const API_URL = `${BASE}/api/v1/movimentacoes`;
 export const API_METAS_URL = `${BASE}/api/v1/metas`;
-export const API_VEHICLE_URL = `${BASE}/api/v1/manutencoes`;
 export const API_INVESTIMENTOS_URL = `${BASE}/api/v1/investimentos`;
 export const API_CATEGORIAS_URL = `${BASE}/api/v1/categorias`;
 export const API_CATEGORIAS_ALERTAS_ORCAMENTO_URL = `${API_CATEGORIAS_URL}/alertas-orcamento`;

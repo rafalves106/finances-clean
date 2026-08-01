@@ -30,6 +30,44 @@ export const extractReleaseNotesForVersion = (changelogRaw, currentVersion) => {
   return sectionLines.join("\n").trim();
 };
 
+export const parseReleaseNotes = (text) => {
+  if (!text) {
+    return [];
+  }
+
+  const blocks = [];
+  let currentList = null;
+
+  text.split("\n").forEach((rawLine) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      currentList = null;
+      return;
+    }
+
+    if (line.startsWith("### ")) {
+      currentList = null;
+      blocks.push({ type: "heading", text: line.slice(4) });
+      return;
+    }
+
+    if (line.startsWith("- ")) {
+      if (!currentList) {
+        currentList = { type: "list", items: [] };
+        blocks.push(currentList);
+      }
+      currentList.items.push(line.slice(2));
+      return;
+    }
+
+    currentList = null;
+    blocks.push({ type: "paragraph", text: line });
+  });
+
+  return blocks;
+};
+
 export const getLastSeenVersion = () => {
   try {
     return globalThis.localStorage?.getItem(LAST_SEEN_VERSION_KEY) ?? null;
