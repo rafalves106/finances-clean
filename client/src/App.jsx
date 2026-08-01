@@ -3,7 +3,6 @@ import { LayoutDashboard, Target, Car, LogOut } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import DashboardMobileView from "./components/DashboardMobileView";
-import InvestmentsView from "./components/InvestmentsView";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
@@ -661,7 +660,6 @@ const App = () => {
               className="text-2xl font-semibold tracking-wide"
               style={{ color: "var(--text-primary)" }}
             >
-              {activeTab === "investments" && "Planejador de Futuro"}
               {activeTab === "wishlist" && "Custo de Oportunidade"}
               {activeTab === "vehicle" && "Gestão de Veículos"}
             </h1>
@@ -694,13 +692,6 @@ const App = () => {
               saldoAnterior={saldoAnterior}
               budgetRefreshKey={budgetRefreshKey}
               headerHeight={headerHeight}
-            />
-          )}
-          {activeTab === "investments" && (
-            <InvestmentsView
-              investmentAmount={investmentAmount}
-              fetchData={fetchData}
-              investments={investments}
             />
           )}
           {activeTab === "wishlist" && (
