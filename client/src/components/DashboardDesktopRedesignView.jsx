@@ -5,7 +5,6 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import {
   Area,
@@ -78,7 +77,6 @@ const DashboardDesktopRedesignView = ({
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
   const [activeSlide, setActiveSlide] = useState(null);
-  const [investmentSlideActions, setInvestmentSlideActions] = useState(null);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -257,45 +255,24 @@ const DashboardDesktopRedesignView = ({
             paddingBottom: `${slideBottomSafeArea}px`,
           }}
         >
-          <div className="flex items-center justify-between gap-3 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveSlide(null)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
-                aria-label="Voltar ao dashboard"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <h2 className="text-sm font-semibold text-[#b9bfd8]">
-                Investimentos
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => investmentSlideActions?.openInvestmentModal?.()}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#26513f] bg-[#143325] px-3 py-2 text-sm font-semibold text-[#8ef0c6] hover:bg-[#194130] transition-colors"
-              >
-                <Plus size={14} /> Nova aplicação
-              </button>
-              <button
-                type="button"
-                onClick={() => investmentSlideActions?.openAporteModal?.()}
-                disabled={!investmentSlideActions?.hasInvestments}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#2f4566] bg-[#151f34] px-3 py-2 text-sm font-semibold text-[#9ec2ff] hover:bg-[#1a2842] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <TrendingUp size={14} /> Novo aporte
-              </button>
-            </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveSlide(null)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e2340] border border-[#2a3554] text-[#b9bfd8] hover:bg-[#2a3554] transition-colors"
+              aria-label="Voltar ao dashboard"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <h2 className="text-sm font-semibold text-[#b9bfd8]">
+              Investimentos
+            </h2>
           </div>
 
           <section
-            className="min-h-0 grid grid-cols-1 xl:grid-cols-3 overflow-hidden rounded-2xl border border-[#33457a] bg-[radial-gradient(circle_at_12%_8%,rgba(90,118,199,0.2)_0%,rgba(33,44,78,0.16)_36%,rgba(16,23,44,0.88)_100%)] shadow-[inset_0_1px_0_rgba(163,182,255,0.05)]"
+            className="min-h-0 overflow-y-auto"
             style={{
               height: `${slideContentHeight}px`,
-              gap: `${sectionGap}px`,
               padding: `${slideInnerPadding}px`,
             }}
           >
@@ -303,8 +280,6 @@ const DashboardDesktopRedesignView = ({
               investmentAmount={investmentAmount}
               investments={investments}
               fetchData={fetchData}
-              isRedesign
-              onRegisterActions={setInvestmentSlideActions}
             />
           </section>
         </div>
