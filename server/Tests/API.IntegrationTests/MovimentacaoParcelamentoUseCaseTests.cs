@@ -307,11 +307,15 @@ public class MovimentacaoParcelamentoUseCaseTests
           .Where(m => m.Data < referencia);
     }
 
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
+    {
+      return Enumerable.Empty<Movimentacao>();
+    }
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes)
     {
       AtualizacaoEmLoteExecutada = true;
     }
 
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
   }
 }

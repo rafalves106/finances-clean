@@ -89,8 +89,8 @@ public class ExportarMovimentacoesCsvUseCaseTests
         => _dados.Where(m => m.UsuarioId == usuarioId && m.Data >= dataInicio && m.Data <= dataFim);
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId) => _dados;
     public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia) => Enumerable.Empty<Movimentacao>();
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia) => Enumerable.Empty<Movimentacao>();
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
   }
 
   private sealed class InMemoryVeiculoRepository : IVeiculoRepository

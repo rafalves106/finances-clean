@@ -13,7 +13,7 @@ public class GerarRelatorioMensalUseCase(
 
   public RelatorioMensalResultado Executar(Guid usuarioId, int mes, int ano)
   {
-    var resumo = obterResumoMensalUseCase.Executar(mes, ano);
+    var resumo = obterResumoMensalUseCase.Executar(usuarioId, mes, ano);
 
     var mesAnteriorReferencia = new DateTime(ano, mes, 1).AddMonths(-1);
     var comparativo = obterComparativoCategoriaMensalUseCase

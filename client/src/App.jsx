@@ -84,6 +84,7 @@ const App = () => {
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
   useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
+  const [resumoMensal, setResumoMensal] = useState(null);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
@@ -106,10 +107,6 @@ const App = () => {
     (acc, curr) => acc + curr.saldoAtual,
     0,
   );
-  const totalIncome = incomes.reduce((acc, curr) => acc + curr.value, 0);
-  const totalExpenses = expenses.reduce((acc, curr) => acc + curr.value, 0);
-  const finalBalance = saldoAnterior + totalIncome - totalExpenses;
-
   const currentMonthIncome = incomes
     .filter((item) => !item.investimentoId)
     .reduce((acc, curr) => acc + curr.value, 0);
@@ -300,6 +297,7 @@ const App = () => {
 
       if (resResumo.ok) {
         const resumo = await resResumo.json();
+        setResumoMensal(resumo);
         const rendaSalario = resumo?.rendaSalario ?? 0;
 
         if (rendaSalario > 0) {
@@ -534,9 +532,7 @@ const App = () => {
 
         {activeTab === "dashboard" && (
           <DashboardMobileView
-            totalIncome={totalIncome}
-            totalExpenses={totalExpenses}
-            finalBalance={finalBalance}
+            resumoMensal={resumoMensal}
             investmentAmount={investmentAmount}
             incomes={incomes}
             expenses={expenses}
@@ -768,9 +764,7 @@ const App = () => {
         >
           {activeTab === "dashboard" && (
             <DashboardDesktopRedesignView
-              totalIncome={totalIncome}
-              totalExpenses={totalExpenses}
-              finalBalance={finalBalance}
+              resumoMensal={resumoMensal}
               investmentAmount={investmentAmount}
               incomes={incomes}
               expenses={expenses}
