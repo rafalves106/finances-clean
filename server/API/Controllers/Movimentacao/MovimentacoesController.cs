@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -284,6 +284,24 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("relatorio-mensal")]
+    public IActionResult ObterRelatorioMensal([FromQuery] int mes, [FromQuery] int ano)
+    {
+        try
+        {
+            var resultado = gerarRelatorioMensalUseCase.Executar(UsuarioId, mes, ano);
+            return File(resultado.Conteudo, "text/html; charset=utf-8", resultado.NomeArquivo);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao gerar relatório mensal.");
         }
     }
 

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   Download,
+  FileText,
   Plus,
   Sparkles,
   X,
@@ -28,6 +29,7 @@ import { useCardSummaries } from "../hooks/useCardSummaries";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionActions } from "../hooks/useTransactionActions";
 import { useCsvExport } from "../hooks/useCsvExport";
+import { useMonthlyReportExport } from "../hooks/useMonthlyReportExport";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import {
   UPCOMING_ITEM_TITLE_MAX_LENGTH,
@@ -125,6 +127,8 @@ const DashboardDesktopRedesignView = ({
 
   const { isExportModalOpen, setIsExportModalOpen, handleExportCsv } =
     useCsvExport();
+  const { isExportingReport, handleExportRelatorioMensal } =
+    useMonthlyReportExport();
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
@@ -2375,6 +2379,25 @@ const DashboardDesktopRedesignView = ({
           title="Exportar CSV"
         >
           <Download size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            handleExportRelatorioMensal(selectedMes, selectedAno)
+          }
+          disabled={isExportingReport}
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
+          aria-label="Gerar relatório mensal"
+          title="Relatório mensal"
+        >
+          <FileText size={18} />
         </button>
 
         <button
