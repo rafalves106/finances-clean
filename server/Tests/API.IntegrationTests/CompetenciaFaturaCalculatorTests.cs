@@ -56,6 +56,12 @@ public class CompetenciaFaturaCalculatorTests
     var resultado = CompetenciaFaturaCalculator.ObterDataVencimento(202608, diaFechamento: 29, diaVencimento: 5);
 
     Assert.Equal(new DateTime(2026, 9, 5), resultado);
+
+    // Kind precisa ser Unspecified (nao Utc): com Utc explicito o front
+    // interpreta a serializacao "...Z" como meia-noite UTC e desloca um dia
+    // pra tras em fusos negativos (ex: America/Sao_Paulo). Regressao real
+    // encontrada ao testar ao vivo.
+    Assert.Equal(DateTimeKind.Unspecified, resultado.Kind);
   }
 
   [Fact]
