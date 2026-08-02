@@ -82,6 +82,7 @@ const DashboardDesktopRedesignView = ({
   budgetAlerts = [],
   metas = [],
   resumoMensal = null,
+  faturasVencendo = [],
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
@@ -135,6 +136,24 @@ const DashboardDesktopRedesignView = ({
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
     [expenses, incomes, simulatedTransactions],
+  );
+
+  const faturaTransactions = useMemo(
+    () =>
+      faturasVencendo.map((fatura) => ({
+        id: `fatura-${fatura.cartaoId}`,
+        name: `Fatura ${fatura.nomeCartao}`,
+        value: fatura.valor,
+        date: fatura.dataVencimento,
+        type: "Saida",
+        isFaturaResumo: true,
+      })),
+    [faturasVencendo],
+  );
+
+  const allTransactionsComFatura = useMemo(
+    () => [...allTransactions, ...faturaTransactions],
+    [allTransactions, faturaTransactions],
   );
 
   const {
@@ -258,7 +277,7 @@ const DashboardDesktopRedesignView = ({
     slideTransactionCardFilter,
     setSlideTransactionCardFilter,
     slideTransactions,
-  } = useTransactionFilters({ allTransactions });
+  } = useTransactionFilters({ allTransactions: allTransactionsComFatura });
 
   const {
     isModalOpen,
@@ -656,7 +675,9 @@ const DashboardDesktopRedesignView = ({
                             className="p-3 text-xs"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {item.categoria?.nome || "Sem categoria"}
+                            {item.isFaturaResumo
+                              ? "Fatura"
+                              : item.categoria?.nome || "Sem categoria"}
                           </td>
                           <td
                             className="p-3 text-sm font-semibold whitespace-nowrap"
@@ -685,30 +706,41 @@ const DashboardDesktopRedesignView = ({
                             </span>
                           </td>
                           <td className="p-3">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditTransaction(item)}
-                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
-                                style={{
-                                  color: "var(--accent-600)",
-                                  border: "1px solid var(--accent-100)",
-                                }}
+                            {item.isFaturaResumo ? (
+                              <span
+                                className="text-xs font-medium"
+                                style={{ color: "var(--text-tertiary)" }}
                               >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTransaction(item)}
-                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
-                                style={{
-                                  color: "var(--danger-700)",
-                                  border: "1px solid var(--danger-border)",
-                                }}
-                              >
-                                Excluir
-                              </button>
-                            </div>
+                                Resumo da fatura
+                              </span>
+                            ) : (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenEditTransaction(item)
+                                  }
+                                  className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                  style={{
+                                    color: "var(--accent-600)",
+                                    border: "1px solid var(--accent-100)",
+                                  }}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTransaction(item)}
+                                  className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                  style={{
+                                    color: "var(--danger-700)",
+                                    border: "1px solid var(--danger-border)",
+                                  }}
+                                >
+                                  Excluir
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -2316,10 +2348,12 @@ const DashboardDesktopRedesignView = ({
                             <span
                               className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${iconClassName}`}
                             >
-                              {isEntrada ? "↑" : "↓"}
+                              {item.isFaturaResumo ? "💳" : isEntrada ? "↑" : "↓"}
                             </span>
                             <span className="text-base">
-                              {item.categoria?.icone || "•"}
+                              {item.isFaturaResumo
+                                ? ""
+                                : item.categoria?.icone || "•"}
                             </span>
                             <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
                               {formatCurrency(item.value || item.valor || 0)}

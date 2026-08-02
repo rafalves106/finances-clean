@@ -298,4 +298,43 @@ describe("DashboardDesktopRedesignView", () => {
 
     expect(screen.getAllByText(/Eletrônicos/).length).toBeGreaterThan(0);
   });
+
+  it("deve exibir a fatura vencendo como item na lista de Movimentacoes", async () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Compra avulsa",
+            value: 50,
+            type: "Saida",
+            date: "2026-06-05",
+          },
+        ]}
+        faturasVencendo={[
+          {
+            cartaoId: "cartao-1",
+            nomeCartao: "Itaú CC",
+            valor: 1500,
+            dataVencimento: "2026-06-05T00:00:00",
+          },
+        ]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    expect(await screen.findByText("Fatura Itaú CC")).toBeTruthy();
+  });
 });

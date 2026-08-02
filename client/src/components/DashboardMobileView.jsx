@@ -71,6 +71,7 @@ const DashboardMobileView = ({
   budgetAlerts = [],
   metas = [],
   resumoMensal = null,
+  faturasVencendo = [],
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -243,6 +244,19 @@ const DashboardMobileView = ({
     [expenses, incomes],
   );
 
+  const faturaTransactions = useMemo(
+    () =>
+      faturasVencendo.map((fatura) => ({
+        id: `fatura-${fatura.cartaoId}`,
+        name: `Fatura ${fatura.nomeCartao}`,
+        value: fatura.valor,
+        date: fatura.dataVencimento,
+        type: "Saida",
+        isFaturaResumo: true,
+      })),
+    [faturasVencendo],
+  );
+
   const {
     slideCategoryRanking: categoryRanking,
     categoryComparisonData,
@@ -307,21 +321,28 @@ const DashboardMobileView = ({
   }, [resumoMensal]);
 
   const listedTransactions = useMemo(() => {
-    return allTransactions.filter((item) => {
-      if (pendingDeleteIds.has(item.id)) {
-        return false;
-      }
+    return sortByDate([...allTransactions, ...faturaTransactions]).filter(
+      (item) => {
+        if (pendingDeleteIds.has(item.id)) {
+          return false;
+        }
 
-      if (!transactionCategoryFilter) {
-        return true;
-      }
+        if (!transactionCategoryFilter) {
+          return true;
+        }
 
-      const itemCategoryId = String(
-        item.categoriaId || item.categoria?.id || "sem",
-      );
-      return itemCategoryId === transactionCategoryFilter;
-    });
-  }, [allTransactions, pendingDeleteIds, transactionCategoryFilter]);
+        const itemCategoryId = String(
+          item.categoriaId || item.categoria?.id || "sem",
+        );
+        return itemCategoryId === transactionCategoryFilter;
+      },
+    );
+  }, [
+    allTransactions,
+    faturaTransactions,
+    pendingDeleteIds,
+    transactionCategoryFilter,
+  ]);
 
   const pendingDeleteItems = useMemo(
     () => allTransactions.filter((item) => pendingDeleteIds.has(item.id)),
@@ -853,6 +874,47 @@ const DashboardMobileView = ({
             </p>
           ) : (
             listedTransactions.map((item) => {
+              if (item.isFaturaResumo) {
+                return (
+                  <article
+                    key={item.id}
+                    className="rounded-xl px-3 py-2"
+                    style={{
+                      background: "var(--bg-surface-sunken)",
+                      border: "1px dashed var(--border-subtle)",
+                    }}
+                  >
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span style={{ color: "var(--accent-600)" }}>
+                          <CreditCard size={14} />
+                        </span>
+                        <div>
+                          <p
+                            className="m-0 text-xs"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {item.name}
+                          </p>
+                          <p
+                            className="m-0 text-[11px]"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            Vence {formatDateLabel(item.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <p
+                        className="m-0 text-xs font-semibold whitespace-nowrap"
+                        style={{ color: "var(--danger-700)" }}
+                      >
+                        -{formatCurrency(item.value)}
+                      </p>
+                    </div>
+                  </article>
+                );
+              }
+
               const itemType = item.type || item.tipo;
               const isEntrada = itemType === "Entrada";
               const isExpanded = expandedTransactionId === item.id;
