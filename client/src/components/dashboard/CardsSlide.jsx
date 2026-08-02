@@ -7,6 +7,15 @@ import {
   normalizeCardTheme,
 } from "../../util/cardTheme";
 
+const formatCompetenciaShortLabel = (competencia) => {
+  const ano = Math.floor(competencia / 100);
+  const mes = competencia % 100;
+  const data = new Date(ano, mes - 1, 1);
+  return new Intl.DateTimeFormat("pt-BR", { month: "short" })
+    .format(data)
+    .replace(".", "");
+};
+
 const CardsSlide = ({
   slideGap,
   slideBottomSafeArea,
@@ -16,6 +25,7 @@ const CardsSlide = ({
   slideContentHeight,
   cardColumns,
   cardTransactionsById,
+  futureInvoicesByCardId,
   onOpenCreateCard,
   onOpenEditCard,
   onViewCardMovements,
@@ -178,6 +188,29 @@ const CardsSlide = ({
                   Vencimento {String(card.diaVencimento).padStart(2, "0")}
                 </span>
               </div>
+              {futureInvoicesByCardId?.[cardId]?.length > 0 ? (
+                <div
+                  className="mt-2 pt-2 flex items-center justify-between text-[11px]"
+                  style={{ borderTop: `1px solid ${palette.progressTrackBorder}` }}
+                >
+                  {futureInvoicesByCardId[cardId].map((mes) => (
+                    <div key={mes.competencia} className="text-center">
+                      <p
+                        className="uppercase"
+                        style={{ color: palette.usedText, opacity: 0.75 }}
+                      >
+                        {formatCompetenciaShortLabel(mes.competencia)}
+                      </p>
+                      <p
+                        className="font-semibold"
+                        style={{ color: palette.usedText }}
+                      >
+                        {formatCurrency(mes.valor)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div

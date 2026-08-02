@@ -313,24 +313,6 @@ export const useDashboardFinancials = ({
     [slideCategoryRanking],
   );
 
-  const exceededCategoryAlerts = useMemo(
-    () =>
-      categoryRankingAll
-        .filter((item) => item.limite > 0 && item.total > item.limite)
-        .slice(0, 8),
-    [categoryRankingAll],
-  );
-
-  const exceededAlertsLeftColumn = useMemo(
-    () => exceededCategoryAlerts.slice(0, 4),
-    [exceededCategoryAlerts],
-  );
-
-  const exceededAlertsRightColumn = useMemo(
-    () => exceededCategoryAlerts.slice(4, 8),
-    [exceededCategoryAlerts],
-  );
-
   const categoryComparisonData = useMemo(() => {
     const categoriaById = new Map(
       categorias.map((categoria) => [String(categoria.id), categoria]),
@@ -454,9 +436,6 @@ export const useDashboardFinancials = ({
     slideCategoryRanking,
     slideCategoryLeftColumn,
     slideCategoryRightColumn,
-    exceededCategoryAlerts,
-    exceededAlertsLeftColumn,
-    exceededAlertsRightColumn,
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,

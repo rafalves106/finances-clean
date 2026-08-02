@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Trash2, Clock, Briefcase } from "lucide-react";
 
@@ -13,37 +13,36 @@ const WishListView = ({
   hourlyRate,
   workHoursPerMonth,
   setWorkHoursPerMonth,
+  categorias = [],
+  investments = [],
+  metas = [],
+  onMetasChange = () => {},
 }) => {
-  const [wishes, setWishes] = useState([]);
   const [wishName, setWishName] = useState("");
   const [wishPrice, setWishPrice] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [wishLinkTo, setWishLinkTo] = useState("");
 
-  useEffect(() => {
-    const fetchMetas = async () => {
-      try {
-        const res = await fetch(API_METAS_URL, { headers: getAuthHeaders() });
-        if (res.ok) {
-          const data = await res.json();
-          setWishes(
-            data.map((m) => ({ id: m.id, name: m.descricao, price: m.valor })),
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    fetchMetas();
-  }, [refreshKey]);
+  const wishes = metas.map((m) => ({
+    id: m.id,
+    name: m.descricao,
+    price: m.valor,
+    categoriaId: m.categoriaId,
+    investimentoId: m.investimentoId,
+    valorAcumulado: Number(m.valorAcumulado || 0),
+    percentualProgresso: Number(m.percentualProgresso || 0),
+  }));
 
   const addWish = async (e) => {
     e.preventDefault();
     if (!wishName || !wishPrice) return;
 
+    const [linkType, linkId] = wishLinkTo.split(":");
+
     const novaMeta = {
       descricao: wishName,
       valor: parseFloat(wishPrice),
+      categoriaId: linkType === "categoria" ? linkId : null,
+      investimentoId: linkType === "investimento" ? linkId : null,
     };
 
     try {
@@ -54,9 +53,10 @@ const WishListView = ({
       });
 
       if (res.ok) {
-        setRefreshKey((prev) => prev + 1);
+        onMetasChange();
         setWishName("");
         setWishPrice("");
+        setWishLinkTo("");
       } else {
         console.error("Erro ao salvar meta no servidor.");
       }
@@ -71,7 +71,7 @@ const WishListView = ({
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      setWishes(wishes.filter((w) => w.id !== id));
+      onMetasChange();
     } catch (err) {
       console.error("Erro ao deletar meta:", err);
     }
@@ -144,6 +144,42 @@ const WishListView = ({
               value={wishPrice}
               onChange={(e) => setWishPrice(e.target.value)}
             />
+            <label htmlFor="wish-link-to" className="sr-only">
+              Vincular a categoria ou investimento
+            </label>
+            <select
+              id="wish-link-to"
+              className="w-full p-2 border border-[var(--border-default)] rounded-lg bg-[var(--bg-surface-sunken)] text-[var(--text-primary)]"
+              value={wishLinkTo}
+              onChange={(e) => setWishLinkTo(e.target.value)}
+            >
+              <option value="">Sem vínculo (progresso manual)</option>
+              {categorias.length > 0 ? (
+                <optgroup label="Categoria">
+                  {categorias.map((categoria) => (
+                    <option
+                      key={categoria.id}
+                      value={`categoria:${categoria.id}`}
+                    >
+                      {categoria.icone ? `${categoria.icone} ` : ""}
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {investments.length > 0 ? (
+                <optgroup label="Investimento">
+                  {investments.map((investimento) => (
+                    <option
+                      key={investimento.id}
+                      value={`investimento:${investimento.id}`}
+                    >
+                      {investimento.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+            </select>
             <button className="w-full border border-[var(--border-default)] bg-[var(--bg-surface-sunken)] text-[var(--accent-600)] py-2 rounded-lg font-medium hover:bg-[var(--bg-surface-sunken)] transition-colors">
               Adicionar à Lista
             </button>
@@ -167,6 +203,27 @@ const WishListView = ({
                   <p className="text-[var(--text-secondary)] font-medium">
                     {formatCurrency(wish.price)}
                   </p>
+                  {wish.categoriaId || wish.investimentoId ? (
+                    <div className="mt-2 max-w-xs">
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, wish.percentualProgresso)}%`,
+                            background: "var(--accent-600)",
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                        {formatCurrency(Math.max(0, wish.valorAcumulado))} de{" "}
+                        {formatCurrency(wish.price)} (
+                        {Math.round(wish.percentualProgresso)}%)
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-6">

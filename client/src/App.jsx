@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { LayoutDashboard, Target, Car, LogOut } from "lucide-react";
+import { LayoutDashboard, Target, Car, LogOut, Search } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import DashboardMobileView from "./components/DashboardMobileView";
@@ -9,12 +9,20 @@ import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
+import AlertsCenter from "./components/AlertsCenter";
+import GlobalSearchModal from "./components/GlobalSearchModal";
+import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
+import { useAlertsCenter } from "./hooks/useAlertsCenter";
+import { useRecurringRenewals } from "./hooks/useRecurringRenewals";
+import { useGlobalSearchShortcut } from "./hooks/useGlobalSearchShortcut";
 
 import {
   API_URL,
   API_INVESTIMENTOS_URL,
   API_CATEGORIAS_URL,
   API_VEICULOS_URL,
+  API_METAS_URL,
+  API_CARTAO_URL,
 } from "./services/api";
 import { getAuthHeaders, isAuthenticated, removeToken } from "./services/auth";
 import changelogRaw from "../../CHANGELOG.md?raw";
@@ -35,6 +43,7 @@ const mapApiToFrontend = (item) => ({
   fixa: item.fixa,
   periodo: item.periodo,
   tipoRecorrencia: item.tipoRecorrencia,
+  grupoRecorrenciaId: item.grupoRecorrenciaId,
   investimentoId: item.investimentoId,
   cartaoId: item.cartaoId,
   categoriaId: item.categoriaId,
@@ -58,6 +67,10 @@ const App = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
   const [selectedAno, setSelectedAno] = useState(new Date().getFullYear());
+  const { budgetAlerts } = useBudgetAlerts({
+    selectedMes: isLoggedIn ? selectedMes : null,
+    selectedAno: isLoggedIn ? selectedAno : null,
+  });
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -66,7 +79,14 @@ const App = () => {
   const [workHoursPerMonth, setWorkHoursPerMonth] = useState(120);
   const [investments, setInvestments] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
+  const [metas, setMetas] = useState([]);
+  const { expiredGroups: recurringGroups, renovarGrupo } =
+    useRecurringRenewals({ enabled: isLoggedIn });
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
+  const [resumoMensal, setResumoMensal] = useState(null);
+  const [faturasVencendo, setFaturasVencendo] = useState([]);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
@@ -89,10 +109,6 @@ const App = () => {
     (acc, curr) => acc + curr.saldoAtual,
     0,
   );
-  const totalIncome = incomes.reduce((acc, curr) => acc + curr.value, 0);
-  const totalExpenses = expenses.reduce((acc, curr) => acc + curr.value, 0);
-  const finalBalance = saldoAnterior + totalIncome - totalExpenses;
-
   const currentMonthIncome = incomes
     .filter((item) => !item.investimentoId)
     .reduce((acc, curr) => acc + curr.value, 0);
@@ -175,6 +191,27 @@ const App = () => {
       }
     } catch (err) {
       console.error("Erro ao buscar veículos:", err);
+    }
+  };
+
+  const fetchMetas = async () => {
+    try {
+      const response = await fetch(API_METAS_URL, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        setMetas(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar metas:", err);
     }
   };
 
@@ -262,6 +299,7 @@ const App = () => {
 
       if (resResumo.ok) {
         const resumo = await resResumo.json();
+        setResumoMensal(resumo);
         const rendaSalario = resumo?.rendaSalario ?? 0;
 
         if (rendaSalario > 0) {
@@ -279,6 +317,21 @@ const App = () => {
 
           setSalaryIncomeForGoals(fallbackSalaryIncome);
         }
+      }
+
+      const resFaturasVencendo = await fetch(
+        `${API_CARTAO_URL}/faturas-vencendo?mes=${requestMes}&ano=${requestAno}`,
+        { headers: getAuthHeaders() },
+      );
+
+      if (resFaturasVencendo.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (resFaturasVencendo.ok) {
+        setFaturasVencendo(await resFaturasVencendo.json());
       }
 
       const responseInv = await fetch(
@@ -312,6 +365,20 @@ const App = () => {
     }
   };
 
+  const handleRenewRecurringGroup = async (grupoRecorrenciaId) => {
+    const resultado = await renovarGrupo(grupoRecorrenciaId, 12);
+    if (resultado.ok) {
+      fetchData();
+    }
+  };
+
+  const { alerts } = useAlertsCenter({
+    budgetAlerts,
+    veiculos,
+    recurringGroups,
+    onRenewRecurringGroup: handleRenewRecurringGroup,
+  });
+
   useEffect(() => {
     if (isLoggedIn) {
       fetchData();
@@ -326,6 +393,10 @@ const App = () => {
 
   useEffect(() => {
     if (isLoggedIn) fetchVeiculos();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchMetas();
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -450,25 +521,36 @@ const App = () => {
               {item.label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => {
-              removeToken();
-              setIsLoggedIn(false);
-            }}
-            aria-label="Sair"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ml-auto"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            <LogOut size={16} />
-          </button>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setIsGlobalSearchOpen(true)}
+              aria-label="Buscar"
+              className="flex items-center justify-center w-9 h-9 rounded-full"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <Search size={18} />
+            </button>
+            <AlertsCenter alerts={alerts} />
+            <button
+              type="button"
+              onClick={() => {
+                removeToken();
+                setIsLoggedIn(false);
+              }}
+              aria-label="Sair"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </nav>
 
         {activeTab === "dashboard" && (
           <DashboardMobileView
-            totalIncome={totalIncome}
-            totalExpenses={totalExpenses}
-            finalBalance={finalBalance}
+            resumoMensal={resumoMensal}
+            faturasVencendo={faturasVencendo}
             investmentAmount={investmentAmount}
             incomes={incomes}
             expenses={expenses}
@@ -483,6 +565,8 @@ const App = () => {
             veiculos={veiculos}
             onOpenCategoryManager={handleOpenCategoryManager}
             saldoAnterior={saldoAnterior}
+            budgetAlerts={budgetAlerts}
+            metas={metas}
             budgetRefreshKey={budgetRefreshKey}
           />
         )}
@@ -493,6 +577,10 @@ const App = () => {
               hourlyRate={hourlyRate}
               workHoursPerMonth={workHoursPerMonth}
               setWorkHoursPerMonth={setWorkHoursPerMonth}
+              categorias={categorias}
+              investments={investments}
+              metas={metas}
+              onMetasChange={fetchMetas}
             />
           </div>
         )}
@@ -613,6 +701,27 @@ const App = () => {
             </div>
           ) : null}
 
+          <div
+            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
+          >
+            <button
+              type="button"
+              onClick={() => setIsGlobalSearchOpen(true)}
+              aria-label="Buscar (Cmd+K)"
+              title={!isSidebarExpanded ? "Buscar (Cmd+K)" : undefined}
+              className="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <Search size={18} />
+            </button>
+          </div>
+
+          <div
+            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
+          >
+            <AlertsCenter alerts={alerts} panelPosition="bottom-left" />
+          </div>
+
           <button
             onClick={() => {
               removeToken();
@@ -673,9 +782,8 @@ const App = () => {
         >
           {activeTab === "dashboard" && (
             <DashboardDesktopRedesignView
-              totalIncome={totalIncome}
-              totalExpenses={totalExpenses}
-              finalBalance={finalBalance}
+              resumoMensal={resumoMensal}
+              faturasVencendo={faturasVencendo}
               investmentAmount={investmentAmount}
               incomes={incomes}
               expenses={expenses}
@@ -690,6 +798,8 @@ const App = () => {
               veiculos={veiculos}
               onOpenCategoryManager={handleOpenCategoryManager}
               saldoAnterior={saldoAnterior}
+              budgetAlerts={budgetAlerts}
+              metas={metas}
               budgetRefreshKey={budgetRefreshKey}
               headerHeight={headerHeight}
             />
@@ -700,6 +810,10 @@ const App = () => {
               hourlyRate={hourlyRate}
               workHoursPerMonth={workHoursPerMonth}
               setWorkHoursPerMonth={setWorkHoursPerMonth}
+              categorias={categorias}
+              investments={investments}
+              metas={metas}
+              onMetasChange={fetchMetas}
             />
           )}
           {activeTab === "vehicle" && (
@@ -727,6 +841,17 @@ const App = () => {
         releaseNotes={releaseNotesContent}
         onClose={() => setReleaseNotesOpen(false)}
       />
+
+      {isGlobalSearchOpen ? (
+        <GlobalSearchModal
+          onClose={() => setIsGlobalSearchOpen(false)}
+          onNavigate={setActiveTab}
+          incomes={incomes}
+          expenses={expenses}
+          veiculos={veiculos}
+          metas={metas}
+        />
+      ) : null}
     </div>
   );
 };

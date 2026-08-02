@@ -15,6 +15,8 @@ public interface IMovimentacaoRepository
     IEnumerable<Movimentacao> ListarPorPeriodo(DateTime dataInicio, DateTime dataFim);
     IEnumerable<Movimentacao> ListarPorPeriodoPorUsuario(DateTime dataInicio, DateTime dataFim, Guid usuarioId);
     IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId);
+    IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia);
+    IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia);
     void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes);
-    decimal ObterSaldoAcumulado(int mes, int ano);
+    void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes);
 }

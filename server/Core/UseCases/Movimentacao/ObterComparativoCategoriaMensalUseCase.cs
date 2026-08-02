@@ -1,10 +1,9 @@
 using Finance.Core.Application.DTOs;
 using Finance.Core.Domain;
-using Finance.Core.Repositories;
 
 namespace Finance.Core.UseCases;
 
-public class ObterComparativoCategoriaMensalUseCase(IMovimentacaoRepository movimentacaoRepository)
+public class ObterComparativoCategoriaMensalUseCase(ListarMovimentacoesComCompetenciaEfetivaUseCase listarMovimentacoesComCompetenciaEfetivaUseCase)
 {
   public IEnumerable<ComparativoCategoriaMensalDTO> Executar(Guid usuarioId, int mesReferencia, int anoReferencia, int meses = 3)
   {
@@ -24,21 +23,23 @@ public class ObterComparativoCategoriaMensalUseCase(IMovimentacaoRepository movi
     }
 
     var referencia = new DateTime(anoReferencia, mesReferencia, 1);
-    var inicioJanela = referencia.AddMonths(-(meses - 1));
-    var fimJanela = referencia.AddMonths(1).AddTicks(-1);
 
-    var movimentacoes = movimentacaoRepository
-        .ListarPorPeriodoPorUsuario(inicioJanela, fimJanela, usuarioId)
-        .Where(m => m.InvestimentoId is null)
-        .ToList();
+    var linhas = Enumerable.Range(0, meses)
+        .Select(i => referencia.AddMonths(-i))
+        .SelectMany(dataMes => listarMovimentacoesComCompetenciaEfetivaUseCase
+            .Executar(usuarioId, dataMes.Month, dataMes.Year)
+            .Where(m => m.InvestimentoId is null)
+            .Select(m => new
+            {
+              dataMes.Month,
+              dataMes.Year,
+              Categoria = m.Categoria?.Nome ?? "Sem categoria",
+              m.Tipo,
+              m.Valor
+            }));
 
-    return movimentacoes
-        .GroupBy(m => new
-        {
-          m.Data.Month,
-          m.Data.Year,
-          Categoria = m.Categoria?.Nome ?? "Sem categoria"
-        })
+    return linhas
+        .GroupBy(item => new { item.Month, item.Year, item.Categoria })
         .Select(grupo => new ComparativoCategoriaMensalDTO(
             grupo.Key.Month,
             grupo.Key.Year,

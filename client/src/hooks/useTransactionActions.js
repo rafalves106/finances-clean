@@ -63,6 +63,39 @@ export const useTransactionActions = ({
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    if (!ids || ids.length === 0) {
+      return { ok: false };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/remover-em-lote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível excluir as transações selecionadas.",
+        );
+        alert(message);
+        return { ok: false };
+      }
+
+      const resultado = await response.json();
+      await fetchData();
+      await loadCardSummaries();
+      return { ok: true, resultado };
+    } catch (error) {
+      console.error("Erro ao excluir transações em lote:", error);
+      alert("Erro ao excluir transações em lote. Verifique o console.");
+      return { ok: false };
+    }
+  };
+
   const handleSimulate = (formData) => {
     const categoria =
       categorias.find((item) => item.id === formData.categoryId) || null;
@@ -136,6 +169,7 @@ export const useTransactionActions = ({
     handleOpenNewTransaction,
     handleOpenEditTransaction,
     handleDeleteTransaction,
+    handleBulkDelete,
     handleSimulate,
     handleApplySimulation,
   };

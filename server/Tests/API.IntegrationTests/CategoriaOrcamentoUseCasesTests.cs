@@ -52,7 +52,8 @@ public class CategoriaOrcamentoUseCasesTests
     };
 
     var movRepo = new InMemoryMovimentacaoRepository(movimentacoes);
-    var useCase = new ObterAlertasOrcamentoCategoriasUseCase(categoriaRepo, movRepo);
+    var listarComCompetenciaEfetiva = new ListarMovimentacoesComCompetenciaEfetivaUseCase(movRepo, new InMemoryCartaoRepository());
+    var useCase = new ObterAlertasOrcamentoCategoriasUseCase(categoriaRepo, listarComCompetenciaEfetiva);
 
     var resultado = useCase.Executar(usuarioId, 5, 2026);
     var alertas = resultado.Categorias.ToList();
@@ -157,7 +158,22 @@ public class CategoriaOrcamentoUseCasesTests
       => _dados.Where(item => item.UsuarioId == usuarioId && item.Data >= dataInicio && item.Data <= dataFim);
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
       => _dados.Where(item => item.GrupoRecorrenciaId == grupoRecorrenciaId && item.UsuarioId == usuarioId);
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia) => Enumerable.Empty<Movimentacao>();
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia) => Enumerable.Empty<Movimentacao>();
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes) { }
+  }
+
+  private sealed class InMemoryCartaoRepository : ICartaoRepository
+  {
+    public void Adicionar(CartaoManual cartao) { }
+    public void Atualizar(CartaoManual cartao) { }
+    public CartaoManual? ObterAtivoPorUsuario(Guid usuarioId) => null;
+    public CartaoManual? ObterPorId(Guid id, Guid usuarioId) => null;
+    public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true) => Array.Empty<CartaoManual>();
+    public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId) => Array.Empty<CartaoManual>();
+    public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null) => 0;
+    public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento) => (0m, 0m);
+    public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia) => 0m;
   }
 }

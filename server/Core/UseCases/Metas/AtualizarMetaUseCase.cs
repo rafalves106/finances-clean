@@ -11,7 +11,7 @@ public class AtualizarMetaUseCase(IMetaRepository _metaRepository)
     var meta = _metaRepository.BuscarPorId(id)
         ?? throw new ArgumentException($"Meta {id} não encontrada.");
 
-    meta.Atualizar(dto.Descricao, dto.Valor, dto.DataAlvo);
+    meta.Atualizar(dto.Descricao, dto.Valor, dto.DataAlvo, dto.CategoriaId, dto.InvestimentoId);
     _metaRepository.Atualizar(meta);
   }
 }

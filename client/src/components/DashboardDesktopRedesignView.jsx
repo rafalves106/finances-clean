@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from "react";
 import {
+  ArrowUpRight,
   ChevronLeft,
   Download,
+  FileText,
   Plus,
-  RefreshCw,
   Sparkles,
   X,
 } from "lucide-react";
@@ -29,6 +30,8 @@ import { useCardSummaries } from "../hooks/useCardSummaries";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionActions } from "../hooks/useTransactionActions";
 import { useCsvExport } from "../hooks/useCsvExport";
+import { useMonthlyReportExport } from "../hooks/useMonthlyReportExport";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import {
   UPCOMING_ITEM_TITLE_MAX_LENGTH,
   formatDateLabel,
@@ -56,6 +59,7 @@ import {
 } from "./dashboard/chartTooltips";
 import CardsSlide from "./dashboard/CardsSlide";
 import ExportCsvModal from "./ExportCsvModal";
+import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -76,11 +80,19 @@ const DashboardDesktopRedesignView = ({
   saldoAnterior = 0,
   onOpenCategoryManager,
   headerHeight = 96,
+  budgetAlerts = [],
+  metas = [],
+  resumoMensal = null,
+  faturasVencendo = [],
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
-  const [showUpcomingReceipts, setShowUpcomingReceipts] = useState(false);
+  const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
   const [activeSlide, setActiveSlide] = useState(null);
   const [chartsSlideTab, setChartsSlideTab] = useState("fluxo");
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(
+    () => new Set(),
+  );
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -123,10 +135,30 @@ const DashboardDesktopRedesignView = ({
 
   const { isExportModalOpen, setIsExportModalOpen, handleExportCsv } =
     useCsvExport();
+  const { isExportingReport, handleExportRelatorioMensal } =
+    useMonthlyReportExport();
 
   const allTransactions = useMemo(
     () => [...incomes, ...expenses, ...simulatedTransactions],
     [expenses, incomes, simulatedTransactions],
+  );
+
+  const faturaTransactions = useMemo(
+    () =>
+      faturasVencendo.map((fatura) => ({
+        id: `fatura-${fatura.cartaoId}`,
+        name: `Fatura ${fatura.nomeCartao}`,
+        value: fatura.valor,
+        date: fatura.dataVencimento,
+        type: "Saida",
+        isFaturaResumo: true,
+      })),
+    [faturasVencendo],
+  );
+
+  const allTransactionsComFatura = useMemo(
+    () => [...allTransactions, ...faturaTransactions],
+    [allTransactions, faturaTransactions],
   );
 
   const {
@@ -143,6 +175,7 @@ const DashboardDesktopRedesignView = ({
     newCardStatusBySlot,
     isCreatingCardBySlot,
     cardTransactionsById,
+    futureInvoicesByCardId,
     cardColumns,
     cardSummary,
     backCardSummaries,
@@ -161,6 +194,9 @@ const DashboardDesktopRedesignView = ({
 
   const { dialogRef: cardFormDialogRef, handleDialogKeyDown: handleCardFormDialogKeyDown } =
     useFocusTrap(Boolean(openCardFormId), () => setOpenCardFormId(null));
+
+  const budgetAlertsLeftColumn = budgetAlerts.slice(0, 4);
+  const budgetAlertsRightColumn = budgetAlerts.slice(4, 8);
 
   const {
     totalIncome,
@@ -183,12 +219,9 @@ const DashboardDesktopRedesignView = ({
     chartYTicks,
     upcomingPayments,
     upcomingReceipts,
-    categoryRanking,
     slideCategoryRanking,
     slideCategoryLeftColumn,
     slideCategoryRightColumn,
-    exceededAlertsLeftColumn,
-    exceededAlertsRightColumn,
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,
@@ -206,6 +239,34 @@ const DashboardDesktopRedesignView = ({
     saldoAnterior,
   });
 
+  const totalIncomeExibido = resumoMensal?.totalEntradas ?? totalIncome;
+  const totalExpenseExibido = resumoMensal?.totalSaidas ?? totalExpense;
+  const saldoDoMesExibido = resumoMensal
+    ? resumoMensal.totalEntradas - resumoMensal.totalSaidas
+    : monthComparison.currentBalance;
+
+  const categoriaGastosDoMes = useMemo(() => {
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
+
+    return (resumoMensal?.porCategoria ?? [])
+      .filter((item) => Number(item.totalSaidas || 0) > 0)
+      .map((item) => {
+        const categoriaRef = categoriaById.get(String(item.categoriaId));
+        return {
+          id: item.categoriaId || "sem-categoria",
+          nome: item.nome || "Sem categoria",
+          icone: item.icone || "",
+          cor: item.cor || "#6A6785",
+          total: Number(item.totalSaidas || 0),
+          limite: Number(categoriaRef?.orcamentoMensal || 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [resumoMensal, categorias]);
+
   const {
     searchTerm,
     setSearchTerm,
@@ -221,7 +282,7 @@ const DashboardDesktopRedesignView = ({
     slideTransactionCardFilter,
     setSlideTransactionCardFilter,
     slideTransactions,
-  } = useTransactionFilters({ allTransactions });
+  } = useTransactionFilters({ allTransactions: allTransactionsComFatura });
 
   const {
     isModalOpen,
@@ -235,6 +296,7 @@ const DashboardDesktopRedesignView = ({
     handleOpenNewTransaction,
     handleOpenEditTransaction,
     handleDeleteTransaction,
+    handleBulkDelete,
     handleSimulate,
     handleApplySimulation,
   } = useTransactionActions({
@@ -245,6 +307,62 @@ const DashboardDesktopRedesignView = ({
     setSimulatedTransactions,
   });
 
+  const selectableTransactionIds = useMemo(
+    () =>
+      slideTransactions
+        .filter((item) => !item.isFaturaResumo)
+        .map((item) => item.id),
+    [slideTransactions],
+  );
+
+  const isAllTransactionsSelected =
+    selectableTransactionIds.length > 0 &&
+    selectableTransactionIds.every((id) => selectedTransactionIds.has(id));
+
+  const toggleSelectTransaction = (id) => {
+    setSelectedTransactionIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllTransactions = () => {
+    setSelectedTransactionIds(
+      isAllTransactionsSelected ? new Set() : new Set(selectableTransactionIds),
+    );
+  };
+
+  const selectedTransactionsSummary = useMemo(() => {
+    const selecionadas = slideTransactions.filter((item) =>
+      selectedTransactionIds.has(item.id),
+    );
+    return {
+      count: selecionadas.length,
+      totalValue: selecionadas.reduce(
+        (acc, item) => acc + Number(item.value || item.valor || 0),
+        0,
+      ),
+    };
+  }, [slideTransactions, selectedTransactionIds]);
+
+  const handleConfirmBulkDelete = async () => {
+    const resultado = await handleBulkDelete(Array.from(selectedTransactionIds));
+    if (resultado.ok) {
+      setSelectedTransactionIds(new Set());
+    }
+  };
+
+  useKeyboardShortcuts({
+    onNewTransaction: handleOpenNewTransaction,
+    onPreviousMonth: handlePreviousMonth,
+    onNextMonth: handleNextMonth,
+  });
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center text-slate-500">
@@ -252,6 +370,32 @@ const DashboardDesktopRedesignView = ({
       </div>
     );
   }
+
+  const linkedGoals = metas
+    .filter((meta) => meta.categoriaId || meta.investimentoId)
+    .map((meta) => ({
+      id: meta.id,
+      nome: meta.descricao,
+      valor: meta.valor,
+      valorAcumulado: Number(meta.valorAcumulado || 0),
+      percentual: Number(meta.percentualProgresso || 0),
+    }))
+    .sort((a, b) => b.percentual - a.percentual)
+    .slice(0, 4);
+
+  const vehicleInsights = veiculos.map((veiculo) => ({
+    id: veiculo.id,
+    nome: veiculo.nome,
+    alertaPendente: Boolean(veiculo.alertaPendente),
+    kmAtual: veiculo.kmAtual,
+    kmRestante:
+      veiculo.kmAtual != null
+        ? Math.max(
+            0,
+            veiculo.alertaKm - (veiculo.kmAtual - veiculo.ultimoKmAlerta),
+          )
+        : null,
+  }));
 
   const activeCardFormContext = (() => {
     if (!openCardFormId) return null;
@@ -350,6 +494,7 @@ const DashboardDesktopRedesignView = ({
           slideContentHeight={slideContentHeight}
           cardColumns={cardColumns}
           cardTransactionsById={cardTransactionsById}
+          futureInvoicesByCardId={futureInvoicesByCardId}
           onOpenCreateCard={(index) => {
             const slotKey = String(index);
             setOpenCardFormId(`new-${slotKey}`);
@@ -491,6 +636,48 @@ const DashboardDesktopRedesignView = ({
               </div>
             </div>
 
+            {selectedTransactionsSummary.count > 0 ? (
+              <div
+                className="mt-3 flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                style={{
+                  background: "var(--danger-100)",
+                  border: "1px solid var(--danger-border)",
+                }}
+              >
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: "var(--danger-700)" }}
+                >
+                  {selectedTransactionsSummary.count}{" "}
+                  {selectedTransactionsSummary.count === 1
+                    ? "selecionada"
+                    : "selecionadas"}{" "}
+                  · {formatCurrency(selectedTransactionsSummary.totalValue)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTransactionIds(new Set())}
+                    className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Limpar seleção
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(true)}
+                    className="text-xs font-semibold rounded-md px-3 py-1.5 transition-colors"
+                    style={{
+                      background: "var(--danger-700)",
+                      color: "white",
+                    }}
+                  >
+                    Excluir selecionadas
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div
               className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg"
               style={{ border: "1px solid var(--border-default)" }}
@@ -519,6 +706,15 @@ const DashboardDesktopRedesignView = ({
                         borderBottom: "1px solid var(--border-default)",
                       }}
                     >
+                      <th scope="col" className="p-3 font-bold w-8">
+                        <input
+                          type="checkbox"
+                          aria-label="Selecionar todas as movimentações"
+                          checked={isAllTransactionsSelected}
+                          onChange={toggleSelectAllTransactions}
+                          className="cursor-pointer"
+                        />
+                      </th>
                       <th scope="col" className="p-3 font-bold">
                         Data
                       </th>
@@ -558,6 +754,17 @@ const DashboardDesktopRedesignView = ({
                               "var(--bg-surface)";
                           }}
                         >
+                          <td className="p-3">
+                            {item.isFaturaResumo ? null : (
+                              <input
+                                type="checkbox"
+                                aria-label={`Selecionar ${item.name || item.titulo || "movimentação"}`}
+                                checked={selectedTransactionIds.has(item.id)}
+                                onChange={() => toggleSelectTransaction(item.id)}
+                                className="cursor-pointer"
+                              />
+                            )}
+                          </td>
                           <td
                             className="p-3 text-xs whitespace-nowrap"
                             style={{ color: "var(--text-secondary)" }}
@@ -586,7 +793,9 @@ const DashboardDesktopRedesignView = ({
                             className="p-3 text-xs"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {item.categoria?.nome || "Sem categoria"}
+                            {item.isFaturaResumo
+                              ? "Fatura"
+                              : item.categoria?.nome || "Sem categoria"}
                           </td>
                           <td
                             className="p-3 text-sm font-semibold whitespace-nowrap"
@@ -615,30 +824,41 @@ const DashboardDesktopRedesignView = ({
                             </span>
                           </td>
                           <td className="p-3">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditTransaction(item)}
-                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
-                                style={{
-                                  color: "var(--accent-600)",
-                                  border: "1px solid var(--accent-100)",
-                                }}
+                            {item.isFaturaResumo ? (
+                              <span
+                                className="text-xs font-medium"
+                                style={{ color: "var(--text-tertiary)" }}
                               >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTransaction(item)}
-                                className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
-                                style={{
-                                  color: "var(--danger-700)",
-                                  border: "1px solid var(--danger-border)",
-                                }}
-                              >
-                                Excluir
-                              </button>
-                            </div>
+                                Resumo da fatura
+                              </span>
+                            ) : (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenEditTransaction(item)
+                                  }
+                                  className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                  style={{
+                                    color: "var(--accent-600)",
+                                    border: "1px solid var(--accent-100)",
+                                  }}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTransaction(item)}
+                                  className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                  style={{
+                                    color: "var(--danger-700)",
+                                    border: "1px solid var(--danger-border)",
+                                  }}
+                                >
+                                  Excluir
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1004,59 +1224,62 @@ const DashboardDesktopRedesignView = ({
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 pt-1 flex-shrink-0">
-                        {[
-                          exceededAlertsLeftColumn,
-                          exceededAlertsRightColumn,
-                        ].map((alertsColumn, columnIndex) => (
-                          <div
-                            key={`exceeded-alerts-column-${columnIndex}`}
-                            className="space-y-2"
-                          >
-                            {alertsColumn.length === 0 ? (
-                              columnIndex === 0 ? (
-                                <p
-                                  className="text-xs"
-                                  style={{ color: "var(--text-tertiary)" }}
-                                >
-                                  Nenhum limite excedido.
-                                </p>
-                              ) : null
-                            ) : (
-                              alertsColumn.map((item) => (
-                                <p
-                                  key={`alert-${item.id}`}
-                                  className="text-xs font-medium"
-                                  style={{
-                                    color: "var(--danger-700)",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
+                        {[budgetAlertsLeftColumn, budgetAlertsRightColumn].map(
+                          (alertsColumn, columnIndex) => (
+                            <div
+                              key={`budget-alerts-column-${columnIndex}`}
+                              className="space-y-2"
+                            >
+                              {alertsColumn.length === 0 ? (
+                                columnIndex === 0 ? (
+                                  <p
+                                    className="text-xs"
+                                    style={{ color: "var(--text-tertiary)" }}
                                   >
-                                    Limite da categoria {item.nome} excedido em
-                                  </span>{" "}
-                                  <span
-                                    className="font-semibold"
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
-                                  >
-                                    {formatCurrency(item.total - item.limite)}
-                                  </span>
-                                  <span
-                                    style={{
-                                      color: "var(--danger-700)",
-                                    }}
-                                  >
-                                    .
-                                  </span>
-                                </p>
-                              ))
-                            )}
-                          </div>
-                        ))}
+                                    Nenhum alerta de orçamento.
+                                  </p>
+                                ) : null
+                              ) : (
+                                alertsColumn.map((item) => {
+                                  const alertColor =
+                                    item.estado === "Estourado"
+                                      ? "var(--danger-700)"
+                                      : "var(--warning-700)";
+
+                                  return (
+                                    <p
+                                      key={`alert-${item.id}`}
+                                      className="text-xs font-medium"
+                                      style={{ color: alertColor }}
+                                    >
+                                      {item.estado === "Estourado" ? (
+                                        <>
+                                          Limite da categoria {item.nome}{" "}
+                                          excedido em{" "}
+                                          <span className="font-semibold">
+                                            {formatCurrency(
+                                              item.total - item.limite,
+                                            )}
+                                          </span>
+                                          .
+                                        </>
+                                      ) : (
+                                        <>
+                                          Categoria {item.nome} já consumiu{" "}
+                                          <span className="font-semibold">
+                                            {Math.round(item.percentual)}%
+                                          </span>{" "}
+                                          do orçamento ({formatCurrency(item.total)}{" "}
+                                          de {formatCurrency(item.limite)}).
+                                        </>
+                                      )}
+                                    </p>
+                                  );
+                                })
+                              )}
+                            </div>
+                          ),
+                        )}
                       </div>
                     </div>
 
@@ -1259,7 +1482,7 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-2 border rounded-2xl p-2 min-h-0 flex flex-col cursor-pointer"
+              className="relative col-span-2 border rounded-2xl p-2 min-h-0 flex flex-col cursor-pointer"
               style={{
                 background: "var(--bg-surface)",
                 borderColor: "var(--border-default)",
@@ -1276,6 +1499,15 @@ const DashboardDesktopRedesignView = ({
               }}
               aria-label="Ver análise gráfica detalhada"
             >
+              <span
+                className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                style={{
+                  background: "var(--bg-surface)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                <ArrowUpRight size={12} />
+              </span>
               <div className="flex-1 min-h-0 cursor-pointer">
                 {chartData.length === 0 ? (
                   <div
@@ -1630,89 +1862,175 @@ const DashboardDesktopRedesignView = ({
             style={{ columnGap: `${sectionGap}px` }}
           >
             <article
-              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden cursor-pointer"
+              className="col-span-1 border rounded-2xl p-4 shadow-sm min-h-0 flex flex-col overflow-hidden"
               style={{
                 background: "var(--bg-surface)",
                 borderColor: "var(--border-default)",
               }}
-              onClick={() => setActiveSlide("transactions")}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setActiveSlide("transactions");
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Abrir slide de movimentações"
             >
-              <div className="sticky top-0 flex items-center justify-between">
-                <h3
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {showUpcomingReceipts
-                    ? "Próximas receitas"
-                    : "Próximas despesas"}
-                </h3>
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setShowUpcomingReceipts(!showUpcomingReceipts);
-                  }}
-                  className="rounded-lg transition-colors duration-200"
-                  title={showUpcomingReceipts ? "Ver despesas" : "Ver receitas"}
-                >
-                  <RefreshCw size={16} style={{ color: "var(--text-tertiary)" }} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto pt-2 space-y-2">
-                {(showUpcomingReceipts ? upcomingReceipts : upcomingPayments)
-                  .length === 0 ? (
-                  <p
-                    className="text-xs text-center py-4"
-                    style={{ color: "var(--text-tertiary)" }}
+              <div className="flex items-center gap-1 flex-shrink-0 overflow-x-auto">
+                {[
+                  { id: "despesas", label: "Despesas" },
+                  { id: "receitas", label: "Receitas" },
+                  ...(linkedGoals.length > 0
+                    ? [{ id: "metas", label: "Metas" }]
+                    : []),
+                  ...(vehicleInsights.length > 0
+                    ? [{ id: "veiculo", label: "Veículo" }]
+                    : []),
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setHomeWidgetTab(tab.id)}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors"
+                    style={
+                      homeWidgetTab === tab.id
+                        ? {
+                            background: "var(--accent-50)",
+                            color: "var(--accent-600)",
+                          }
+                        : { color: "var(--text-tertiary)" }
+                    }
                   >
-                    Nenhum item no período
-                  </p>
-                ) : (
-                  (showUpcomingReceipts
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {(homeWidgetTab === "despesas" || homeWidgetTab === "receitas") && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-2">
+                  {(homeWidgetTab === "receitas"
                     ? upcomingReceipts
                     : upcomingPayments
-                  ).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg flex items-center justify-between gap-2"
+                  ).length === 0 ? (
+                    <p
+                      className="text-xs text-center py-4"
+                      style={{ color: "var(--text-tertiary)" }}
                     >
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <span className="text-base">{item.icone}</span>
+                      Nenhum item no período
+                    </p>
+                  ) : (
+                    (homeWidgetTab === "receitas"
+                      ? upcomingReceipts
+                      : upcomingPayments
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveSlide("transactions")}
+                        className="w-full rounded-lg flex items-center justify-between gap-2 text-left"
+                      >
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <span className="text-base">{item.icone}</span>
+                          <span
+                            className="text-sm font-semibold whitespace-nowrap"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {formatCurrency(item.value)}
+                          </span>
+                          <span
+                            className="text-xs truncate"
+                            style={{ color: "var(--text-tertiary)" }}
+                            title={item.title}
+                          >
+                            {truncateWithThreeDots(
+                              item.title,
+                              UPCOMING_ITEM_TITLE_MAX_LENGTH,
+                            )}
+                          </span>
+                        </div>
                         <span
-                          className="text-sm font-semibold whitespace-nowrap"
+                          className="text-xs whitespace-nowrap"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {formatDateLabel(item.dueDate)}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {homeWidgetTab === "metas" && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+                  {linkedGoals.map((goal) => (
+                    <div key={goal.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span
+                          className="truncate"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {formatCurrency(item.value)}
+                          {goal.nome}
                         </span>
                         <span
-                          className="text-xs truncate"
-                          style={{ color: "var(--text-tertiary)" }}
-                          title={item.title}
+                          className="font-semibold whitespace-nowrap"
+                          style={{ color: "var(--text-secondary)" }}
                         >
-                          {truncateWithThreeDots(
-                            item.title,
-                            UPCOMING_ITEM_TITLE_MAX_LENGTH,
-                          )}
+                          {Math.round(goal.percentual)}%
                         </span>
                       </div>
-                      <span
-                        className="text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--bg-surface-sunken)" }}
                       >
-                        {formatDateLabel(item.dueDate)}
-                      </span>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, goal.percentual)}%`,
+                            background: "var(--accent-600)",
+                          }}
+                        />
+                      </div>
+                      <p
+                        className="text-[11px] mt-1"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        Faltam{" "}
+                        {formatCurrency(
+                          Math.max(0, goal.valor - Math.max(0, goal.valorAcumulado)),
+                        )}
+                      </p>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {homeWidgetTab === "veiculo" && (
+                <div className="flex-1 overflow-y-auto pt-2 space-y-3">
+                  {vehicleInsights.map((veiculo) => (
+                    <div key={veiculo.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span
+                          className="truncate"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {veiculo.nome}
+                        </span>
+                        {veiculo.alertaPendente ? (
+                          <span
+                            className="font-semibold whitespace-nowrap"
+                            style={{ color: "var(--danger-700)" }}
+                          >
+                            Revisão pendente
+                          </span>
+                        ) : null}
+                      </div>
+                      <p
+                        className="text-[11px]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {veiculo.kmAtual != null
+                          ? `${veiculo.kmAtual.toLocaleString("pt-BR")} km rodados`
+                          : "Sem quilometragem registrada"}
+                        {veiculo.kmRestante != null && !veiculo.alertaPendente
+                          ? ` · faltam ${veiculo.kmRestante.toLocaleString("pt-BR")} km pra revisão`
+                          : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </article>
 
             <div
@@ -1720,7 +2038,7 @@ const DashboardDesktopRedesignView = ({
               style={{ rowGap: `${sectionGap}px` }}
             >
               <article
-                className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 cursor-pointer"
+                className="relative bg-white border border-slate-200 rounded-2xl shadow-sm p-4 cursor-pointer"
                 onClick={() => setActiveSlide("transactions")}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -1732,6 +2050,15 @@ const DashboardDesktopRedesignView = ({
                 tabIndex={0}
                 aria-label="Abrir slide de movimentações"
               >
+                <span
+                  className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                  style={{
+                    background: "var(--bg-surface)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  <ArrowUpRight size={12} />
+                </span>
                 <div
                   className="grid grid-cols-3"
                   style={{ columnGap: `${sectionGap}px` }}
@@ -1763,7 +2090,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(totalIncome)}
+                      {formatCurrency(totalIncomeExibido)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
@@ -1793,7 +2120,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(totalExpense)}
+                      {formatCurrency(totalExpenseExibido)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
@@ -1823,7 +2150,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(monthComparison.currentBalance)}
+                      {formatCurrency(saldoDoMesExibido)}
                     </p>
                   </div>
                 </div>
@@ -1901,7 +2228,7 @@ const DashboardDesktopRedesignView = ({
           >
             <div className="min-h-0 order-2">
               <article
-                className="bg-white border border-slate-200 rounded-xl shadow-sm h-full overflow-hidden flex flex-col p-4 cursor-pointer"
+                className="relative bg-white border border-slate-200 rounded-xl shadow-sm h-full overflow-hidden flex flex-col p-4 cursor-pointer"
                 style={{
                   minHeight: `${sectionThreeCardMinHeight}px`,
                   maxHeight: `${sectionThreeMaxHeight}px`,
@@ -1917,20 +2244,29 @@ const DashboardDesktopRedesignView = ({
                 tabIndex={0}
                 aria-label="Ver análise de categorias detalhada"
               >
+                <span
+                  className="absolute top-2 right-2 z-10 pointer-events-none rounded-full p-1"
+                  style={{
+                    background: "var(--bg-surface)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  <ArrowUpRight size={12} />
+                </span>
                 <div className="sticky top-0 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                     Gastos por Categoria
                   </h3>
                 </div>
                 <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 pt-2">
-                  {categoryRanking.length === 0 ? (
+                  {categoriaGastosDoMes.length === 0 ? (
                     <p className="text-sm text-slate-500 col-span-2">
                       Nenhum gasto registrado neste mês
                     </p>
                   ) : (
                     <>
                       <div className="overflow-y-auto pr-1 space-y-3">
-                        {categoryRanking.map((item) => {
+                        {categoriaGastosDoMes.map((item) => {
                           const standardColor = getCategoryStandardColor(
                             item.cor,
                           );
@@ -2063,7 +2399,7 @@ const DashboardDesktopRedesignView = ({
             </div>
 
             <article
-              className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4 cursor-pointer"
+              className="relative bg-white border border-slate-200 rounded-xl shadow-sm min-h-0 overflow-hidden order-1 flex flex-col p-4 cursor-pointer"
               style={{ maxHeight: `${sectionThreeMaxHeight}px` }}
               onClick={() => setActiveSlide("transactions")}
               onKeyDown={(event) => {
@@ -2077,8 +2413,13 @@ const DashboardDesktopRedesignView = ({
               aria-label="Abrir slide de movimentações"
             >
               <div className="sticky top-0 flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                   Movimentações
+                  <ArrowUpRight
+                    size={14}
+                    className="pointer-events-none"
+                    style={{ color: "var(--text-tertiary)" }}
+                  />
                 </h3>
                 <div className="flex items-center gap-2">
                   <input
@@ -2125,10 +2466,12 @@ const DashboardDesktopRedesignView = ({
                             <span
                               className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${iconClassName}`}
                             >
-                              {isEntrada ? "↑" : "↓"}
+                              {item.isFaturaResumo ? "💳" : isEntrada ? "↑" : "↓"}
                             </span>
                             <span className="text-base">
-                              {item.categoria?.icone || "•"}
+                              {item.isFaturaResumo
+                                ? ""
+                                : item.categoria?.icone || "•"}
                             </span>
                             <span className="text-sm font-semibold text-[var(--text-primary)] whitespace-nowrap">
                               {formatCurrency(item.value || item.valor || 0)}
@@ -2253,6 +2596,25 @@ const DashboardDesktopRedesignView = ({
 
         <button
           type="button"
+          onClick={() =>
+            handleExportRelatorioMensal(selectedMes, selectedAno)
+          }
+          disabled={isExportingReport}
+          className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-secondary)",
+            "--tw-ring-color": "var(--accent-600)",
+          }}
+          aria-label="Gerar relatório mensal"
+          title="Relatório mensal"
+        >
+          <FileText size={18} />
+        </button>
+
+        <button
+          type="button"
           onClick={handleOpenNewTransaction}
           className="rounded-full w-12 h-12 shadow-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2"
           style={{
@@ -2278,6 +2640,14 @@ const DashboardDesktopRedesignView = ({
         onConfirm={handleExportCsv}
         defaultStartDate={getMonthDateRange(selectedAno, selectedMes).startDate}
         defaultEndDate={getMonthDateRange(selectedAno, selectedMes).endDate}
+      />
+
+      <BulkDeleteConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        count={selectedTransactionsSummary.count}
+        totalValue={selectedTransactionsSummary.totalValue}
       />
 
       <TransactionModal

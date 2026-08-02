@@ -109,22 +109,35 @@ public class MovimentacaoRepository : IMovimentacaoRepository
             .ToList();
     }
 
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
+    {
+        return _context.Movimentacoes
+            .Include(m => m.Categoria)
+            .Where(m => m.UsuarioId == usuarioId && m.CartaoId == cartaoId && m.CompetenciaFatura == competencia)
+            .ToList();
+    }
+
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
+    {
+        return _context.Movimentacoes
+            .Where(m => m.UsuarioId == usuarioId && m.Fixa && m.GrupoRecorrenciaId != null)
+            .AsEnumerable()
+            .GroupBy(m => m.GrupoRecorrenciaId)
+            .Select(g => g.OrderByDescending(m => m.Data).ThenByDescending(m => m.Id).First())
+            .Where(m => m.Data < referencia)
+            .ToList();
+    }
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes)
     {
         _context.Movimentacoes.UpdateRange(movimentacoes);
         _context.SaveChanges();
     }
 
-    public decimal ObterSaldoAcumulado(int mes, int ano)
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes)
     {
-        var baseQuery = _context.Movimentacoes
-            .Where(m => m.InvestimentoId == null &&
-                    (m.Data.Year < ano ||
-                    (m.Data.Year == ano && m.Data.Month < mes)));
-
-        var entradas = baseQuery.OfType<Entrada>().Sum(m => (decimal?)m.Valor) ?? 0;
-        var saidas = baseQuery.OfType<Saida>().Sum(m => (decimal?)m.Valor) ?? 0;
-
-        return entradas - saidas;
+        _context.Movimentacoes.RemoveRange(movimentacoes);
+        _context.SaveChanges();
     }
+
 }

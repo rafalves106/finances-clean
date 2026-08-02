@@ -29,4 +29,34 @@ public static class CompetenciaFaturaCalculator
     var proxima = new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
     return (proxima.Year * 100) + proxima.Month;
   }
+
+  public static int ObterCompetenciaVencimento(int competencia, int diaFechamento, int diaVencimento)
+  {
+    var ano = competencia / 100;
+    var mes = competencia % 100;
+    var baseData = new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+    var dataVencimento = diaVencimento > diaFechamento ? baseData : baseData.AddMonths(1);
+    return (dataVencimento.Year * 100) + dataVencimento.Month;
+  }
+
+  public static int ObterCompetenciaComVencimentoEm(int competenciaVencimento, int diaFechamento, int diaVencimento)
+  {
+    var ano = competenciaVencimento / 100;
+    var mes = competenciaVencimento % 100;
+    var baseData = new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+    var dataCompetencia = diaVencimento > diaFechamento ? baseData : baseData.AddMonths(-1);
+    return (dataCompetencia.Year * 100) + dataCompetencia.Month;
+  }
+
+  public static DateTime ObterDataVencimento(int competencia, int diaFechamento, int diaVencimento)
+  {
+    var competenciaVencimento = ObterCompetenciaVencimento(competencia, diaFechamento, diaVencimento);
+    var ano = competenciaVencimento / 100;
+    var mes = competenciaVencimento % 100;
+    var dia = Math.Min(diaVencimento, DateTime.DaysInMonth(ano, mes));
+    // Kind Unspecified (nao Utc) de proposito: e uma data de calendario, sem
+    // horario - com Utc explicito o front interpreta como meia-noite UTC e
+    // desloca um dia pra tras em fusos negativos (ex: America/Sao_Paulo).
+    return new DateTime(ano, mes, dia);
+  }
 }

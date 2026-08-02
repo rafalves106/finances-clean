@@ -14,6 +14,8 @@ public class CartaoController(
   ListarResumosCartoesUseCase listarResumosCartoesUseCase,
     ObterResumoCartaoUseCase obterResumoCartaoUseCase,
   ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase,
+  ObterPrevisaoFaturaFuturaUseCase obterPrevisaoFaturaFuturaUseCase,
+  ListarFaturasVencendoNoMesUseCase listarFaturasVencendoNoMesUseCase,
   ExecutarPreviewBackfillCompetenciaCartaoUseCase executarPreviewBackfillCompetenciaCartaoUseCase,
   ExecutarApplyBackfillCompetenciaCartaoUseCase executarApplyBackfillCompetenciaCartaoUseCase,
   ExecutarRollbackBackfillCompetenciaCartaoUseCase executarRollbackBackfillCompetenciaCartaoUseCase) : AuthenticatedController
@@ -119,6 +121,31 @@ public class CartaoController(
   {
     var previsao = obterPrevisaoFaturaUseCase.Executar(UsuarioId);
     return previsao is null ? NotFound(Erro("CARTAO_NAO_ENCONTRADO", "Cartão não encontrado.")) : Ok(previsao);
+  }
+
+  [HttpGet("{cartaoId:guid}/previsao-futura")]
+  public IActionResult ObterPrevisaoFutura(Guid cartaoId, [FromQuery] int meses = 3)
+  {
+    try
+    {
+      var previsao = obterPrevisaoFaturaFuturaUseCase.Executar(UsuarioId, cartaoId, meses);
+      return Ok(previsao);
+    }
+    catch (KeyNotFoundException)
+    {
+      return NotFound(Erro("CARTAO_NAO_ENCONTRADO", "Cartão não encontrado."));
+    }
+    catch (ArgumentException ex)
+    {
+      return BadRequest(Erro("CARTAO_MESES_INVALIDO", ex.Message));
+    }
+  }
+
+  [HttpGet("faturas-vencendo")]
+  public IActionResult ListarFaturasVencendo([FromQuery] int mes, [FromQuery] int ano)
+  {
+    var faturas = listarFaturasVencendoNoMesUseCase.Executar(UsuarioId, mes, ano);
+    return Ok(faturas);
   }
 
   [HttpPost("backfill/preview")]

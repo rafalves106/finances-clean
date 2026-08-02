@@ -3,8 +3,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Circle,
   CreditCard,
   Home,
   PieChart,
@@ -29,8 +31,10 @@ import {
 } from "../services/api";
 import { formatCurrency } from "../util/formatCurrency";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
+import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 
 const sortByDate = (list) =>
   [...list].sort(
@@ -67,6 +71,10 @@ const DashboardMobileView = ({
   fetchData,
   saldoAnterior = 0,
   onOpenCategoryManager,
+  budgetAlerts = [],
+  metas = [],
+  resumoMensal = null,
+  faturasVencendo = [],
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -84,6 +92,11 @@ const DashboardMobileView = ({
     useState(null);
   const [pendingDeleteIds, setPendingDeleteIds] = useState(new Set());
   const pendingDeleteTimersRef = useRef(new Map());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(
+    () => new Set(),
+  );
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const timers = pendingDeleteTimersRef.current;
@@ -239,9 +252,21 @@ const DashboardMobileView = ({
     [expenses, incomes],
   );
 
+  const faturaTransactions = useMemo(
+    () =>
+      faturasVencendo.map((fatura) => ({
+        id: `fatura-${fatura.cartaoId}`,
+        name: `Fatura ${fatura.nomeCartao}`,
+        value: fatura.valor,
+        date: fatura.dataVencimento,
+        type: "Saida",
+        isFaturaResumo: true,
+      })),
+    [faturasVencendo],
+  );
+
   const {
     slideCategoryRanking: categoryRanking,
-    exceededCategoryAlerts,
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,
@@ -255,16 +280,24 @@ const DashboardMobileView = ({
     saldoAnterior,
   });
 
-  const totalIncome = useMemo(
-    () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [incomes],
+  const linkedGoals = useMemo(
+    () =>
+      metas
+        .filter((meta) => meta.categoriaId || meta.investimentoId)
+        .map((meta) => ({
+          id: meta.id,
+          nome: meta.descricao,
+          valor: meta.valor,
+          valorAcumulado: Number(meta.valorAcumulado || 0),
+          percentual: Number(meta.percentualProgresso || 0),
+        }))
+        .sort((a, b) => b.percentual - a.percentual)
+        .slice(0, 3),
+    [metas],
   );
 
-  const totalExpenses = useMemo(
-    () => expenses.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [expenses],
-  );
-
+  const totalIncome = resumoMensal?.totalEntradas ?? 0;
+  const totalExpenses = resumoMensal?.totalSaidas ?? 0;
   const finalBalance = saldoAnterior + totalIncome - totalExpenses;
 
   const upcomingItems = useMemo(() => {
@@ -281,42 +314,56 @@ const DashboardMobileView = ({
   }, [allTransactions]);
 
   const categoriesTop = useMemo(() => {
-    const byCategory = new Map();
+    const porCategoria = resumoMensal?.porCategoria ?? [];
 
-    expenses.forEach((item) => {
-      const key = String(item.categoriaId || item.categoria?.id || "sem");
-      const current = byCategory.get(key) || {
-        id: key,
-        nome: item.categoria?.nome || "Sem categoria",
-        icone: item.categoria?.icone || "",
-        total: 0,
-      };
-
-      current.total += Number(item.value || 0);
-      byCategory.set(key, current);
-    });
-
-    return Array.from(byCategory.values())
+    return porCategoria
+      .filter((item) => Number(item.totalSaidas || 0) > 0)
+      .map((item) => ({
+        id: String(item.categoriaId || "sem"),
+        nome: item.nome || "Sem categoria",
+        icone: item.icone || "",
+        total: Number(item.totalSaidas || 0),
+      }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 4);
-  }, [expenses]);
+  }, [resumoMensal]);
 
   const listedTransactions = useMemo(() => {
-    return allTransactions.filter((item) => {
-      if (pendingDeleteIds.has(item.id)) {
-        return false;
-      }
+    return sortByDate([...allTransactions, ...faturaTransactions]).filter(
+      (item) => {
+        if (pendingDeleteIds.has(item.id)) {
+          return false;
+        }
 
-      if (!transactionCategoryFilter) {
-        return true;
-      }
+        if (!transactionCategoryFilter) {
+          return true;
+        }
 
-      const itemCategoryId = String(
-        item.categoriaId || item.categoria?.id || "sem",
-      );
-      return itemCategoryId === transactionCategoryFilter;
-    });
-  }, [allTransactions, pendingDeleteIds, transactionCategoryFilter]);
+        const itemCategoryId = String(
+          item.categoriaId || item.categoria?.id || "sem",
+        );
+        return itemCategoryId === transactionCategoryFilter;
+      },
+    );
+  }, [
+    allTransactions,
+    faturaTransactions,
+    pendingDeleteIds,
+    transactionCategoryFilter,
+  ]);
+
+  const selectedTransactionsSummary = useMemo(() => {
+    const selecionadas = listedTransactions.filter((item) =>
+      selectedTransactionIds.has(item.id),
+    );
+    return {
+      count: selecionadas.length,
+      totalValue: selecionadas.reduce(
+        (acc, item) => acc + Number(item.value || item.valor || 0),
+        0,
+      ),
+    };
+  }, [listedTransactions, selectedTransactionIds]);
 
   const pendingDeleteItems = useMemo(
     () => allTransactions.filter((item) => pendingDeleteIds.has(item.id)),
@@ -420,6 +467,12 @@ const DashboardMobileView = ({
     setIsModalOpen(true);
   };
 
+  useKeyboardShortcuts({
+    onNewTransaction: handleOpenNewTransaction,
+    onPreviousMonth: handlePreviousMonth,
+    onNextMonth: handleNextMonth,
+  });
+
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
     setOpenCardPurchaseMode(false);
@@ -488,6 +541,57 @@ const DashboardMobileView = ({
       next.delete(transactionId);
       return next;
     });
+  };
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode((current) => !current);
+    setSelectedTransactionIds(new Set());
+    setExpandedTransactionId(null);
+  };
+
+  const toggleSelectTransaction = (transactionId) => {
+    setSelectedTransactionIds((current) => {
+      const next = new Set(current);
+      if (next.has(transactionId)) {
+        next.delete(transactionId);
+      } else {
+        next.add(transactionId);
+      }
+      return next;
+    });
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    const ids = Array.from(selectedTransactionIds);
+    if (ids.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/remover-em-lote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!response.ok) {
+        const message = await extractApiErrorMessage(
+          response,
+          "Não foi possível excluir as transações selecionadas.",
+        );
+        alert(message);
+        return;
+      }
+
+      await fetchData?.({ silent: true });
+      await loadCardSummaries();
+      setSelectedTransactionIds(new Set());
+      setIsSelectionMode(false);
+    } catch (error) {
+      console.error("Erro ao excluir transações em lote:", error);
+      alert("Erro ao excluir transações em lote. Verifique o console.");
+    }
   };
 
   const screenMinHeight = `calc(100dvh - ${headerHeight}px - ${bottomNavHeight}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`;
@@ -754,12 +858,51 @@ const DashboardMobileView = ({
           boxShadow: "var(--shadow-xs)",
         }}
       >
-        <p
-          className="m-0 text-xs font-semibold"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Movimentações
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p
+            className="m-0 text-xs font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Movimentações
+          </p>
+          <button
+            type="button"
+            onClick={toggleSelectionMode}
+            className="text-[11px] font-semibold"
+            style={{ color: "var(--accent-600)" }}
+          >
+            {isSelectionMode ? "Cancelar" : "Selecionar"}
+          </button>
+        </div>
+
+        {isSelectionMode && selectedTransactionsSummary.count > 0 && (
+          <div
+            className="mt-2 flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+            style={{
+              background: "var(--danger-100)",
+              border: "1px solid var(--danger-border)",
+            }}
+          >
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: "var(--danger-700)" }}
+            >
+              {selectedTransactionsSummary.count}{" "}
+              {selectedTransactionsSummary.count === 1
+                ? "selecionada"
+                : "selecionadas"}{" "}
+              · {formatCurrency(selectedTransactionsSummary.totalValue)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="text-[11px] font-semibold rounded-md px-2.5 py-1"
+              style={{ background: "var(--danger-700)", color: "white" }}
+            >
+              Excluir
+            </button>
+          </div>
+        )}
 
         {pendingDeleteItems.length > 0 && (
           <div className="mt-2 space-y-1.5">
@@ -842,6 +985,47 @@ const DashboardMobileView = ({
             </p>
           ) : (
             listedTransactions.map((item) => {
+              if (item.isFaturaResumo) {
+                return (
+                  <article
+                    key={item.id}
+                    className="rounded-xl px-3 py-2"
+                    style={{
+                      background: "var(--bg-surface-sunken)",
+                      border: "1px dashed var(--border-subtle)",
+                    }}
+                  >
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span style={{ color: "var(--accent-600)" }}>
+                          <CreditCard size={14} />
+                        </span>
+                        <div>
+                          <p
+                            className="m-0 text-xs"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {item.name}
+                          </p>
+                          <p
+                            className="m-0 text-[11px]"
+                            style={{ color: "var(--text-tertiary)" }}
+                          >
+                            Vence {formatDateLabel(item.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <p
+                        className="m-0 text-xs font-semibold whitespace-nowrap"
+                        style={{ color: "var(--danger-700)" }}
+                      >
+                        -{formatCurrency(item.value)}
+                      </p>
+                    </div>
+                  </article>
+                );
+              }
+
               const itemType = item.type || item.tipo;
               const isEntrada = itemType === "Entrada";
               const isExpanded = expandedTransactionId === item.id;
@@ -857,9 +1041,11 @@ const DashboardMobileView = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setExpandedTransactionId((current) =>
-                        current === item.id ? null : item.id,
-                      )
+                      isSelectionMode
+                        ? toggleSelectTransaction(item.id)
+                        : setExpandedTransactionId((current) =>
+                            current === item.id ? null : item.id,
+                          )
                     }
                     className="flex w-full items-center justify-between gap-2 text-left"
                   >
@@ -898,14 +1084,28 @@ const DashboardMobileView = ({
                         {isEntrada ? "+" : "-"}
                         {formatCurrency(item.value || item.valor || 0)}
                       </p>
-                      <ChevronDown
-                        size={14}
-                        style={{
-                          color: "var(--text-tertiary)",
-                          transform: isExpanded ? "rotate(180deg)" : "none",
-                          transition: "transform 0.15s ease",
-                        }}
-                      />
+                      {isSelectionMode ? (
+                        selectedTransactionIds.has(item.id) ? (
+                          <CheckCircle2
+                            size={16}
+                            style={{ color: "var(--accent-600)" }}
+                          />
+                        ) : (
+                          <Circle
+                            size={16}
+                            style={{ color: "var(--text-tertiary)" }}
+                          />
+                        )
+                      ) : (
+                        <ChevronDown
+                          size={14}
+                          style={{
+                            color: "var(--text-tertiary)",
+                            transform: isExpanded ? "rotate(180deg)" : "none",
+                            transition: "transform 0.15s ease",
+                          }}
+                        />
+                      )}
                     </div>
                   </button>
 
@@ -1106,7 +1306,7 @@ const DashboardMobileView = ({
             </div>
           </section>
 
-          {exceededCategoryAlerts.length > 0 && (
+          {budgetAlerts.length > 0 && (
             <section
               style={{
                 borderRadius: `${cardRadius}px`,
@@ -1119,22 +1319,85 @@ const DashboardMobileView = ({
                 className="m-0 text-sm font-semibold"
                 style={{ color: "var(--warning-700)" }}
               >
-                Orçamento estourado
+                Alertas de orçamento
               </h2>
               <div className="mt-2 space-y-1.5">
-                {exceededCategoryAlerts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-xs"
-                    style={{ color: "var(--warning-700)" }}
-                  >
-                    <span>
-                      {item.icone ? `${item.icone} ` : ""}
-                      {item.nome}
-                    </span>
-                    <span className="font-semibold">
-                      {formatCurrency(item.total)} / {formatCurrency(item.limite)}
-                    </span>
+                {budgetAlerts.map((item) => {
+                  const alertColor =
+                    item.estado === "Estourado"
+                      ? "var(--danger-700)"
+                      : "var(--warning-700)";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-xs"
+                      style={{ color: alertColor }}
+                    >
+                      <span>
+                        {item.icone ? `${item.icone} ` : ""}
+                        {item.nome}
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(item.total)} / {formatCurrency(item.limite)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {linkedGoals.length > 0 && (
+            <section
+              style={{
+                borderRadius: `${cardRadius}px`,
+                padding: `${cardPadding}px`,
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+              }}
+            >
+              <h2
+                className="m-0 text-sm font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Metas
+              </h2>
+              <div className="mt-2 space-y-3">
+                {linkedGoals.map((goal) => (
+                  <div key={goal.id}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span style={{ color: "var(--text-primary)" }}>
+                        {goal.nome}
+                      </span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {Math.round(goal.percentual)}%
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden"
+                      style={{ background: "var(--bg-surface-sunken)" }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(100, goal.percentual)}%`,
+                          background: "var(--accent-600)",
+                        }}
+                      />
+                    </div>
+                    <p
+                      className="text-[11px] mt-1"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Faltam{" "}
+                      {formatCurrency(
+                        Math.max(0, goal.valor - Math.max(0, goal.valorAcumulado)),
+                      )}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1605,6 +1868,14 @@ const DashboardMobileView = ({
         veiculos={veiculos}
         editingItem={editingItem}
         initialCardPurchaseMode={openCardPurchaseMode}
+      />
+
+      <BulkDeleteConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        count={selectedTransactionsSummary.count}
+        totalValue={selectedTransactionsSummary.totalValue}
       />
     </div>
   );

@@ -24,7 +24,8 @@ public class ObterComparativoCategoriaMensalUseCaseTests
         };
 
     var repo = new InMemoryMovimentacaoRepository(dados);
-    var useCase = new ObterComparativoCategoriaMensalUseCase(repo);
+    var listarComCompetenciaEfetiva = new ListarMovimentacoesComCompetenciaEfetivaUseCase(repo, new InMemoryCartaoRepository());
+    var useCase = new ObterComparativoCategoriaMensalUseCase(listarComCompetenciaEfetiva);
 
     var resultado = useCase.Executar(usuarioId, 4, 2026).ToList();
 
@@ -37,7 +38,8 @@ public class ObterComparativoCategoriaMensalUseCaseTests
   [Fact]
   public void Executar_ComMesInvalido_DeveFalhar()
   {
-    var useCase = new ObterComparativoCategoriaMensalUseCase(new InMemoryMovimentacaoRepository());
+    var useCase = new ObterComparativoCategoriaMensalUseCase(
+        new ListarMovimentacoesComCompetenciaEfetivaUseCase(new InMemoryMovimentacaoRepository(), new InMemoryCartaoRepository()));
 
     var ex = Assert.Throws<ArgumentException>(() => useCase.Executar(Guid.NewGuid(), 13, 2026));
     Assert.Equal("O mês de referência deve estar entre 1 e 12.", ex.Message);
@@ -69,7 +71,22 @@ public class ObterComparativoCategoriaMensalUseCaseTests
     public IEnumerable<Movimentacao> ListarPorPeriodoPorUsuario(DateTime dataInicio, DateTime dataFim, Guid usuarioId)
         => _dados.Where(m => m.UsuarioId == usuarioId && m.Data >= dataInicio && m.Data <= dataFim);
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId) => _dados;
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia) => Enumerable.Empty<Movimentacao>();
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia) => Enumerable.Empty<Movimentacao>();
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes) { }
+  }
+
+  private sealed class InMemoryCartaoRepository : ICartaoRepository
+  {
+    public void Adicionar(CartaoManual cartao) { }
+    public void Atualizar(CartaoManual cartao) { }
+    public CartaoManual? ObterAtivoPorUsuario(Guid usuarioId) => null;
+    public CartaoManual? ObterPorId(Guid id, Guid usuarioId) => null;
+    public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true) => Array.Empty<CartaoManual>();
+    public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId) => Array.Empty<CartaoManual>();
+    public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null) => 0;
+    public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento) => (0m, 0m);
+    public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia) => 0m;
   }
 }

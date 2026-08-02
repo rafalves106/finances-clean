@@ -128,6 +128,130 @@ public class MovimentacaoParcelamentoUseCaseTests
     Assert.Throws<KeyNotFoundException>(() => useCase.Executar(Guid.NewGuid(), Guid.NewGuid()));
   }
 
+  [Fact]
+  public void ListarGruposRecorrenciaExpirados_DeveRetornarApenasGruposComUltimaOcorrenciaNoPassado()
+  {
+    var usuarioId = Guid.NewGuid();
+    var grupoExpiradoId = Guid.NewGuid();
+    var grupoAtivoId = Guid.NewGuid();
+
+    var expirado = new Saida(
+        "Aluguel 12/12",
+        "Fixa",
+        1500m,
+        DateTime.Today.AddMonths(-1),
+        usuarioId,
+        fixa: true,
+        periodo: 12,
+        grupoRecorrenciaId: grupoExpiradoId,
+        tipoMovimentacaoFixa: TipoMovimentacaoFixa.Parcelada);
+
+    var ativo = new Entrada(
+        "Salário",
+        "Mensal",
+        5000m,
+        DateTime.Today.AddMonths(1),
+        usuarioId,
+        fixa: true,
+        periodo: 2,
+        grupoRecorrenciaId: grupoAtivoId,
+        tipoMovimentacaoFixa: TipoMovimentacaoFixa.RecorrenteFixa);
+
+    var repository = new InMemoryMovimentacaoRepository(new Movimentacao[] { expirado, ativo });
+    var useCase = new ListarGruposRecorrenciaExpiradosUseCase(repository);
+
+    var resultado = useCase.Executar(usuarioId).ToList();
+
+    var grupo = Assert.Single(resultado);
+    Assert.Equal(grupoExpiradoId, grupo.GrupoRecorrenciaId);
+    Assert.Equal("Aluguel", grupo.Titulo);
+  }
+
+  [Fact]
+  public void RenovarGrupoRecorrencia_Parcelada_DeveCriarNovasOcorrenciasERenumerar()
+  {
+    var usuarioId = Guid.NewGuid();
+    var grupoId = Guid.NewGuid();
+
+    var movimentacoes = Enumerable.Range(1, 3)
+        .Select(i => (Movimentacao)new Saida(
+            $"Notebook {i}/3",
+            "Compra no cartão",
+            1500m,
+            new DateTime(2026, 1, 1).AddMonths(i - 1),
+            usuarioId,
+            fixa: true,
+            periodo: 3,
+            grupoRecorrenciaId: grupoId,
+            tipoMovimentacaoFixa: TipoMovimentacaoFixa.Parcelada))
+        .ToArray();
+
+    var repository = new InMemoryMovimentacaoRepository(movimentacoes);
+    var renumerarGrupoUseCase = new RenumerarGrupoUseCase(repository);
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase);
+
+    var resultado = useCase.Executar(grupoId, usuarioId, 2);
+
+    Assert.Equal(2, resultado.TotalCriado);
+    Assert.Equal(new DateTime(2026, 5, 1), resultado.NovaUltimaData);
+
+    var grupoCompleto = repository.ListarPorGrupoRecorrencia(grupoId, usuarioId)
+        .OrderBy(m => m.Data)
+        .ToList();
+
+    Assert.Equal(5, grupoCompleto.Count);
+    Assert.Equal("Notebook 1/5", grupoCompleto[0].Titulo);
+    Assert.Equal("Notebook 5/5", grupoCompleto[4].Titulo);
+    Assert.Equal(new DateTime(2026, 5, 1), grupoCompleto[4].Data);
+  }
+
+  [Fact]
+  public void RenovarGrupoRecorrencia_RecorrenteFixa_DeveManterTituloSemNumeracao()
+  {
+    var usuarioId = Guid.NewGuid();
+    var grupoId = Guid.NewGuid();
+
+    var original = new Entrada(
+        "Salário",
+        "Mensal",
+        5000m,
+        new DateTime(2026, 1, 5),
+        usuarioId,
+        fixa: true,
+        periodo: 1,
+        grupoRecorrenciaId: grupoId,
+        tipoMovimentacaoFixa: TipoMovimentacaoFixa.RecorrenteFixa);
+
+    var repository = new InMemoryMovimentacaoRepository(new Movimentacao[] { original });
+    var renumerarGrupoUseCase = new RenumerarGrupoUseCase(repository);
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase);
+
+    useCase.Executar(grupoId, usuarioId, 3);
+
+    Assert.All(
+        repository.ListarPorGrupoRecorrencia(grupoId, usuarioId),
+        item => Assert.Equal("Salário", item.Titulo));
+    Assert.False(repository.AtualizacaoEmLoteExecutada);
+  }
+
+  [Fact]
+  public void RenovarGrupoRecorrencia_MesesInvalido_DeveFalhar()
+  {
+    var repository = new InMemoryMovimentacaoRepository();
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository));
+
+    Assert.Throws<ArgumentException>(() => useCase.Executar(Guid.NewGuid(), Guid.NewGuid(), 0));
+  }
+
+  [Fact]
+  public void RenovarGrupoRecorrencia_GrupoInexistente_DeveFalhar()
+  {
+    var repository = new InMemoryMovimentacaoRepository();
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository));
+
+    Assert.Throws<KeyNotFoundException>(() => useCase.Executar(Guid.NewGuid(), Guid.NewGuid(), 1));
+  }
+
   private sealed class InMemoryMovimentacaoRepository : IMovimentacaoRepository
   {
     private readonly List<Movimentacao> _dados;
@@ -174,11 +298,32 @@ public class MovimentacaoParcelamentoUseCaseTests
       return _dados.Where(m => m.GrupoRecorrenciaId == grupoRecorrenciaId && m.UsuarioId == usuarioId);
     }
 
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
+    {
+      return _dados
+          .Where(m => m.UsuarioId == usuarioId && m.Fixa && m.GrupoRecorrenciaId != null)
+          .GroupBy(m => m.GrupoRecorrenciaId)
+          .Select(g => g.OrderByDescending(m => m.Data).ThenByDescending(m => m.Id).First())
+          .Where(m => m.Data < referencia);
+    }
+
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
+    {
+      return Enumerable.Empty<Movimentacao>();
+    }
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes)
     {
       AtualizacaoEmLoteExecutada = true;
     }
 
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes)
+    {
+      foreach (var item in movimentacoes)
+      {
+        Remover(item);
+      }
+    }
+
   }
 }

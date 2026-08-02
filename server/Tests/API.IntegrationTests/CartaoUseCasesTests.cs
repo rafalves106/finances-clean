@@ -348,6 +348,12 @@ public class CartaoUseCasesTests
     public IEnumerable<Movimentacao> ListarPorGrupoRecorrencia(Guid grupoRecorrenciaId, Guid usuarioId)
         => movimentacoes.Where(m => m.GrupoRecorrenciaId == grupoRecorrenciaId && m.UsuarioId == usuarioId);
 
+    public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
+        => Enumerable.Empty<Movimentacao>();
+
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
+        => Enumerable.Empty<Movimentacao>();
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> itens)
     {
       foreach (var item in itens)
@@ -356,7 +362,14 @@ public class CartaoUseCasesTests
       }
     }
 
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0;
+    public void RemoverEmLote(IEnumerable<Movimentacao> itens)
+    {
+      foreach (var item in itens)
+      {
+        Remover(item);
+      }
+    }
+
   }
 
   private sealed class InMemoryCartaoBackfillRepository : ICartaoBackfillRepository

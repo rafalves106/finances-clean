@@ -132,6 +132,51 @@ export const useCardSummaries = ({ allTransactions, selectedMes, selectedAno }) 
     });
   }, [cardSummaries]);
 
+  const [futureInvoicesByCardId, setFutureInvoicesByCardId] = useState({});
+
+  useEffect(() => {
+    const cardIds = cardSummaries
+      .map((summary) => summary?.cartao?.id)
+      .filter(Boolean)
+      .map(String);
+
+    if (cardIds.length === 0) {
+      setFutureInvoicesByCardId({});
+      return;
+    }
+
+    let cancelled = false;
+
+    Promise.all(
+      cardIds.map(async (cardId) => {
+        try {
+          const response = await fetch(
+            `${API_CARTAO_URL}/${cardId}/previsao-futura?meses=3`,
+            { method: "GET", credentials: "include" },
+          );
+
+          if (!response.ok) {
+            return [cardId, []];
+          }
+
+          const data = await response.json();
+          return [cardId, Array.isArray(data?.meses) ? data.meses : []];
+        } catch (error) {
+          console.error("Erro ao buscar previsão futura do cartão:", error);
+          return [cardId, []];
+        }
+      }),
+    ).then((entries) => {
+      if (!cancelled) {
+        setFutureInvoicesByCardId(Object.fromEntries(entries));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cardSummaries]);
+
   const cardTransactionsById = useMemo(() => {
     const grouped = new Map();
 
@@ -360,6 +405,7 @@ export const useCardSummaries = ({ allTransactions, selectedMes, selectedAno }) 
     newCardStatusBySlot,
     isCreatingCardBySlot,
     cardTransactionsById,
+    futureInvoicesByCardId,
     cardColumns,
     cardSummary,
     backCardSummaries,

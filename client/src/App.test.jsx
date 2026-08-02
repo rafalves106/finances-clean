@@ -35,10 +35,6 @@ vi.mock("./components/VehicleView", () => ({
   default: () => <div>Vehicle View</div>,
 }));
 
-vi.mock("./components/CardViewerView", () => ({
-  default: () => <div>Card Viewer</div>,
-}));
-
 vi.mock("./components/CategoryManagerModal", () => ({
   default: () => null,
 }));

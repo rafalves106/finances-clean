@@ -1,6 +1,12 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
 vi.mock("recharts", () => {
   const Mock = ({ children }) => <div>{children}</div>;
@@ -128,7 +134,7 @@ describe("DashboardDesktopRedesignView", () => {
     );
 
     expect(screen.getByText("Investimentos")).toBeTruthy();
-    expect(screen.getByText("Próximas despesas")).toBeTruthy();
+    expect(screen.getAllByText("Despesas").length).toBeGreaterThan(0);
     expect(screen.getByText("Movimentações")).toBeTruthy();
 
     const root = container.querySelector(".dashboard-desktop-redesign");
@@ -245,5 +251,174 @@ describe("DashboardDesktopRedesignView", () => {
     expect(entradaCard).toBeTruthy();
     expect(screen.getByText("↑")).toBeTruthy();
     expect(screen.getByText("↓")).toBeTruthy();
+  });
+
+  it("deve exibir Despesas e Gastos por Categoria a partir do resumoMensal, nao do array bruto", () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[
+          {
+            id: "exp-cartao",
+            name: "Compra no cartão (fatura ainda não venceu)",
+            value: 99999,
+            type: "Saida",
+            date: "2026-06-10",
+          },
+        ]}
+        resumoMensal={{
+          totalEntradas: 5000,
+          totalSaidas: 750,
+          porCategoria: [
+            {
+              categoriaId: "cat-1",
+              nome: "Eletrônicos",
+              icone: "💻",
+              cor: "#6366f1",
+              totalSaidas: 750,
+            },
+          ],
+        }}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    const despesasCard = screen
+      .getAllByText("Despesas")
+      .map((node) => node.closest(".rounded-lg"))
+      .find((card) => card?.textContent.includes("Você gastou"));
+
+    expect(despesasCard).toBeTruthy();
+    expect(despesasCard.textContent).toMatch(/R\$\s*750,00/);
+
+    expect(screen.getAllByText(/Eletrônicos/).length).toBeGreaterThan(0);
+  });
+
+  it("deve exibir a fatura vencendo como item na lista de Movimentacoes", async () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Compra avulsa",
+            value: 50,
+            type: "Saida",
+            date: "2026-06-05",
+          },
+        ]}
+        faturasVencendo={[
+          {
+            cartaoId: "cartao-1",
+            nomeCartao: "Itaú CC",
+            valor: 1500,
+            dataVencimento: "2026-06-05T00:00:00",
+          },
+        ]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    expect(await screen.findByText("Fatura Itaú CC")).toBeTruthy();
+  });
+
+  it("deve selecionar movimentações e excluir em lote", async () => {
+    const fetchMock = buildFetchMock();
+    globalThis.fetch = vi.fn().mockImplementation(async (url, init) => {
+      if (String(url).includes("/remover-em-lote")) {
+        expect(init.method).toBe("POST");
+        expect(JSON.parse(init.body).ids).toHaveLength(2);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            totalSolicitado: 2,
+            totalRemovido: 2,
+            idsNaoEncontrados: [],
+            idsBloqueados: [],
+          }),
+        };
+      }
+      return fetchMock(url, init);
+    });
+
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[
+          {
+            id: "inc-1",
+            name: "Salario",
+            value: 5000,
+            type: "Entrada",
+            date: "2026-06-05",
+          },
+        ]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Aluguel",
+            value: 1800,
+            type: "Saida",
+            date: "2026-06-10",
+          },
+        ]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByLabelText("Abrir slide de movimentações")[0],
+    );
+
+    const selectAll = await screen.findByLabelText(
+      "Selecionar todas as movimentações",
+    );
+    fireEvent.click(selectAll);
+
+    expect(screen.getByText(/2 selecionadas/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Excluir selecionadas"));
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Excluir movimentações",
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/2 selecionadas/)).toBeNull();
+    });
   });
 });

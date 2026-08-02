@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, IMovimentacaoRepository movimentacaoRepository, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, RemoverMovimentacoesEmLoteUseCase removerMovimentacoesEmLoteUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, ObterSaldoAcumuladoUseCase obterSaldoAcumuladoUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -89,7 +89,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     {
         try
         {
-            return Ok(obterResumoMensalUseCase.Executar(mes, ano));
+            return Ok(obterResumoMensalUseCase.Executar(UsuarioId, mes, ano));
         }
         catch (Exception)
         {
@@ -222,6 +222,24 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         }
     }
 
+    [HttpPost("remover-em-lote")]
+    public IActionResult RemoverMovimentacoesEmLote([FromBody] RemoverMovimentacoesEmLoteDTO dto)
+    {
+        try
+        {
+            var resultado = removerMovimentacoesEmLoteUseCase.Executar(dto.Ids);
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao remover movimentações em lote.");
+        }
+    }
+
     [HttpGet("saldo-acumulado")]
     public IActionResult ObterSaldoAcumulado(
     [FromQuery] int mes,
@@ -229,7 +247,7 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
     {
         try
         {
-            var saldo = movimentacaoRepository.ObterSaldoAcumulado(mes, ano);
+            var saldo = obterSaldoAcumuladoUseCase.Executar(UsuarioId, mes, ano);
             return Ok(new { saldo });
         }
         catch (Exception)
@@ -253,6 +271,55 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (ArgumentException)
         {
             return BadRequest("Dados inválidos para renumeração.");
+        }
+    }
+
+    [HttpGet("grupos/expirados")]
+    public IActionResult ListarGruposRecorrenciaExpirados()
+    {
+        try
+        {
+            return Ok(listarGruposRecorrenciaExpiradosUseCase.Executar(UsuarioId));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao listar grupos de recorrência expirados.");
+        }
+    }
+
+    [HttpPost("grupos/{grupoRecorrenciaId:guid}/renovar")]
+    public IActionResult RenovarGrupoRecorrencia(Guid grupoRecorrenciaId, [FromBody] RenovarGrupoRecorrenciaDTO dto)
+    {
+        try
+        {
+            var resultado = renovarGrupoRecorrenciaUseCase.Executar(grupoRecorrenciaId, UsuarioId, dto.Meses);
+            return Ok(resultado);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("Grupo de recorrência não encontrado.");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("relatorio-mensal")]
+    public IActionResult ObterRelatorioMensal([FromQuery] int mes, [FromQuery] int ano)
+    {
+        try
+        {
+            var resultado = gerarRelatorioMensalUseCase.Executar(UsuarioId, mes, ano);
+            return File(resultado.Conteudo, "text/html; charset=utf-8", resultado.NomeArquivo);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao gerar relatório mensal.");
         }
     }
 

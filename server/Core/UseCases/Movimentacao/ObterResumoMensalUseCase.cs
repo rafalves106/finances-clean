@@ -1,15 +1,14 @@
 using Finance.Core.Application.DTOs;
-using Finance.Core.Repositories;
 using System.Globalization;
 using System.Text;
 
 namespace Finance.Core.UseCases;
 
-public class ObterResumoMensalUseCase(IMovimentacaoRepository movimentacaoRepository)
+public class ObterResumoMensalUseCase(ListarMovimentacoesComCompetenciaEfetivaUseCase listarMovimentacoesComCompetenciaEfetivaUseCase)
 {
-    public ResumoMensalDTO Executar(int mes, int ano)
+    public ResumoMensalDTO Executar(Guid usuarioId, int mes, int ano)
     {
-        var movimentacoes = movimentacaoRepository.ListarPorMes(mes, ano)
+        var movimentacoes = listarMovimentacoesComCompetenciaEfetivaUseCase.Executar(usuarioId, mes, ano)
             .Where(m => m.InvestimentoId is null)
             .ToList();
 

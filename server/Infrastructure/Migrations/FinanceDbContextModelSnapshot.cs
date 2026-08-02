@@ -303,6 +303,9 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CategoriaId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("Concluida")
                         .HasColumnType("boolean");
 
@@ -317,6 +320,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid?>("InvestimentoId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid");
 
@@ -325,6 +331,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoriaId");
+
+                    b.HasIndex("InvestimentoId");
 
                     b.ToTable("Metas");
                 });
@@ -552,6 +562,19 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("CategoriaGlobalId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Finance.Core.Domain.Meta", b =>
+                {
+                    b.HasOne("Finance.Core.Domain.Categoria", null)
+                        .WithMany()
+                        .HasForeignKey("CategoriaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Finance.Core.Domain.Investimento", null)
+                        .WithMany()
+                        .HasForeignKey("InvestimentoId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Finance.Core.Domain.Movimentacao", b =>
