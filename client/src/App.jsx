@@ -22,6 +22,7 @@ import {
   API_CATEGORIAS_URL,
   API_VEICULOS_URL,
   API_METAS_URL,
+  API_CARTAO_URL,
 } from "./services/api";
 import { getAuthHeaders, isAuthenticated, removeToken } from "./services/auth";
 import changelogRaw from "../../CHANGELOG.md?raw";
@@ -85,6 +86,7 @@ const App = () => {
   useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [resumoMensal, setResumoMensal] = useState(null);
+  const [faturasVencendo, setFaturasVencendo] = useState([]);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
@@ -317,6 +319,21 @@ const App = () => {
         }
       }
 
+      const resFaturasVencendo = await fetch(
+        `${API_CARTAO_URL}/faturas-vencendo?mes=${requestMes}&ano=${requestAno}`,
+        { headers: getAuthHeaders() },
+      );
+
+      if (resFaturasVencendo.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (resFaturasVencendo.ok) {
+        setFaturasVencendo(await resFaturasVencendo.json());
+      }
+
       const responseInv = await fetch(
         `${API_INVESTIMENTOS_URL}?mostrarInativos=false`,
         { headers: getAuthHeaders() },
@@ -533,6 +550,7 @@ const App = () => {
         {activeTab === "dashboard" && (
           <DashboardMobileView
             resumoMensal={resumoMensal}
+            faturasVencendo={faturasVencendo}
             investmentAmount={investmentAmount}
             incomes={incomes}
             expenses={expenses}
@@ -765,6 +783,7 @@ const App = () => {
           {activeTab === "dashboard" && (
             <DashboardDesktopRedesignView
               resumoMensal={resumoMensal}
+              faturasVencendo={faturasVencendo}
               investmentAmount={investmentAmount}
               incomes={incomes}
               expenses={expenses}

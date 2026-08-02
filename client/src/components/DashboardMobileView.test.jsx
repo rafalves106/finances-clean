@@ -123,4 +123,39 @@ describe("DashboardMobileView", () => {
     expect(screen.getByText(/Despesas R\$\s*800,00/)).toBeTruthy();
     expect(screen.getAllByText(/Notebook/).length).toBeGreaterThan(0);
   });
+
+  it("deve exibir a fatura vencendo como item na lista de Movimentacoes", async () => {
+    setViewport(390, 844);
+
+    render(
+      <DashboardMobileView
+        {...baseProps}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Compra avulsa",
+            value: 50,
+            date: "2026-06-05",
+            type: "Saida",
+          },
+        ]}
+        resumoMensal={{ totalEntradas: 0, totalSaidas: 50, porCategoria: [] }}
+        faturasVencendo={[
+          {
+            cartaoId: "cartao-1",
+            nomeCartao: "Itaú CC",
+            valor: 1500,
+            dataVencimento: "2026-06-05T00:00:00",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Saldo atual")).toBeTruthy();
+    });
+
+    expect(screen.getByText("Fatura Itaú CC")).toBeTruthy();
+    expect(screen.getByText(/1\.500,00/)).toBeTruthy();
+  });
 });

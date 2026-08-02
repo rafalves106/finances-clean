@@ -15,6 +15,7 @@ public class CartaoController(
     ObterResumoCartaoUseCase obterResumoCartaoUseCase,
   ObterPrevisaoFaturaUseCase obterPrevisaoFaturaUseCase,
   ObterPrevisaoFaturaFuturaUseCase obterPrevisaoFaturaFuturaUseCase,
+  ListarFaturasVencendoNoMesUseCase listarFaturasVencendoNoMesUseCase,
   ExecutarPreviewBackfillCompetenciaCartaoUseCase executarPreviewBackfillCompetenciaCartaoUseCase,
   ExecutarApplyBackfillCompetenciaCartaoUseCase executarApplyBackfillCompetenciaCartaoUseCase,
   ExecutarRollbackBackfillCompetenciaCartaoUseCase executarRollbackBackfillCompetenciaCartaoUseCase) : AuthenticatedController
@@ -138,6 +139,13 @@ public class CartaoController(
     {
       return BadRequest(Erro("CARTAO_MESES_INVALIDO", ex.Message));
     }
+  }
+
+  [HttpGet("faturas-vencendo")]
+  public IActionResult ListarFaturasVencendo([FromQuery] int mes, [FromQuery] int ano)
+  {
+    var faturas = listarFaturasVencendoNoMesUseCase.Executar(UsuarioId, mes, ano);
+    return Ok(faturas);
   }
 
   [HttpPost("backfill/preview")]

@@ -47,4 +47,13 @@ public static class CompetenciaFaturaCalculator
     var dataCompetencia = diaVencimento > diaFechamento ? baseData : baseData.AddMonths(-1);
     return (dataCompetencia.Year * 100) + dataCompetencia.Month;
   }
+
+  public static DateTime ObterDataVencimento(int competencia, int diaFechamento, int diaVencimento)
+  {
+    var competenciaVencimento = ObterCompetenciaVencimento(competencia, diaFechamento, diaVencimento);
+    var ano = competenciaVencimento / 100;
+    var mes = competenciaVencimento % 100;
+    var dia = Math.Min(diaVencimento, DateTime.DaysInMonth(ano, mes));
+    return new DateTime(ano, mes, dia, 0, 0, 0, DateTimeKind.Utc);
+  }
 }
