@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
 import DashboardMobileView from "./DashboardMobileView";
 
@@ -122,6 +128,73 @@ describe("DashboardMobileView", () => {
 
     expect(screen.getByText(/Despesas R\$\s*800,00/)).toBeTruthy();
     expect(screen.getAllByText(/Notebook/).length).toBeGreaterThan(0);
+  });
+
+  it("deve selecionar movimentacoes e excluir em lote", async () => {
+    setViewport(390, 844);
+
+    globalThis.fetch = vi.fn().mockImplementation(async (url, init) => {
+      if (String(url).includes("/remover-em-lote")) {
+        expect(init.method).toBe("POST");
+        expect(JSON.parse(init.body).ids).toHaveLength(2);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            totalSolicitado: 2,
+            totalRemovido: 2,
+            idsNaoEncontrados: [],
+            idsBloqueados: [],
+          }),
+        };
+      }
+      return { ok: true, status: 200, json: async () => [] };
+    });
+
+    render(
+      <DashboardMobileView
+        {...baseProps}
+        incomes={[
+          {
+            id: "inc-1",
+            name: "Salário",
+            value: 1200,
+            date: "2026-06-30",
+            type: "Entrada",
+          },
+        ]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Mercado",
+            value: 200,
+            date: "2026-06-10",
+            type: "Saida",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Saldo atual")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Selecionar"));
+    fireEvent.click(screen.getByText("Salário"));
+    fireEvent.click(screen.getByText("Mercado"));
+
+    expect(screen.getByText(/2 selecionadas/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Excluir"));
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Excluir movimentações",
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/2 selecionadas/)).toBeNull();
+    });
   });
 
   it("deve exibir a fatura vencendo como item na lista de Movimentacoes", async () => {

@@ -59,6 +59,7 @@ import {
 } from "./dashboard/chartTooltips";
 import CardsSlide from "./dashboard/CardsSlide";
 import ExportCsvModal from "./ExportCsvModal";
+import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 import TransactionModal from "./TransactionModal";
 import InvestmentsView from "./InvestmentsView";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -88,6 +89,10 @@ const DashboardDesktopRedesignView = ({
   const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
   const [activeSlide, setActiveSlide] = useState(null);
   const [chartsSlideTab, setChartsSlideTab] = useState("fluxo");
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(
+    () => new Set(),
+  );
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
@@ -291,6 +296,7 @@ const DashboardDesktopRedesignView = ({
     handleOpenNewTransaction,
     handleOpenEditTransaction,
     handleDeleteTransaction,
+    handleBulkDelete,
     handleSimulate,
     handleApplySimulation,
   } = useTransactionActions({
@@ -300,6 +306,56 @@ const DashboardDesktopRedesignView = ({
     simulatedTransactions,
     setSimulatedTransactions,
   });
+
+  const selectableTransactionIds = useMemo(
+    () =>
+      slideTransactions
+        .filter((item) => !item.isFaturaResumo)
+        .map((item) => item.id),
+    [slideTransactions],
+  );
+
+  const isAllTransactionsSelected =
+    selectableTransactionIds.length > 0 &&
+    selectableTransactionIds.every((id) => selectedTransactionIds.has(id));
+
+  const toggleSelectTransaction = (id) => {
+    setSelectedTransactionIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllTransactions = () => {
+    setSelectedTransactionIds(
+      isAllTransactionsSelected ? new Set() : new Set(selectableTransactionIds),
+    );
+  };
+
+  const selectedTransactionsSummary = useMemo(() => {
+    const selecionadas = slideTransactions.filter((item) =>
+      selectedTransactionIds.has(item.id),
+    );
+    return {
+      count: selecionadas.length,
+      totalValue: selecionadas.reduce(
+        (acc, item) => acc + Number(item.value || item.valor || 0),
+        0,
+      ),
+    };
+  }, [slideTransactions, selectedTransactionIds]);
+
+  const handleConfirmBulkDelete = async () => {
+    const resultado = await handleBulkDelete(Array.from(selectedTransactionIds));
+    if (resultado.ok) {
+      setSelectedTransactionIds(new Set());
+    }
+  };
 
   useKeyboardShortcuts({
     onNewTransaction: handleOpenNewTransaction,
@@ -580,6 +636,48 @@ const DashboardDesktopRedesignView = ({
               </div>
             </div>
 
+            {selectedTransactionsSummary.count > 0 ? (
+              <div
+                className="mt-3 flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                style={{
+                  background: "var(--danger-100)",
+                  border: "1px solid var(--danger-border)",
+                }}
+              >
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: "var(--danger-700)" }}
+                >
+                  {selectedTransactionsSummary.count}{" "}
+                  {selectedTransactionsSummary.count === 1
+                    ? "selecionada"
+                    : "selecionadas"}{" "}
+                  · {formatCurrency(selectedTransactionsSummary.totalValue)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTransactionIds(new Set())}
+                    className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Limpar seleção
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(true)}
+                    className="text-xs font-semibold rounded-md px-3 py-1.5 transition-colors"
+                    style={{
+                      background: "var(--danger-700)",
+                      color: "white",
+                    }}
+                  >
+                    Excluir selecionadas
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div
               className="mt-3 flex-1 min-h-0 overflow-y-auto rounded-lg"
               style={{ border: "1px solid var(--border-default)" }}
@@ -608,6 +706,15 @@ const DashboardDesktopRedesignView = ({
                         borderBottom: "1px solid var(--border-default)",
                       }}
                     >
+                      <th scope="col" className="p-3 font-bold w-8">
+                        <input
+                          type="checkbox"
+                          aria-label="Selecionar todas as movimentações"
+                          checked={isAllTransactionsSelected}
+                          onChange={toggleSelectAllTransactions}
+                          className="cursor-pointer"
+                        />
+                      </th>
                       <th scope="col" className="p-3 font-bold">
                         Data
                       </th>
@@ -647,6 +754,17 @@ const DashboardDesktopRedesignView = ({
                               "var(--bg-surface)";
                           }}
                         >
+                          <td className="p-3">
+                            {item.isFaturaResumo ? null : (
+                              <input
+                                type="checkbox"
+                                aria-label={`Selecionar ${item.name || item.titulo || "movimentação"}`}
+                                checked={selectedTransactionIds.has(item.id)}
+                                onChange={() => toggleSelectTransaction(item.id)}
+                                className="cursor-pointer"
+                              />
+                            )}
+                          </td>
                           <td
                             className="p-3 text-xs whitespace-nowrap"
                             style={{ color: "var(--text-secondary)" }}
@@ -2522,6 +2640,14 @@ const DashboardDesktopRedesignView = ({
         onConfirm={handleExportCsv}
         defaultStartDate={getMonthDateRange(selectedAno, selectedMes).startDate}
         defaultEndDate={getMonthDateRange(selectedAno, selectedMes).endDate}
+      />
+
+      <BulkDeleteConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        count={selectedTransactionsSummary.count}
+        totalValue={selectedTransactionsSummary.totalValue}
       />
 
       <TransactionModal

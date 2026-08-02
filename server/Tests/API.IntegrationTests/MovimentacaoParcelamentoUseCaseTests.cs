@@ -317,5 +317,13 @@ public class MovimentacaoParcelamentoUseCaseTests
       AtualizacaoEmLoteExecutada = true;
     }
 
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes)
+    {
+      foreach (var item in movimentacoes)
+      {
+        Remover(item);
+      }
+    }
+
   }
 }

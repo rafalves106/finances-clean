@@ -47,6 +47,7 @@ builder.Services.AddScoped<CriarMovimentacaoUseCase>();
 builder.Services.AddScoped<ListarMovimentacoesUseCase>();
 builder.Services.AddScoped<AtualizarMovimentacaoUseCase>();
 builder.Services.AddScoped<RemoverMovimentacaoUseCase>();
+builder.Services.AddScoped<RemoverMovimentacoesEmLoteUseCase>();
 builder.Services.AddScoped<BuscarMovimentacaoUseCase>();
 builder.Services.AddScoped<BuscarEntradaUseCase>();
 builder.Services.AddScoped<BuscarSaidaUseCase>();
