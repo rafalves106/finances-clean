@@ -54,6 +54,9 @@ public static class CompetenciaFaturaCalculator
     var ano = competenciaVencimento / 100;
     var mes = competenciaVencimento % 100;
     var dia = Math.Min(diaVencimento, DateTime.DaysInMonth(ano, mes));
-    return new DateTime(ano, mes, dia, 0, 0, 0, DateTimeKind.Utc);
+    // Kind Unspecified (nao Utc) de proposito: e uma data de calendario, sem
+    // horario - com Utc explicito o front interpreta como meia-noite UTC e
+    // desloca um dia pra tras em fusos negativos (ex: America/Sao_Paulo).
+    return new DateTime(ano, mes, dia);
   }
 }
