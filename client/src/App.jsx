@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { LayoutDashboard, Target, Car, LogOut } from "lucide-react";
+import { LayoutDashboard, Target, Car, LogOut, Search } from "lucide-react";
 
 import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
 import DashboardMobileView from "./components/DashboardMobileView";
@@ -10,9 +10,11 @@ import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
 import AlertsCenter from "./components/AlertsCenter";
+import GlobalSearchModal from "./components/GlobalSearchModal";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useAlertsCenter } from "./hooks/useAlertsCenter";
 import { useRecurringRenewals } from "./hooks/useRecurringRenewals";
+import { useGlobalSearchShortcut } from "./hooks/useGlobalSearchShortcut";
 
 import {
   API_URL,
@@ -79,6 +81,8 @@ const App = () => {
   const [metas, setMetas] = useState([]);
   const { expiredGroups: recurringGroups, renovarGrupo } =
     useRecurringRenewals({ enabled: isLoggedIn });
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
@@ -503,6 +507,15 @@ const App = () => {
             </button>
           ))}
           <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setIsGlobalSearchOpen(true)}
+              aria-label="Buscar"
+              className="flex items-center justify-center w-9 h-9 rounded-full"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <Search size={18} />
+            </button>
             <AlertsCenter alerts={alerts} />
             <button
               type="button"
@@ -677,6 +690,21 @@ const App = () => {
           <div
             className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
           >
+            <button
+              type="button"
+              onClick={() => setIsGlobalSearchOpen(true)}
+              aria-label="Buscar (Cmd+K)"
+              title={!isSidebarExpanded ? "Buscar (Cmd+K)" : undefined}
+              className="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              <Search size={18} />
+            </button>
+          </div>
+
+          <div
+            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
+          >
             <AlertsCenter alerts={alerts} panelPosition="bottom-left" />
           </div>
 
@@ -800,6 +828,17 @@ const App = () => {
         releaseNotes={releaseNotesContent}
         onClose={() => setReleaseNotesOpen(false)}
       />
+
+      {isGlobalSearchOpen ? (
+        <GlobalSearchModal
+          onClose={() => setIsGlobalSearchOpen(false)}
+          onNavigate={setActiveTab}
+          incomes={incomes}
+          expenses={expenses}
+          veiculos={veiculos}
+          metas={metas}
+        />
+      ) : null}
     </div>
   );
 };
