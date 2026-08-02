@@ -246,4 +246,56 @@ describe("DashboardDesktopRedesignView", () => {
     expect(screen.getByText("↑")).toBeTruthy();
     expect(screen.getByText("↓")).toBeTruthy();
   });
+
+  it("deve exibir Despesas e Gastos por Categoria a partir do resumoMensal, nao do array bruto", () => {
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[
+          {
+            id: "exp-cartao",
+            name: "Compra no cartão (fatura ainda não venceu)",
+            value: 99999,
+            type: "Saida",
+            date: "2026-06-10",
+          },
+        ]}
+        resumoMensal={{
+          totalEntradas: 5000,
+          totalSaidas: 750,
+          porCategoria: [
+            {
+              categoriaId: "cat-1",
+              nome: "Eletrônicos",
+              icone: "💻",
+              cor: "#6366f1",
+              totalSaidas: 750,
+            },
+          ],
+        }}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    const despesasCard = screen
+      .getAllByText("Despesas")
+      .map((node) => node.closest(".rounded-lg"))
+      .find((card) => card?.textContent.includes("Você gastou"));
+
+    expect(despesasCard).toBeTruthy();
+    expect(despesasCard.textContent).toMatch(/R\$\s*750,00/);
+
+    expect(screen.getAllByText(/Eletrônicos/).length).toBeGreaterThan(0);
+  });
 });

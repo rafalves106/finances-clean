@@ -70,6 +70,7 @@ const DashboardMobileView = ({
   onOpenCategoryManager,
   budgetAlerts = [],
   metas = [],
+  resumoMensal = null,
 }) => {
   const [activeScreen, setActiveScreen] = useState("home");
   const [viewportWidth, setViewportWidth] = useState(
@@ -273,16 +274,8 @@ const DashboardMobileView = ({
     [metas],
   );
 
-  const totalIncome = useMemo(
-    () => incomes.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [incomes],
-  );
-
-  const totalExpenses = useMemo(
-    () => expenses.reduce((acc, item) => acc + Number(item.value || 0), 0),
-    [expenses],
-  );
-
+  const totalIncome = resumoMensal?.totalEntradas ?? 0;
+  const totalExpenses = resumoMensal?.totalSaidas ?? 0;
   const finalBalance = saldoAnterior + totalIncome - totalExpenses;
 
   const upcomingItems = useMemo(() => {
@@ -299,25 +292,19 @@ const DashboardMobileView = ({
   }, [allTransactions]);
 
   const categoriesTop = useMemo(() => {
-    const byCategory = new Map();
+    const porCategoria = resumoMensal?.porCategoria ?? [];
 
-    expenses.forEach((item) => {
-      const key = String(item.categoriaId || item.categoria?.id || "sem");
-      const current = byCategory.get(key) || {
-        id: key,
-        nome: item.categoria?.nome || "Sem categoria",
-        icone: item.categoria?.icone || "",
-        total: 0,
-      };
-
-      current.total += Number(item.value || 0);
-      byCategory.set(key, current);
-    });
-
-    return Array.from(byCategory.values())
+    return porCategoria
+      .filter((item) => Number(item.totalSaidas || 0) > 0)
+      .map((item) => ({
+        id: String(item.categoriaId || "sem"),
+        nome: item.nome || "Sem categoria",
+        icone: item.icone || "",
+        total: Number(item.totalSaidas || 0),
+      }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 4);
-  }, [expenses]);
+  }, [resumoMensal]);
 
   const listedTransactions = useMemo(() => {
     return allTransactions.filter((item) => {

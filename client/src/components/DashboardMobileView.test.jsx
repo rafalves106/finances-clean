@@ -88,4 +88,39 @@ describe("DashboardMobileView", () => {
     fireEvent.click(screen.getByLabelText("Investimentos"));
     expect(screen.getByText("Simulador de Juros Compostos")).toBeTruthy();
   });
+
+  it("deve exibir Despesas e Categorias a partir do resumoMensal, nao do array bruto de movimentacoes", async () => {
+    setViewport(390, 844);
+
+    const resumoMensal = {
+      totalEntradas: 5000,
+      totalSaidas: 800,
+      porCategoria: [
+        { categoriaId: "cat-1", nome: "Notebook", icone: "💻", totalSaidas: 800 },
+      ],
+    };
+
+    render(
+      <DashboardMobileView
+        {...baseProps}
+        expenses={[
+          {
+            id: "exp-cartao",
+            name: "Compra no cartão (fatura ainda não venceu)",
+            value: 99999,
+            date: "2026-06-10",
+            type: "Saida",
+          },
+        ]}
+        resumoMensal={resumoMensal}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Saldo atual")).toBeTruthy();
+    });
+
+    expect(screen.getByText(/Despesas R\$\s*800,00/)).toBeTruthy();
+    expect(screen.getAllByText(/Notebook/).length).toBeGreaterThan(0);
+  });
 });

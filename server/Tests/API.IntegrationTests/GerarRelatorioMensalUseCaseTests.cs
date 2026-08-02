@@ -28,8 +28,9 @@ public class GerarRelatorioMensalUseCaseTests
     };
 
     var repository = new InMemoryMovimentacaoRepository(movimentacoes);
-    var resumoUseCase = new ObterResumoMensalUseCase(repository);
-    var comparativoUseCase = new ObterComparativoCategoriaMensalUseCase(repository);
+    var listarComCompetenciaEfetiva = new ListarMovimentacoesComCompetenciaEfetivaUseCase(repository, new InMemoryCartaoRepository());
+    var resumoUseCase = new ObterResumoMensalUseCase(listarComCompetenciaEfetiva);
+    var comparativoUseCase = new ObterComparativoCategoriaMensalUseCase(listarComCompetenciaEfetiva);
     var useCase = new GerarRelatorioMensalUseCase(resumoUseCase, comparativoUseCase);
 
     var resultado = useCase.Executar(usuarioId, 8, 2026);
@@ -49,9 +50,10 @@ public class GerarRelatorioMensalUseCaseTests
   {
     var usuarioId = Guid.NewGuid();
     var repository = new InMemoryMovimentacaoRepository();
+    var listarComCompetenciaEfetiva = new ListarMovimentacoesComCompetenciaEfetivaUseCase(repository, new InMemoryCartaoRepository());
     var useCase = new GerarRelatorioMensalUseCase(
-        new ObterResumoMensalUseCase(repository),
-        new ObterComparativoCategoriaMensalUseCase(repository));
+        new ObterResumoMensalUseCase(listarComCompetenciaEfetiva),
+        new ObterComparativoCategoriaMensalUseCase(listarComCompetenciaEfetiva));
 
     var resultado = useCase.Executar(usuarioId, 3, 2026);
     var html = Encoding.UTF8.GetString(resultado.Conteudo);
@@ -102,8 +104,23 @@ public class GerarRelatorioMensalUseCaseTests
     public IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia)
       => Enumerable.Empty<Movimentacao>();
 
+    public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
+      => Enumerable.Empty<Movimentacao>();
+
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
 
-    public decimal ObterSaldoAcumulado(int mes, int ano) => 0m;
+  }
+
+  private sealed class InMemoryCartaoRepository : ICartaoRepository
+  {
+    public void Adicionar(CartaoManual cartao) { }
+    public void Atualizar(CartaoManual cartao) { }
+    public CartaoManual? ObterAtivoPorUsuario(Guid usuarioId) => null;
+    public CartaoManual? ObterPorId(Guid id, Guid usuarioId) => null;
+    public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true) => Array.Empty<CartaoManual>();
+    public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId) => Array.Empty<CartaoManual>();
+    public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null) => 0;
+    public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(Guid cartaoId, DateTime referenciaUtc, int diaFechamento) => (0m, 0m);
+    public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia) => 0m;
   }
 }

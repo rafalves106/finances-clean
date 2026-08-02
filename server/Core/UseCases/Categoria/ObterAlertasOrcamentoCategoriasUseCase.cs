@@ -6,7 +6,7 @@ namespace Finance.Core.UseCases;
 
 public class ObterAlertasOrcamentoCategoriasUseCase(
   ICategoriaRepository categoriaRepository,
-  IMovimentacaoRepository movimentacaoRepository)
+  ListarMovimentacoesComCompetenciaEfetivaUseCase listarMovimentacoesComCompetenciaEfetivaUseCase)
 {
   public ResumoAlertasOrcamentoCategoriasDTO Executar(Guid usuarioId, int mes, int ano)
   {
@@ -36,11 +36,8 @@ public class ObterAlertasOrcamentoCategoriasUseCase(
       .Where(item => item.OrcamentoMensal.HasValue)
       .ToList();
 
-    var inicioMes = new DateTime(ano, mes, 1);
-    var fimMes = inicioMes.AddMonths(1).AddTicks(-1);
-
-    var despesasPorCategoria = movimentacaoRepository
-      .ListarPorPeriodoPorUsuario(inicioMes, fimMes, usuarioId)
+    var despesasPorCategoria = listarMovimentacoesComCompetenciaEfetivaUseCase
+      .Executar(usuarioId, mes, ano)
       .Where(item => item.Tipo == TipoMovimentacao.Saida && item.InvestimentoId is null && item.CategoriaId.HasValue)
       .GroupBy(item => item.CategoriaId)
       .ToDictionary(grupo => grupo.Key!.Value, grupo => grupo.Sum(mov => mov.Valor));

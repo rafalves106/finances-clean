@@ -81,6 +81,7 @@ const DashboardDesktopRedesignView = ({
   headerHeight = 96,
   budgetAlerts = [],
   metas = [],
+  resumoMensal = null,
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
@@ -194,7 +195,6 @@ const DashboardDesktopRedesignView = ({
     chartYTicks,
     upcomingPayments,
     upcomingReceipts,
-    categoryRanking,
     slideCategoryRanking,
     slideCategoryLeftColumn,
     slideCategoryRightColumn,
@@ -214,6 +214,34 @@ const DashboardDesktopRedesignView = ({
     selectedAno,
     saldoAnterior,
   });
+
+  const totalIncomeExibido = resumoMensal?.totalEntradas ?? totalIncome;
+  const totalExpenseExibido = resumoMensal?.totalSaidas ?? totalExpense;
+  const saldoDoMesExibido = resumoMensal
+    ? resumoMensal.totalEntradas - resumoMensal.totalSaidas
+    : monthComparison.currentBalance;
+
+  const categoriaGastosDoMes = useMemo(() => {
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
+
+    return (resumoMensal?.porCategoria ?? [])
+      .filter((item) => Number(item.totalSaidas || 0) > 0)
+      .map((item) => {
+        const categoriaRef = categoriaById.get(String(item.categoriaId));
+        return {
+          id: item.categoriaId || "sem-categoria",
+          nome: item.nome || "Sem categoria",
+          icone: item.icone || "",
+          cor: item.cor || "#6A6785",
+          total: Number(item.totalSaidas || 0),
+          limite: Number(categoriaRef?.orcamentoMensal || 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [resumoMensal, categorias]);
 
   const {
     searchTerm,
@@ -1912,7 +1940,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(totalIncome)}
+                      {formatCurrency(totalIncomeExibido)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
@@ -1942,7 +1970,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(totalExpense)}
+                      {formatCurrency(totalExpenseExibido)}
                     </p>
                   </div>
                   <div className="rounded-lg p-3">
@@ -1972,7 +2000,7 @@ const DashboardDesktopRedesignView = ({
                     <p
                       className={`${kpiValueClassName} font-bold text-[var(--text-primary)] mt-1`}
                     >
-                      {formatCurrency(monthComparison.currentBalance)}
+                      {formatCurrency(saldoDoMesExibido)}
                     </p>
                   </div>
                 </div>
@@ -2081,14 +2109,14 @@ const DashboardDesktopRedesignView = ({
                   </h3>
                 </div>
                 <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 pt-2">
-                  {categoryRanking.length === 0 ? (
+                  {categoriaGastosDoMes.length === 0 ? (
                     <p className="text-sm text-slate-500 col-span-2">
                       Nenhum gasto registrado neste mês
                     </p>
                   ) : (
                     <>
                       <div className="overflow-y-auto pr-1 space-y-3">
-                        {categoryRanking.map((item) => {
+                        {categoriaGastosDoMes.map((item) => {
                           const standardColor = getCategoryStandardColor(
                             item.cor,
                           );
