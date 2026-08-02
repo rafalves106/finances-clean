@@ -134,4 +134,10 @@ public class MovimentacaoRepository : IMovimentacaoRepository
         _context.SaveChanges();
     }
 
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes)
+    {
+        _context.Movimentacoes.RemoveRange(movimentacoes);
+        _context.SaveChanges();
+    }
+
 }

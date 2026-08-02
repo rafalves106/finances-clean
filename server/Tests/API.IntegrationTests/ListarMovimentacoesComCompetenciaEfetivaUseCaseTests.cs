@@ -118,6 +118,7 @@ public class ListarMovimentacoesComCompetenciaEfetivaUseCaseTests
     public IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia)
         => _dados.Where(m => m.UsuarioId == usuarioId && m.CartaoId == cartaoId && m.CompetenciaFatura == competencia);
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes) { }
   }
 
   private sealed class InMemoryCartaoRepository : ICartaoRepository

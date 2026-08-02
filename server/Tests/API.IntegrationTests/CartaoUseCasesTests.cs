@@ -362,6 +362,14 @@ public class CartaoUseCasesTests
       }
     }
 
+    public void RemoverEmLote(IEnumerable<Movimentacao> itens)
+    {
+      foreach (var item in itens)
+      {
+        Remover(item);
+      }
+    }
+
   }
 
   private sealed class InMemoryCartaoBackfillRepository : ICartaoBackfillRepository

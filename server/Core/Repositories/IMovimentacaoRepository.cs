@@ -18,4 +18,5 @@ public interface IMovimentacaoRepository
     IEnumerable<Movimentacao> ListarPorCartaoECompetencia(Guid usuarioId, Guid cartaoId, int competencia);
     IEnumerable<Movimentacao> ListarUltimaOcorrenciaDosGruposExpirados(Guid usuarioId, DateTime referencia);
     void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes);
+    void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes);
 }

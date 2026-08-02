@@ -108,6 +108,7 @@ public class GerarRelatorioMensalUseCaseTests
       => Enumerable.Empty<Movimentacao>();
 
     public void AtualizarEmLote(IEnumerable<Movimentacao> movimentacoes) { }
+    public void RemoverEmLote(IEnumerable<Movimentacao> movimentacoes) { }
 
   }
 

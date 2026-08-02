@@ -1,6 +1,12 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
 vi.mock("recharts", () => {
   const Mock = ({ children }) => <div>{children}</div>;
@@ -336,5 +342,83 @@ describe("DashboardDesktopRedesignView", () => {
     );
 
     expect(await screen.findByText("Fatura Itaú CC")).toBeTruthy();
+  });
+
+  it("deve selecionar movimentações e excluir em lote", async () => {
+    const fetchMock = buildFetchMock();
+    globalThis.fetch = vi.fn().mockImplementation(async (url, init) => {
+      if (String(url).includes("/remover-em-lote")) {
+        expect(init.method).toBe("POST");
+        expect(JSON.parse(init.body).ids).toHaveLength(2);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            totalSolicitado: 2,
+            totalRemovido: 2,
+            idsNaoEncontrados: [],
+            idsBloqueados: [],
+          }),
+        };
+      }
+      return fetchMock(url, init);
+    });
+
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[
+          {
+            id: "inc-1",
+            name: "Salario",
+            value: 5000,
+            type: "Entrada",
+            date: "2026-06-05",
+          },
+        ]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Aluguel",
+            value: 1800,
+            type: "Saida",
+            date: "2026-06-10",
+          },
+        ]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByLabelText("Abrir slide de movimentações")[0],
+    );
+
+    const selectAll = await screen.findByLabelText(
+      "Selecionar todas as movimentações",
+    );
+    fireEvent.click(selectAll);
+
+    expect(screen.getByText(/2 selecionadas/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Excluir selecionadas"));
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Excluir movimentações",
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/2 selecionadas/)).toBeNull();
+    });
   });
 });
