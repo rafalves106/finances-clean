@@ -15,6 +15,7 @@ export const useDashboardFinancials = ({
   selectedMes,
   selectedAno,
   saldoAnterior,
+  faturaTransactions = [],
 }) => {
   const totalIncome = useMemo(
     () =>
@@ -160,7 +161,15 @@ export const useDashboardFinancials = ({
     monthComparison.investmentDiff >= 0 ? "a mais" : "a menos";
 
   const chartData = useMemo(() => {
-    const grouped = allTransactions.reduce((acc, item) => {
+    // Compras no cartão contam no dia do vencimento da fatura, não no dia da
+    // compra (mesma regra do resumo mensal) - senão o gráfico duplica/desloca
+    // o valor pro mês errado.
+    const effectiveTransactions = [
+      ...allTransactions.filter((item) => !item.cartaoId),
+      ...faturaTransactions,
+    ];
+
+    const grouped = effectiveTransactions.reduce((acc, item) => {
       const iso = (item.date || item.data || "").split("T")[0];
       if (!iso) return acc;
       if (!acc[iso]) {
@@ -187,7 +196,7 @@ export const useDashboardFinancials = ({
         });
         return acc;
       }, []);
-  }, [allTransactions, saldoAnterior]);
+  }, [allTransactions, faturaTransactions, saldoAnterior]);
 
   const chartYAxisMax = useMemo(() => {
     const maxSaldo = chartData.reduce(

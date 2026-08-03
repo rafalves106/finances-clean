@@ -373,7 +373,16 @@ const DashboardMobileView = ({
   const chartSeriesData = useMemo(() => {
     const keyToData = new Map();
 
-    [...incomes, ...expenses].forEach((item) => {
+    // Compras no cartão contam no dia do vencimento da fatura, não no dia da
+    // compra (mesma regra do resumo mensal) - senão o gráfico duplica/desloca
+    // o valor pro mês errado.
+    const effectiveTransactions = [
+      ...incomes.filter((item) => !item.cartaoId),
+      ...expenses.filter((item) => !item.cartaoId),
+      ...faturaTransactions,
+    ];
+
+    effectiveTransactions.forEach((item) => {
       const rawDate = item.date || item.data;
       if (!rawDate) {
         return;
@@ -419,7 +428,7 @@ const DashboardMobileView = ({
         saldo,
       };
     });
-  }, [expenses, incomes, saldoAnterior]);
+  }, [expenses, incomes, faturaTransactions, saldoAnterior]);
 
   const categorySpendChartData = useMemo(() => {
     const byCategory = new Map();
