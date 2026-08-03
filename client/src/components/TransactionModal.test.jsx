@@ -55,7 +55,7 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
       target: { value: "3" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar ação" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
 
@@ -83,5 +83,67 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
       requestPeriodKey: "2026-1",
     });
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("TransactionModal clonagem", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).startsWith(`${API_CARTAO_URL}/resumo`)) {
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        clone: () => ({
+          json: async () => ({ id: "mov-clonada" }),
+        }),
+      });
+    });
+  });
+
+  it("pre-preenche com os dados da transacao original mas cria uma nova (POST), nao atualiza a original (PUT)", async () => {
+    const onSuccess = vi.fn();
+
+    render(
+      <TransactionModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={onSuccess}
+        categorias={[]}
+        veiculos={[]}
+        editingItem={{
+          id: null,
+          name: "Mercado",
+          description: "Compra do mês",
+          value: 350,
+          date: "2026-01-10T12:00:00",
+          type: "Saida",
+        }}
+        isCloning={true}
+        periodKey="2026-1"
+      />,
+    );
+
+    expect(screen.getByText("Clonar Transação")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Título").value).toBe("Mercado");
+    expect(screen.getByPlaceholderText("Valor").value).toBe("350");
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+
+    const postCall = globalThis.fetch.mock.calls.find(
+      ([url, options]) =>
+        String(url).includes("/api/v1/movimentacoes") &&
+        options?.method === "POST",
+    );
+
+    expect(postCall).toBeTruthy();
+    expect(String(postCall[0])).not.toMatch(/\/null$/);
+    expect(onSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "create", id: "mov-clonada" }),
+    );
   });
 });

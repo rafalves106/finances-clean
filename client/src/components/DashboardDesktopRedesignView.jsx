@@ -291,11 +291,13 @@ const DashboardDesktopRedesignView = ({
     isSimulationModalOpen,
     setIsSimulationModalOpen,
     editingItem,
+    isCloning,
     openCardPurchaseMode,
     setOpenCardPurchaseMode,
     handleOpenSimulation,
     handleOpenNewTransaction,
     handleOpenEditTransaction,
+    handleOpenCloneTransaction,
     handleDeleteTransaction,
     handleBulkDelete,
     handleSimulate,
@@ -846,6 +848,19 @@ const DashboardDesktopRedesignView = ({
                                   }}
                                 >
                                   Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenCloneTransaction(item)
+                                  }
+                                  className="text-xs font-medium rounded-md px-2 py-1 transition-colors"
+                                  style={{
+                                    color: "var(--text-secondary)",
+                                    border: "1px solid var(--border-default)",
+                                  }}
+                                >
+                                  Clonar
                                 </button>
                                 <button
                                   type="button"
@@ -2664,6 +2679,7 @@ const DashboardDesktopRedesignView = ({
         categorias={categorias}
         veiculos={veiculos}
         editingItem={editingItem}
+        isCloning={isCloning}
         periodKey={`${selectedAno}-${selectedMes}`}
         initialCardPurchaseMode={openCardPurchaseMode}
       />

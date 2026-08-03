@@ -27,8 +27,9 @@ vi.mock("recharts", () => {
   };
 });
 
+const transactionModalMock = vi.fn(() => null);
 vi.mock("./TransactionModal", () => ({
-  default: () => null,
+  default: (props) => transactionModalMock(props),
 }));
 
 import DashboardDesktopRedesignView from "./DashboardDesktopRedesignView";
@@ -419,6 +420,54 @@ describe("DashboardDesktopRedesignView", () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/2 selecionadas/)).toBeNull();
+    });
+  });
+
+  it("deve abrir o modal em modo clonagem, com id nulo, ao clicar em Clonar", async () => {
+    transactionModalMock.mockClear();
+
+    render(
+      <DashboardDesktopRedesignView
+        incomes={[]}
+        expenses={[
+          {
+            id: "exp-1",
+            name: "Aluguel",
+            value: 1800,
+            type: "Saida",
+            date: "2026-06-10",
+          },
+        ]}
+        totalInvestmentsBalance={0}
+        selectedMes={6}
+        selectedAno={2026}
+        onChangeMonth={vi.fn()}
+        categorias={[]}
+        veiculos={[]}
+        fetchData={vi.fn()}
+        loading={false}
+        saldoAnterior={0}
+        onOpenCategoryManager={vi.fn()}
+        onOpenCardManagement={vi.fn()}
+        headerHeight={96}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByLabelText("Abrir slide de movimentações")[0],
+    );
+
+    fireEvent.click(await screen.findByText("Clonar"));
+
+    await waitFor(() => {
+      const cloneCall = transactionModalMock.mock.calls.find(
+        ([props]) => props.editingItem?.name === "Aluguel",
+      );
+      expect(cloneCall).toBeTruthy();
+      expect(cloneCall[0].isCloning).toBe(true);
+      expect(cloneCall[0].editingItem).toEqual(
+        expect.objectContaining({ id: null, name: "Aluguel" }),
+      );
     });
   });
 });
