@@ -11,6 +11,7 @@ export const useTransactionActions = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [isCloning, setIsCloning] = useState(false);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
 
   const handleOpenSimulation = () => {
@@ -19,12 +20,21 @@ export const useTransactionActions = ({
 
   const handleOpenNewTransaction = () => {
     setEditingItem(null);
+    setIsCloning(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
 
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
+    setIsCloning(false);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenCloneTransaction = (transaction) => {
+    setEditingItem({ ...transaction, id: null });
+    setIsCloning(true);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -162,12 +172,14 @@ export const useTransactionActions = ({
     isSimulationModalOpen,
     setIsSimulationModalOpen,
     editingItem,
+    isCloning,
     openCardPurchaseMode,
     setOpenCardPurchaseMode,
     simulatedTransactions,
     handleOpenSimulation,
     handleOpenNewTransaction,
     handleOpenEditTransaction,
+    handleOpenCloneTransaction,
     handleDeleteTransaction,
     handleBulkDelete,
     handleSimulate,
