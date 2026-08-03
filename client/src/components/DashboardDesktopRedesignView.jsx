@@ -237,6 +237,7 @@ const DashboardDesktopRedesignView = ({
     selectedMes,
     selectedAno,
     saldoAnterior,
+    faturaTransactions,
   });
 
   const totalIncomeExibido = resumoMensal?.totalEntradas ?? totalIncome;
