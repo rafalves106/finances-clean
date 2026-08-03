@@ -32,6 +32,7 @@ const TransactionModal = ({
   categorias,
   veiculos = [],
   editingItem,
+  isCloning = false,
   isSimulation = false,
   onSimulate,
   periodKey,
@@ -305,9 +306,11 @@ const TransactionModal = ({
           >
             {isSimulation
               ? "Simular Transação"
-              : editingItem
-                ? "Editar Transação"
-                : "Nova Transação"}
+              : isCloning
+                ? "Clonar Transação"
+                : editingItem
+                  ? "Editar Transação"
+                  : "Nova Transação"}
           </h2>
           <button
             type="button"
@@ -707,7 +710,6 @@ const TransactionModal = ({
               Cancelar
             </button>
             <button
-              aria-label="Cancelar ação"
               type="submit"
               className="flex-1 rounded-lg p-2 font-medium transition-colors"
               style={{

@@ -84,6 +84,7 @@ const DashboardMobileView = ({
   const [cardSummaryError, setCardSummaryError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [isCloning, setIsCloning] = useState(false);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState(null);
   const [chartsTab, setChartsTab] = useState("fluxo");
@@ -472,6 +473,7 @@ const DashboardMobileView = ({
 
   const handleOpenNewTransaction = () => {
     setEditingItem(null);
+    setIsCloning(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -484,6 +486,14 @@ const DashboardMobileView = ({
 
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
+    setIsCloning(false);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenCloneTransaction = (transaction) => {
+    setEditingItem({ ...transaction, id: null });
+    setIsCloning(true);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -1119,7 +1129,7 @@ const DashboardMobileView = ({
                   </button>
 
                   {isExpanded && (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="mt-2 grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => handleOpenEditTransaction(item)}
@@ -1130,6 +1140,17 @@ const DashboardMobileView = ({
                         }}
                       >
                         Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCloneTransaction(item)}
+                        className="h-11 rounded-lg text-xs font-semibold"
+                        style={{
+                          border: "1px solid var(--border-default)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        Clonar
                       </button>
                       <button
                         type="button"
@@ -1864,6 +1885,7 @@ const DashboardMobileView = ({
         onClose={() => {
           setIsModalOpen(false);
           setEditingItem(null);
+          setIsCloning(false);
           setOpenCardPurchaseMode(false);
         }}
         onSuccess={async () => {
@@ -1871,11 +1893,13 @@ const DashboardMobileView = ({
           await loadCardSummaries();
           setIsModalOpen(false);
           setEditingItem(null);
+          setIsCloning(false);
           setOpenCardPurchaseMode(false);
         }}
         categorias={categorias}
         veiculos={veiculos}
         editingItem={editingItem}
+        isCloning={isCloning}
         initialCardPurchaseMode={openCardPurchaseMode}
       />
 
