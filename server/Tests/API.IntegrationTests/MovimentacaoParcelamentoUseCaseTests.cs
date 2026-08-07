@@ -11,7 +11,7 @@ public class MovimentacaoParcelamentoUseCaseTests
   public void CriarMovimentacao_Parcelada_DeveNumerarTitulos()
   {
     var repository = new InMemoryMovimentacaoRepository();
-    var useCase = new CriarMovimentacaoUseCase(repository);
+    var useCase = new CriarMovimentacaoUseCase(repository, new InMemoryCartaoRepository());
 
     var movimentacao = new Saida(
         "Notebook",
@@ -36,7 +36,7 @@ public class MovimentacaoParcelamentoUseCaseTests
   public void CriarMovimentacao_RecorrenteFixa_DeveManterTituloSemNumeracao()
   {
     var repository = new InMemoryMovimentacaoRepository();
-    var useCase = new CriarMovimentacaoUseCase(repository);
+    var useCase = new CriarMovimentacaoUseCase(repository, new InMemoryCartaoRepository());
 
     var movimentacao = new Entrada(
         "Salário",
@@ -188,7 +188,7 @@ public class MovimentacaoParcelamentoUseCaseTests
 
     var repository = new InMemoryMovimentacaoRepository(movimentacoes);
     var renumerarGrupoUseCase = new RenumerarGrupoUseCase(repository);
-    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase);
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase, new InMemoryCartaoRepository());
 
     var resultado = useCase.Executar(grupoId, usuarioId, 2);
 
@@ -224,7 +224,7 @@ public class MovimentacaoParcelamentoUseCaseTests
 
     var repository = new InMemoryMovimentacaoRepository(new Movimentacao[] { original });
     var renumerarGrupoUseCase = new RenumerarGrupoUseCase(repository);
-    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase);
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, renumerarGrupoUseCase, new InMemoryCartaoRepository());
 
     useCase.Executar(grupoId, usuarioId, 3);
 
@@ -238,7 +238,7 @@ public class MovimentacaoParcelamentoUseCaseTests
   public void RenovarGrupoRecorrencia_MesesInvalido_DeveFalhar()
   {
     var repository = new InMemoryMovimentacaoRepository();
-    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository));
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository), new InMemoryCartaoRepository());
 
     Assert.Throws<ArgumentException>(() => useCase.Executar(Guid.NewGuid(), Guid.NewGuid(), 0));
   }
@@ -247,7 +247,7 @@ public class MovimentacaoParcelamentoUseCaseTests
   public void RenovarGrupoRecorrencia_GrupoInexistente_DeveFalhar()
   {
     var repository = new InMemoryMovimentacaoRepository();
-    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository));
+    var useCase = new RenovarGrupoRecorrenciaUseCase(repository, new RenumerarGrupoUseCase(repository), new InMemoryCartaoRepository());
 
     Assert.Throws<KeyNotFoundException>(() => useCase.Executar(Guid.NewGuid(), Guid.NewGuid(), 1));
   }
@@ -325,5 +325,39 @@ public class MovimentacaoParcelamentoUseCaseTests
       }
     }
 
+  }
+
+  private sealed class InMemoryCartaoRepository : ICartaoRepository
+  {
+    private readonly Dictionary<Guid, CartaoManual> _cartoes;
+
+    public InMemoryCartaoRepository(IEnumerable<CartaoManual>? cartoes = null)
+    {
+      _cartoes = (cartoes ?? Enumerable.Empty<CartaoManual>()).ToDictionary(c => c.Id);
+    }
+
+    public void Adicionar(CartaoManual cartao) => _cartoes[cartao.Id] = cartao;
+
+    public void Atualizar(CartaoManual cartao) => _cartoes[cartao.Id] = cartao;
+
+    public CartaoManual? ObterAtivoPorUsuario(Guid usuarioId) =>
+      _cartoes.Values.FirstOrDefault(c => c.UsuarioId == usuarioId && c.Ativo);
+
+    public CartaoManual? ObterPorId(Guid id, Guid usuarioId) =>
+      _cartoes.TryGetValue(id, out var cartao) && cartao.UsuarioId == usuarioId ? cartao : null;
+
+    public IReadOnlyCollection<CartaoManual> ListarPorUsuario(Guid usuarioId, bool incluirInativos = true) =>
+      _cartoes.Values.Where(c => c.UsuarioId == usuarioId && (incluirInativos || c.Ativo)).ToList();
+
+    public IReadOnlyCollection<CartaoManual> ListarAtivosPorUsuario(Guid usuarioId) =>
+      _cartoes.Values.Where(c => c.UsuarioId == usuarioId && c.Ativo).ToList();
+
+    public int ContarCartoesAtivos(Guid usuarioId, Guid? ignorarCartaoId = null) =>
+      _cartoes.Values.Count(c => c.UsuarioId == usuarioId && c.Ativo && c.Id != ignorarCartaoId);
+
+    public (decimal faturaAtual, decimal faturaProxima) ObterPrevisaoFatura(
+      Guid cartaoId, DateTime referenciaUtc, int diaFechamento) => (0, 0);
+
+    public decimal ObterFaturaPorCompetencia(Guid cartaoId, int competencia) => 0;
   }
 }

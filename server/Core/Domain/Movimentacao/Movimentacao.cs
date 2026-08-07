@@ -70,5 +70,5 @@ public abstract class Movimentacao
         CompetenciaFatura = competenciaFatura;
     }
 
-    public abstract Movimentacao ClonarComNovaData(DateTime novaData, Guid grupoId, string? novoTitulo = null);
+    public abstract Movimentacao ClonarComNovaData(DateTime novaData, Guid grupoId, string? novoTitulo = null, int? competenciaFaturaOverride = null);
 }
