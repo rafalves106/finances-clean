@@ -104,6 +104,120 @@ public class GroqAssistenteIAServiceTests
   }
 
   [Fact]
+  public async Task InterpretarMovimentacao_Parcelamento_ExtraiFixaPeriodoETipo()
+  {
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      titulo = "Notebook",
+      valor = 300m,
+      data = (string?)null,
+      tipo = "Saida",
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      fixa = true,
+      periodo = 10,
+      tipoRecorrencia = (string?)null,
+      tipoMovimentacaoFixa = "Parcelada",
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao(
+      "notebook de 3000 em 10x", DateTime.Today, Categorias);
+
+    Assert.True(resultado.Fixa);
+    Assert.Equal(10, resultado.Periodo);
+    Assert.Equal("Parcelada", resultado.TipoMovimentacaoFixa);
+    Assert.Null(resultado.TipoRecorrencia);
+    Assert.Equal(300m, resultado.Valor);
+  }
+
+  [Fact]
+  public async Task InterpretarMovimentacao_Recorrencia_ExtraiFixaPeriodoETipo()
+  {
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      titulo = "Netflix",
+      valor = 39.9m,
+      data = (string?)null,
+      tipo = "Saida",
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      fixa = true,
+      periodo = 12,
+      tipoRecorrencia = "Mensal",
+      tipoMovimentacaoFixa = "RecorrenteFixa",
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao(
+      "netflix 39,90 todo mês", DateTime.Today, Categorias);
+
+    Assert.True(resultado.Fixa);
+    Assert.Equal(12, resultado.Periodo);
+    Assert.Equal("RecorrenteFixa", resultado.TipoMovimentacaoFixa);
+    Assert.Equal("Mensal", resultado.TipoRecorrencia);
+  }
+
+  [Fact]
+  public async Task InterpretarMovimentacao_MovimentacaoAvulsa_NaoMarcaFixa()
+  {
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      titulo = "Mercado",
+      valor = 50m,
+      data = (string?)null,
+      tipo = "Saida",
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      fixa = false,
+      periodo = (int?)null,
+      tipoRecorrencia = (string?)null,
+      tipoMovimentacaoFixa = (string?)null,
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao("mercado 50", DateTime.Today, Categorias);
+
+    Assert.False(resultado.Fixa);
+    Assert.Null(resultado.Periodo);
+    Assert.Null(resultado.TipoRecorrencia);
+    Assert.Null(resultado.TipoMovimentacaoFixa);
+  }
+
+  [Fact]
+  public async Task InterpretarMovimentacao_FixaComDadosInconsistentes_CaiParaAvulsa()
+  {
+    // fixa=true mas sem período (ou tipoMovimentacaoFixa inválido) não é uma
+    // combinação utilizável pelo formulário - trata como avulsa em vez de
+    // mandar fixa=true com período nulo pro frontend.
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      titulo = "Academia",
+      valor = 100m,
+      data = (string?)null,
+      tipo = "Saida",
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      fixa = true,
+      periodo = (int?)null,
+      tipoRecorrencia = "Mensal",
+      tipoMovimentacaoFixa = "RecorrenteFixa",
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao("academia mensal 100", DateTime.Today, Categorias);
+
+    Assert.False(resultado.Fixa);
+    Assert.Null(resultado.Periodo);
+    Assert.Null(resultado.TipoRecorrencia);
+    Assert.Null(resultado.TipoMovimentacaoFixa);
+  }
+
+  [Fact]
   public async Task InterpretarMovimentacao_ApiRetornaErro_DevolveNaoEntendidoSemLancar()
   {
     var (service, _) = CriarServico(HttpStatusCode.TooManyRequests, "");
