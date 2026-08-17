@@ -16,22 +16,36 @@ export const useDashboardFinancials = ({
   selectedAno,
   saldoAnterior,
   faturaTransactions = [],
+  resumoMensal = null,
+  comparativoMensal = null,
 }) => {
-  const totalIncome = useMemo(
-    () =>
-      allTransactions
-        .filter((item) => (item.type || item.tipo) === "Entrada")
-        .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
-    [allTransactions],
-  );
+  // Totais do mês anterior via /comparativo-categorias (backend), que usa a
+  // mesma regra de competência de fatura do /resumo - achamos em produção que
+  // o cálculo antigo (filtrar allTransactions, que só tem o mês selecionado,
+  // por mês anterior) nunca via dados reais do mês anterior (sempre 0, porque
+  // o fetch só traz o mês corrente) e, pra compras no cartão, comparava bases
+  // diferentes (data da compra vs. competência de vencimento do /resumo).
+  const previousResumoFromComparativo = useMemo(() => {
+    if (!Array.isArray(comparativoMensal)) return null;
 
-  const totalExpense = useMemo(
-    () =>
-      allTransactions
-        .filter((item) => (item.type || item.tipo) === "Saida")
-        .reduce((acc, item) => acc + Number(item.value || item.valor || 0), 0),
-    [allTransactions],
-  );
+    const previousRef = new Date(selectedAno, selectedMes - 2, 1);
+    const previousMonth = previousRef.getMonth() + 1;
+    const previousYear = previousRef.getFullYear();
+
+    const linhas = comparativoMensal.filter(
+      (item) => item.mes === previousMonth && item.ano === previousYear,
+    );
+
+    if (linhas.length === 0) return null;
+
+    return linhas.reduce(
+      (acc, item) => ({
+        totalEntradas: acc.totalEntradas + Number(item.totalEntradas || 0),
+        totalSaidas: acc.totalSaidas + Number(item.totalSaidas || 0),
+      }),
+      { totalEntradas: 0, totalSaidas: 0 },
+    );
+  }, [comparativoMensal, selectedMes, selectedAno]);
 
   const monthComparison = useMemo(() => {
     const previousRef = new Date(selectedAno, selectedMes - 2, 1);
@@ -54,27 +68,23 @@ export const useDashboardFinancials = ({
           return acc + Number(item.value || item.valor || 0);
         }, 0);
 
-    const currentIncome = sumByTypeAndPeriod(
-      "Entrada",
-      selectedMes,
-      selectedAno,
-    );
-    const previousIncome = sumByTypeAndPeriod(
-      "Entrada",
-      previousMonth,
-      previousYear,
-    );
+    // Preferência: resumo/comparativo do backend (competência de fatura
+    // correta, e o mês anterior de verdade - allTransactions só tem o mês
+    // selecionado). Cai pro cálculo client-side só quando essa informação
+    // ainda não chegou (ex.: primeira renderização antes do fetch).
+    const currentIncome = resumoMensal
+      ? Number(resumoMensal.totalEntradas || 0)
+      : sumByTypeAndPeriod("Entrada", selectedMes, selectedAno);
+    const previousIncome = previousResumoFromComparativo
+      ? previousResumoFromComparativo.totalEntradas
+      : sumByTypeAndPeriod("Entrada", previousMonth, previousYear);
 
-    const currentExpense = sumByTypeAndPeriod(
-      "Saida",
-      selectedMes,
-      selectedAno,
-    );
-    const previousExpense = sumByTypeAndPeriod(
-      "Saida",
-      previousMonth,
-      previousYear,
-    );
+    const currentExpense = resumoMensal
+      ? Number(resumoMensal.totalSaidas || 0)
+      : sumByTypeAndPeriod("Saida", selectedMes, selectedAno);
+    const previousExpense = previousResumoFromComparativo
+      ? previousResumoFromComparativo.totalSaidas
+      : sumByTypeAndPeriod("Saida", previousMonth, previousYear);
 
     const sumInvestmentsByPeriod = (month, year) =>
       allTransactions.filter(isInvestmentExpense).reduce((acc, item) => {
@@ -110,6 +120,8 @@ export const useDashboardFinancials = ({
       expenseDiff: currentExpense - previousExpense,
       balanceDiff:
         currentIncome - currentExpense - (previousIncome - previousExpense),
+      currentIncome,
+      currentExpense,
       currentBalance: currentIncome - currentExpense,
       investmentPercent: calculateVariationPercent(
         currentInvestment,
@@ -118,7 +130,13 @@ export const useDashboardFinancials = ({
       investmentDiff: currentInvestment - previousInvestment,
       currentInvestment,
     };
-  }, [allTransactions, selectedAno, selectedMes]);
+  }, [
+    allTransactions,
+    selectedAno,
+    selectedMes,
+    resumoMensal,
+    previousResumoFromComparativo,
+  ]);
 
   const receitasTrendIsPositive = monthComparison.incomePercent >= 0;
   const despesasTrendIsPositive = monthComparison.expensePercent <= 0;
@@ -277,6 +295,27 @@ export const useDashboardFinancials = ({
       categorias.map((categoria) => [String(categoria.id), categoria]),
     );
 
+    // resumoMensal.porCategoria já vem com a competência de fatura correta
+    // (mesma fonte usada pelo card "Despesas do mês") - prioriza isso sobre
+    // recalcular a partir de expenses (que agrupa por data da compra, não
+    // por vencimento da fatura).
+    if (resumoMensal?.porCategoria) {
+      return resumoMensal.porCategoria
+        .filter((item) => Number(item.totalSaidas || 0) > 0)
+        .map((item) => {
+          const categoriaRef = categoriaById.get(String(item.categoriaId));
+          return {
+            id: item.categoriaId || "sem-categoria",
+            nome: item.nome || "Sem categoria",
+            icone: item.icone || "",
+            cor: item.cor || "#6A6785",
+            limite: Number(categoriaRef?.orcamentoMensal || 0),
+            total: Number(item.totalSaidas || 0),
+          };
+        })
+        .sort((a, b) => b.total - a.total);
+    }
+
     const grouped = expenses.reduce((acc, item) => {
       const key = item.categoriaId || "sem-categoria";
       const categoriaRef = categoriaById.get(String(key));
@@ -300,7 +339,7 @@ export const useDashboardFinancials = ({
     }, {});
 
     return Object.values(grouped).sort((a, b) => b.total - a.total);
-  }, [categorias, expenses]);
+  }, [categorias, expenses, resumoMensal]);
 
   const categoryRanking = useMemo(
     () => categoryRankingAll.slice(0, 4),
@@ -323,12 +362,70 @@ export const useDashboardFinancials = ({
   );
 
   const categoryComparisonData = useMemo(() => {
-    const categoriaById = new Map(
-      categorias.map((categoria) => [String(categoria.id), categoria]),
-    );
     const previousRef = new Date(selectedAno, selectedMes - 2, 1);
     const previousMonth = previousRef.getMonth() + 1;
     const previousYear = previousRef.getFullYear();
+
+    // Mesma fonte do resumo mensal (competência de fatura correta) pro mês
+    // atual, e do /comparativo-categorias pro mês anterior. O DTO do backend
+    // não traz categoriaId no comparativo, só o nome - junta por nome mesmo,
+    // é a única chave em comum entre as duas fontes.
+    if (resumoMensal?.porCategoria && Array.isArray(comparativoMensal)) {
+      const previousByName = new Map();
+      comparativoMensal
+        .filter((item) => item.mes === previousMonth && item.ano === previousYear)
+        .forEach((item) => {
+          const key = String(item.categoria || "Sem categoria").toLowerCase();
+          previousByName.set(
+            key,
+            (previousByName.get(key) || 0) + Number(item.totalSaidas || 0),
+          );
+        });
+
+      const linhas = resumoMensal.porCategoria
+        .filter((item) => Number(item.totalSaidas || 0) > 0)
+        .map((item) => {
+          const nome = item.nome || "Sem categoria";
+          const previousTotal = previousByName.get(nome.toLowerCase()) || 0;
+          previousByName.delete(nome.toLowerCase());
+          return {
+            id: item.categoriaId || nome,
+            nome,
+            cor: item.cor || "#6A6785",
+            currentTotal: Number(item.totalSaidas || 0),
+            previousTotal,
+          };
+        });
+
+      // Categorias que só tiveram gasto no mês anterior (zeradas agora) -
+      // ainda vale mostrar a queda pra zero no comparativo.
+      previousByName.forEach((previousTotal, nomeLower) => {
+        linhas.push({
+          id: nomeLower,
+          nome: nomeLower,
+          cor: "#6A6785",
+          currentTotal: 0,
+          previousTotal,
+        });
+      });
+
+      return linhas
+        .sort((a, b) => {
+          if (b.currentTotal !== a.currentTotal) {
+            return b.currentTotal - a.currentTotal;
+          }
+          return b.previousTotal - a.previousTotal;
+        })
+        .slice(0, 8)
+        .map((item) => ({
+          ...item,
+          shortName: truncateWithThreeDots(item.nome, 10),
+        }));
+    }
+
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
 
     const grouped = allTransactions.reduce((acc, item) => {
       if ((item.type || item.tipo) !== "Saida") {
@@ -392,7 +489,14 @@ export const useDashboardFinancials = ({
         ...item,
         shortName: truncateWithThreeDots(item.nome, 10),
       }));
-  }, [allTransactions, categorias, selectedAno, selectedMes]);
+  }, [
+    allTransactions,
+    categorias,
+    selectedAno,
+    selectedMes,
+    resumoMensal,
+    comparativoMensal,
+  ]);
 
   const currentMonthShortLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
@@ -416,8 +520,6 @@ export const useDashboardFinancials = ({
   const dashboardPieCornerRadius = categoryPieData.length > 8 ? 8 : 14;
 
   return {
-    totalIncome,
-    totalExpense,
     monthComparison,
     receitasTrendIsPositive,
     despesasTrendIsPositive,

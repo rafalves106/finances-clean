@@ -32,6 +32,7 @@ const TREND_TONE = {
 // caber 100% na tela que existe no desktop.
 const HomeMobile = ({
   resumoMensal = null,
+  comparativoMensal = null,
   faturasVencendo = [],
   incomes = [],
   expenses = [],
@@ -74,6 +75,8 @@ const HomeMobile = ({
     selectedAno,
     saldoAnterior,
     faturaTransactions: [],
+    resumoMensal,
+    comparativoMensal,
   });
 
   const {

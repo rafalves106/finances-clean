@@ -90,6 +90,7 @@ const App = () => {
   useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [resumoMensal, setResumoMensal] = useState(null);
+  const [comparativoMensal, setComparativoMensal] = useState(null);
   const [faturasVencendo, setFaturasVencendo] = useState([]);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
@@ -319,6 +320,21 @@ const App = () => {
         }
       }
 
+      const resComparativo = await fetch(
+        `${API_URL}/comparativo-categorias?mes=${requestMes}&ano=${requestAno}&meses=3`,
+        { headers: getAuthHeaders() },
+      );
+
+      if (resComparativo.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (resComparativo.ok) {
+        setComparativoMensal(await resComparativo.json());
+      }
+
       const resFaturasVencendo = await fetch(
         `${API_CARTAO_URL}/faturas-vencendo?mes=${requestMes}&ano=${requestAno}`,
         { headers: getAuthHeaders() },
@@ -498,6 +514,7 @@ const App = () => {
         {activeTab === "dashboard" && (
           <HomeMobile
             resumoMensal={resumoMensal}
+            comparativoMensal={comparativoMensal}
             faturasVencendo={faturasVencendo}
             investmentAmount={investmentAmount}
             incomes={incomes}
@@ -569,6 +586,7 @@ const App = () => {
           <div className="h-full px-5 pb-5 pt-16">
             <HomeDesktop
               resumoMensal={resumoMensal}
+              comparativoMensal={comparativoMensal}
               faturasVencendo={faturasVencendo}
               investmentAmount={investmentAmount}
               incomes={incomes}

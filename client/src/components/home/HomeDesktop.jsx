@@ -150,6 +150,7 @@ const HomeDesktop = ({
   budgetAlerts = [],
   faturasVencendo = [],
   resumoMensal = null,
+  comparativoMensal = null,
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
@@ -260,6 +261,8 @@ const HomeDesktop = ({
     selectedAno,
     saldoAnterior,
     faturaTransactions,
+    resumoMensal,
+    comparativoMensal,
   });
 
   const totalIncomeExibido = resumoMensal?.totalEntradas ?? monthComparison.currentIncome;
