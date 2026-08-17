@@ -8,6 +8,7 @@ import {
   ChartLineUp,
   CreditCard,
   Download,
+  Upload,
   FileText,
   Plus,
   ShieldCheck,
@@ -38,6 +39,7 @@ import { useCardSummaries } from "../../hooks/useCardSummaries";
 import { useTransactionFilters } from "../../hooks/useTransactionFilters";
 import { useTransactionActions } from "../../hooks/useTransactionActions";
 import { useCsvExport } from "../../hooks/useCsvExport";
+import { useCsvImport } from "../../hooks/useCsvImport";
 import { useMonthlyReportExport } from "../../hooks/useMonthlyReportExport";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -204,6 +206,12 @@ const HomeDesktop = ({
   };
 
   const { isExportModalOpen, setIsExportModalOpen, handleExportCsv } = useCsvExport();
+  const {
+    isImporting: isImportingCsv,
+    fileInputRef: csvImportFileInputRef,
+    openFilePicker: openCsvFilePicker,
+    handleFileSelected: handleCsvFileSelected,
+  } = useCsvImport(fetchData);
   const { isExportingReport, handleExportRelatorioMensal } = useMonthlyReportExport();
 
   const allTransactions = useMemo(
@@ -1114,6 +1122,23 @@ const HomeDesktop = ({
                   className="ui-panel ui-panel-interactive flex h-10 w-10 items-center justify-center rounded-full"
                 >
                   <Download size={16} style={{ color: "var(--text-secondary)" }} />
+                </button>
+                <input
+                  ref={csvImportFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleCsvFileSelected}
+                />
+                <button
+                  type="button"
+                  onClick={openCsvFilePicker}
+                  disabled={isImportingCsv}
+                  aria-label="Importar movimentações de um CSV"
+                  title="Importar CSV"
+                  className="ui-panel ui-panel-interactive flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-60"
+                >
+                  <Upload size={16} style={{ color: "var(--text-secondary)" }} />
                 </button>
                 <button
                   type="button"
