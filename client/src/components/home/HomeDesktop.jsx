@@ -1150,6 +1150,10 @@ const HomeDesktop = ({
                             <stop offset="0%" stopColor={CHART_THEME_COLORS.saida.fill} stopOpacity={0.24} />
                             <stop offset="100%" stopColor={CHART_THEME_COLORS.saida.fill} stopOpacity={0.02} />
                           </linearGradient>
+                          <linearGradient id="colorSaldoHome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={CHART_THEME_COLORS.saldo.fill} stopOpacity={0.1} />
+                            <stop offset="95%" stopColor={CHART_THEME_COLORS.saldo.fill} stopOpacity={0} />
+                          </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="4 10" vertical={false} stroke="#e7e9f0" />
                         <XAxis dataKey="data" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#767c93" }} />
@@ -1157,6 +1161,8 @@ const HomeDesktop = ({
                         <Tooltip content={renderChartTooltip} cursor={{ stroke: "#c4c9da", strokeWidth: 2, strokeDasharray: "6 6" }} />
                         <Area type="monotone" dataKey="entrada" fill="url(#colorReceitaHome)" stroke={CHART_THEME_COLORS.entrada.fill} strokeWidth={2} isAnimationActive={false} name="entrada" />
                         <Area type="monotone" dataKey="saida" fill="url(#colorDespesaHome)" stroke={CHART_THEME_COLORS.saida.fill} strokeWidth={2} isAnimationActive={false} name="saida" />
+                        <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#colorSaldoHome)" isAnimationActive={false} name="saldo" />
+                        <Line type="monotone" dataKey="saldo" stroke={CHART_THEME_COLORS.saldo.fill} strokeWidth={2} dot={false} name="saldo" style={{ opacity: 0.6 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   )}
