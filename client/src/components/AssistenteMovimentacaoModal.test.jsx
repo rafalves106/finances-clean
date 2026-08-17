@@ -2,7 +2,7 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AssistenteMovimentacaoModal from "./AssistenteMovimentacaoModal";
-import { API_ASSISTENTE_URL } from "../services/api";
+import { API_ASSISTENTE_URL, API_URL } from "../services/api";
 
 describe("AssistenteMovimentacaoModal", () => {
   beforeEach(() => {
@@ -259,5 +259,178 @@ describe("AssistenteMovimentacaoModal", () => {
     expect(
       await screen.findByText(/Não consegui falar com o assistente/),
     ).toBeTruthy();
+  });
+
+  it("intent Remover com termo de busca: acha candidatas, confirma e chama onConfirmDelete", async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes(`${API_ASSISTENTE_URL}/interpretar-movimentacao`)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            entendido: true,
+            intent: "Remover",
+            filtroTermoBusca: "notebook",
+            filtroTipo: null,
+            filtroMes: null,
+            filtroAno: null,
+          }),
+        });
+      }
+
+      // busca de candidatas: sem mes/ano no filtro, não deve escopar por mês
+      expect(String(url)).toBe(API_URL);
+      return Promise.resolve({
+        ok: true,
+        json: async () => [
+          { id: "m1", titulo: "Notebook 1/10", valor: 3000, data: "2026-01-10T00:00:00", tipo: "Saida" },
+          { id: "m2", titulo: "Notebook 2/10", valor: 3000, data: "2026-02-10T00:00:00", tipo: "Saida" },
+          { id: "m3", titulo: "Mercado", valor: 50, data: "2026-01-05T00:00:00", tipo: "Saida" },
+        ],
+      });
+    });
+
+    const onConfirmDelete = vi.fn().mockResolvedValue({ ok: true });
+
+    render(
+      <AssistenteMovimentacaoModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onDraftReady={vi.fn()}
+        onConfirmDelete={onConfirmDelete}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "apaga a compra do notebook" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    expect(await screen.findByText("Notebook 1/10")).toBeTruthy();
+    expect(screen.getByText("Notebook 2/10")).toBeTruthy();
+    expect(screen.queryByText("Mercado")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Excluir 2/ }));
+
+    await waitFor(() => expect(onConfirmDelete).toHaveBeenCalledWith(["m1", "m2"]));
+  });
+
+  it("intent Remover por tipo/mes: escopa a busca pelo mes/ano extraídos", async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes(`${API_ASSISTENTE_URL}/interpretar-movimentacao`)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            entendido: true,
+            intent: "Remover",
+            filtroTermoBusca: null,
+            filtroTipo: "Saida",
+            filtroMes: 8,
+            filtroAno: 2026,
+          }),
+        });
+      }
+
+      expect(String(url)).toBe(`${API_URL}?mes=8&ano=2026`);
+      return Promise.resolve({
+        ok: true,
+        json: async () => [
+          { id: "s1", titulo: "Aluguel", valor: 1200, data: "2026-08-05T00:00:00", tipo: "Saida" },
+          { id: "e1", titulo: "Salário", valor: 5000, data: "2026-08-05T00:00:00", tipo: "Entrada" },
+        ],
+      });
+    });
+
+    render(
+      <AssistenteMovimentacaoModal isOpen={true} onClose={vi.fn()} onDraftReady={vi.fn()} onConfirmDelete={vi.fn()} />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "limpa as saidas de agosto de 2026" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    expect(await screen.findByText("Aluguel")).toBeTruthy();
+    expect(screen.queryByText("Salário")).toBeNull();
+  });
+
+  it("intent Remover sem nenhuma candidata: mostra erro em vez de excluir vazio", async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes(`${API_ASSISTENTE_URL}/interpretar-movimentacao`)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            entendido: true,
+            intent: "Remover",
+            filtroTermoBusca: "inexistente",
+            filtroTipo: null,
+            filtroMes: null,
+            filtroAno: null,
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    const onConfirmDelete = vi.fn();
+
+    render(
+      <AssistenteMovimentacaoModal isOpen={true} onClose={vi.fn()} onDraftReady={vi.fn()} onConfirmDelete={onConfirmDelete} />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "apaga o inexistente" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    expect(
+      await screen.findByText("Não encontrei nenhuma movimentação com esse critério."),
+    ).toBeTruthy();
+    expect(onConfirmDelete).not.toHaveBeenCalled();
+  });
+
+  it("na confirmação de exclusão, Cancelar volta pro formulário sem excluir nada", async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (String(url).includes(`${API_ASSISTENTE_URL}/interpretar-movimentacao`)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            entendido: true,
+            intent: "Remover",
+            filtroTermoBusca: "notebook",
+            filtroTipo: null,
+            filtroMes: null,
+            filtroAno: null,
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => [
+          { id: "m1", titulo: "Notebook", valor: 3000, data: "2026-01-10T00:00:00", tipo: "Saida" },
+        ],
+      });
+    });
+
+    const onConfirmDelete = vi.fn();
+
+    render(
+      <AssistenteMovimentacaoModal isOpen={true} onClose={vi.fn()} onDraftReady={vi.fn()} onConfirmDelete={onConfirmDelete} />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "apaga o notebook" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    // espera a view de confirmação aparecer antes de clicar em "Cancelar" -
+    // o form original também tem um botão "Cancelar" (fecha o modal), então
+    // clicar cedo demais pegaria o botão errado.
+    await screen.findByText("Notebook");
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.getByPlaceholderText("Descreva a movimentação...")).toBeTruthy();
+    expect(onConfirmDelete).not.toHaveBeenCalled();
   });
 });

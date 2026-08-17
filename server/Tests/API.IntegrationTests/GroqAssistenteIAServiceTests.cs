@@ -218,6 +218,96 @@ public class GroqAssistenteIAServiceTests
   }
 
   [Fact]
+  public async Task InterpretarMovimentacao_PedidoDeRemocaoComTermoBusca_ExtraiFiltro()
+  {
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      intent = "Remover",
+      titulo = (string?)null,
+      valor = (decimal?)null,
+      data = (string?)null,
+      tipo = (string?)null,
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      filtroTermoBusca = "notebook",
+      filtroTipo = (string?)null,
+      filtroMes = (int?)null,
+      filtroAno = (int?)null,
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao(
+      "remove a compra do notebook", DateTime.Today, Categorias);
+
+    Assert.True(resultado.Entendido);
+    Assert.Equal("Remover", resultado.Intent);
+    Assert.Equal("notebook", resultado.FiltroTermoBusca);
+    Assert.Null(resultado.FiltroTipo);
+    Assert.Null(resultado.Titulo);
+    Assert.Null(resultado.Valor);
+  }
+
+  [Fact]
+  public async Task InterpretarMovimentacao_PedidoDeRemocaoPorTipoEMes_ExtraiFiltro()
+  {
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      intent = "Remover",
+      titulo = (string?)null,
+      valor = (decimal?)null,
+      data = (string?)null,
+      tipo = (string?)null,
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      filtroTermoBusca = (string?)null,
+      filtroTipo = "Saida",
+      filtroMes = 8,
+      filtroAno = 2026,
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao(
+      "apaga todas as saidas de agosto de 2026", DateTime.Today, Categorias);
+
+    Assert.True(resultado.Entendido);
+    Assert.Equal("Remover", resultado.Intent);
+    Assert.Null(resultado.FiltroTermoBusca);
+    Assert.Equal("Saida", resultado.FiltroTipo);
+    Assert.Equal(8, resultado.FiltroMes);
+    Assert.Equal(2026, resultado.FiltroAno);
+  }
+
+  [Fact]
+  public async Task InterpretarMovimentacao_PedidoDeRemocaoSemNenhumFiltro_CaiParaNaoEntendido()
+  {
+    // "remove" sozinho, sem titulo/tipo/mes, e vago demais pra apagar
+    // qualquer coisa com seguranca.
+    var corpo = MontarRespostaGroq(new
+    {
+      entendido = true,
+      intent = "Remover",
+      titulo = (string?)null,
+      valor = (decimal?)null,
+      data = (string?)null,
+      tipo = (string?)null,
+      categoriaId = (string?)null,
+      observacao = (string?)null,
+      filtroTermoBusca = (string?)null,
+      filtroTipo = (string?)null,
+      filtroMes = (int?)null,
+      filtroAno = (int?)null,
+    });
+    var (service, _) = CriarServico(HttpStatusCode.OK, corpo);
+
+    var resultado = await service.InterpretarMovimentacao("remove", DateTime.Today, Categorias);
+
+    Assert.False(resultado.Entendido);
+    Assert.NotNull(resultado.Observacao);
+  }
+
+  [Fact]
   public async Task InterpretarMovimentacao_ApiRetornaErro_DevolveNaoEntendidoSemLancar()
   {
     var (service, _) = CriarServico(HttpStatusCode.TooManyRequests, "");

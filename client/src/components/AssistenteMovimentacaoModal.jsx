@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Copy, Sparkles, X } from "lucide-react";
-import { API_ASSISTENTE_URL } from "../services/api";
+import { AlertTriangle, Copy, Sparkles, Trash2, X } from "lucide-react";
+import { API_ASSISTENTE_URL, API_URL } from "../services/api";
+import { formatCurrency } from "../util/formatCurrency";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const normalizar = (texto) =>
@@ -31,17 +32,46 @@ const encontrarSimilar = (titulo, tipo, allTransactions) => {
   )[0].item;
 };
 
+// Busca candidatas a remoção no backend (não em allTransactions, que só tem
+// o mês selecionado) - se a IA extraiu mês/ano, escopa a busca a esse mês;
+// senão traz todas as movimentações do usuário e filtra por termo/tipo aqui.
+// Investimentos ficam de fora (o backend bloqueia excluí-los por aqui mesmo).
+const buscarCandidatosParaRemocao = async (resultado, selectedAno) => {
+  const mes = resultado.filtroMes ?? null;
+  const ano = resultado.filtroAno ?? (mes ? selectedAno : null);
+  const query = mes && ano ? `?mes=${mes}&ano=${ano}` : "";
+
+  const response = await fetch(`${API_URL}${query}`, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error("Não consegui buscar as movimentações agora.");
+  }
+
+  const lista = await response.json();
+  const termo = normalizar(resultado.filtroTermoBusca);
+
+  return lista.filter((item) => {
+    if (item.investimentoId) return false;
+    if (resultado.filtroTipo && item.tipo !== resultado.filtroTipo) return false;
+    if (termo && !normalizar(item.titulo).includes(termo)) return false;
+    return true;
+  });
+};
+
 const AssistenteMovimentacaoModal = ({
   isOpen,
   onClose,
   onDraftReady,
   onCloneSuggestion,
+  onConfirmDelete,
   allTransactions = [],
+  selectedAno,
 }) => {
   const [texto, setTexto] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [sugestao, setSugestao] = useState(null);
+  const [remocao, setRemocao] = useState(null);
+  const [isExcluindo, setIsExcluindo] = useState(false);
   const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -50,7 +80,19 @@ const AssistenteMovimentacaoModal = ({
     setTexto("");
     setErro("");
     setSugestao(null);
+    setRemocao(null);
     onClose();
+  };
+
+  const handleConfirmarExclusao = async () => {
+    if (!remocao) return;
+    setIsExcluindo(true);
+    try {
+      await onConfirmDelete(remocao.matches.map((item) => item.id));
+      handleFechar();
+    } finally {
+      setIsExcluindo(false);
+    }
   };
 
   const montarDraft = (resultado) => ({
@@ -73,6 +115,7 @@ const AssistenteMovimentacaoModal = ({
     setIsLoading(true);
     setErro("");
     setSugestao(null);
+    setRemocao(null);
 
     try {
       const response = await fetch(`${API_ASSISTENTE_URL}/interpretar-movimentacao`, {
@@ -91,6 +134,18 @@ const AssistenteMovimentacaoModal = ({
 
       if (!resultado.entendido) {
         setErro(resultado.observacao || "Não entendi essa movimentação. Tente descrever de outro jeito.");
+        return;
+      }
+
+      if (resultado.intent === "Remover") {
+        const matches = await buscarCandidatosParaRemocao(resultado, selectedAno);
+
+        if (matches.length === 0) {
+          setErro("Não encontrei nenhuma movimentação com esse critério.");
+          return;
+        }
+
+        setRemocao({ resultado, matches });
         return;
       }
 
@@ -150,7 +205,61 @@ const AssistenteMovimentacaoModal = ({
           </button>
         </div>
 
-        {sugestao ? (
+        {remocao ? (
+          <div className="space-y-3">
+            <div
+              className="flex items-start gap-2 rounded-lg p-3 text-sm"
+              style={{ border: "1px solid var(--danger-border)", background: "var(--danger-100)", color: "var(--danger-700)" }}
+            >
+              <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+              <span>
+                Encontrei <strong>{remocao.matches.length}</strong>{" "}
+                {remocao.matches.length === 1 ? "movimentação" : "movimentações"} pra excluir. Essa ação não pode
+                ser desfeita.
+              </span>
+            </div>
+
+            <div
+              className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg p-2"
+              style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface-sunken)" }}
+            >
+              {remocao.matches.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-2 px-1 py-1 text-sm">
+                  <span className="truncate" style={{ color: "var(--text-primary)" }} title={item.titulo}>
+                    {item.titulo}
+                  </span>
+                  <span className="flex-shrink-0 whitespace-nowrap" style={{ color: "var(--text-tertiary)" }}>
+                    {formatCurrency(item.valor)} · {(item.data || "").split("T")[0]}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRemocao(null)}
+                disabled={isExcluindo}
+                className="flex-1 rounded-lg p-2 text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ border: "1px solid var(--border-default)", color: "var(--text-secondary)" }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarExclusao}
+                disabled={isExcluindo}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg p-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                style={{ background: "var(--danger-700)" }}
+              >
+                <Trash2 size={14} />
+                {isExcluindo
+                  ? "Excluindo..."
+                  : `Excluir ${remocao.matches.length}`}
+              </button>
+            </div>
+          </div>
+        ) : sugestao ? (
           <div className="space-y-3">
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               Encontrei uma movimentação parecida. Quer clonar ela em vez de criar uma nova do zero?
@@ -198,7 +307,8 @@ const AssistenteMovimentacaoModal = ({
           <>
             <p className="text-sm mb-3" style={{ color: "var(--text-tertiary)" }}>
               Descreva a movimentação com suas palavras. Ex: "gastei 45 reais de uber ontem" ou
-              "netflix 39,90 todo mês". Nada é salvo automaticamente — você confirma antes.
+              "netflix 39,90 todo mês". Também remove: "apaga a compra do notebook" ou "limpa as
+              saídas de agosto". Nada é salvo ou excluído automaticamente — você confirma antes.
             </p>
 
             <form onSubmit={handleEnviar} className="space-y-3">

@@ -1660,6 +1660,8 @@ const HomeDesktop = ({
           setIsAssistenteOpen(false);
           handleOpenCloneTransaction(transacao);
         }}
+        onConfirmDelete={handleBulkDelete}
+        selectedAno={selectedAno}
       />
     </>
   );
