@@ -13,7 +13,12 @@ public record InterpretacaoMovimentacaoResultado(
   bool Fixa = false,
   int? Periodo = null,
   string? TipoRecorrencia = null,
-  string? TipoMovimentacaoFixa = null
+  string? TipoMovimentacaoFixa = null,
+  string Intent = "Criar",
+  string? FiltroTermoBusca = null,
+  string? FiltroTipo = null,
+  int? FiltroMes = null,
+  int? FiltroAno = null
 );
 
 public interface IAssistenteIAService

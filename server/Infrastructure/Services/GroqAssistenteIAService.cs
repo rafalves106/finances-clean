@@ -50,9 +50,28 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
       - Se não houver nenhuma dessas pistas, é uma movimentação avulsa: fixa = false,
         periodo = null, tipoRecorrencia = null, tipoMovimentacaoFixa = null.
 
+      Além de CRIAR, você também detecta pedidos pra REMOVER/EXCLUIR/APAGAR/DELETAR
+      movimentações já existentes (ex: "remove a compra do notebook", "apaga todas as
+      saídas de agosto", "exclui a assinatura da netflix", "limpa as saídas desse mês").
+
+      Quando o texto pedir remoção (não criação de uma nova movimentação):
+      - "intent" = "Remover"
+      - "filtroTermoBusca": palavra-chave do título pra buscar (ex: "notebook"), ou null
+        se o pedido não menciona um título específico (ex: "todas as saídas de agosto").
+      - "filtroTipo": "Entrada" ou "Saida", ou null se não especificado.
+      - "filtroMes": número do mês (1 a 12) mencionado, ou null se não especificado.
+      - "filtroAno": ano mencionado; se um mês foi mencionado sem ano, use o ano de
+        {{dataReferencia:yyyy}}; se nem mês nem ano foram mencionados, deixe null.
+      - Todos os outros campos (titulo, valor, data, tipo, categoriaId, fixa, periodo,
+        tipoRecorrencia, tipoMovimentacaoFixa) devem ficar null/false - ignore-os.
+
+      Quando for criar uma movimentação normal (o caso mais comum), "intent" = "Criar" e
+      ignore os campos de filtro (deixe null).
+
       Responda SOMENTE com um JSON no formato exato, sem nenhum texto fora do JSON:
       {
         "entendido": true ou false,
+        "intent": "Criar" ou "Remover",
         "titulo": "string curta, ou null",
         "valor": número positivo (valor de UMA parcela/ocorrência se fixa=true), ou null,
         "data": "YYYY-MM-DD", ou null,
@@ -62,12 +81,16 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
         "fixa": true ou false,
         "periodo": número inteiro positivo de parcelas/ocorrências, ou null se fixa=false,
         "tipoRecorrencia": "Mensal" ou "Semanal", ou null se não for recorrente,
-        "tipoMovimentacaoFixa": "Parcelada" ou "RecorrenteFixa", ou null se fixa=false
+        "tipoMovimentacaoFixa": "Parcelada" ou "RecorrenteFixa", ou null se fixa=false,
+        "filtroTermoBusca": "string ou null (só quando intent=Remover)",
+        "filtroTipo": "Entrada" ou "Saida", ou null,
+        "filtroMes": número de 1 a 12, ou null,
+        "filtroAno": número do ano, ou null
       }
 
-      Se o texto não descrever claramente uma movimentação financeira (não dá pra saber o
-      valor e do que se trata), responda com "entendido": false e explique o motivo em
-      "observacao".
+      Se o texto não descrever claramente uma movimentação financeira nem um pedido de
+      remoção (não dá pra saber o que fazer), responda com "entendido": false e explique
+      o motivo em "observacao".
       """;
 
     var payload = new
@@ -110,6 +133,31 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
       if (extraido is null || !extraido.Entendido)
       {
         return NaoEntendido(extraido?.Observacao ?? "Não entendi essa movimentação.");
+      }
+
+      if (extraido.Intent == "Remover")
+      {
+        var filtroTipo = extraido.FiltroTipo is "Entrada" or "Saida" ? extraido.FiltroTipo : null;
+        var filtroMes = extraido.FiltroMes is >= 1 and <= 12 ? extraido.FiltroMes : null;
+        var filtroAno = extraido.FiltroAno is > 0 ? extraido.FiltroAno : null;
+        var filtroTermoBusca = string.IsNullOrWhiteSpace(extraido.FiltroTermoBusca)
+          ? null
+          : extraido.FiltroTermoBusca.Trim();
+
+        // Exige ao menos um critério - "remove" sozinho, sem nenhuma pista, é vago
+        // demais pra apagar qualquer coisa com segurança.
+        if (filtroTermoBusca is null && filtroTipo is null && filtroMes is null)
+        {
+          return NaoEntendido("Preciso de mais detalhes pra saber o que remover - diga um título, tipo (entrada/saída) ou mês.");
+        }
+
+        return new InterpretacaoMovimentacaoResultado(
+          true, null, null, null, null, null, null,
+          Intent: "Remover",
+          FiltroTermoBusca: filtroTermoBusca,
+          FiltroTipo: filtroTipo,
+          FiltroMes: filtroMes,
+          FiltroAno: filtroAno);
       }
 
       Guid? categoriaId = null;
@@ -201,5 +249,10 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
     public int? Periodo { get; set; }
     public string? TipoRecorrencia { get; set; }
     public string? TipoMovimentacaoFixa { get; set; }
+    public string? Intent { get; set; }
+    public string? FiltroTermoBusca { get; set; }
+    public string? FiltroTipo { get; set; }
+    public int? FiltroMes { get; set; }
+    public int? FiltroAno { get; set; }
   }
 }
