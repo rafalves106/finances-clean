@@ -22,6 +22,7 @@ export const API_CATEGORIAS_ALERTAS_ORCAMENTO_URL = `${API_CATEGORIAS_URL}/alert
 export const API_VEICULOS_URL = `${BASE}/api/v1/veiculos`;
 export const API_CARTAO_URL = `${BASE}/api/v1/cartao`;
 export const API_AUTH_URL = `${BASE}/api/v1/auth`;
+export const API_ASSISTENTE_URL = `${BASE}/api/v1/assistente`;
 
 export const extractApiErrorMessage = async (response, fallbackMessage) => {
   try {
