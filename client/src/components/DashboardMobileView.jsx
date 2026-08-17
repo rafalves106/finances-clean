@@ -33,6 +33,8 @@ import { formatCurrency } from "../util/formatCurrency";
 import { useDashboardFinancials } from "../hooks/useDashboardFinancials";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import TransactionModal from "./TransactionModal";
+import AssistenteBanner from "./AssistenteBanner";
+import AssistenteMovimentacaoModal from "./AssistenteMovimentacaoModal";
 import InvestmentsView from "./InvestmentsView";
 import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 
@@ -85,6 +87,8 @@ const DashboardMobileView = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isCloning, setIsCloning] = useState(false);
+  const [isAiDraft, setIsAiDraft] = useState(false);
+  const [isAssistenteOpen, setIsAssistenteOpen] = useState(false);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState(null);
   const [chartsTab, setChartsTab] = useState("fluxo");
@@ -474,6 +478,7 @@ const DashboardMobileView = ({
   const handleOpenNewTransaction = () => {
     setEditingItem(null);
     setIsCloning(false);
+    setIsAiDraft(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -487,6 +492,7 @@ const DashboardMobileView = ({
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
     setIsCloning(false);
+    setIsAiDraft(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -494,7 +500,17 @@ const DashboardMobileView = ({
   const handleOpenCloneTransaction = (transaction) => {
     setEditingItem({ ...transaction, id: null });
     setIsCloning(true);
+    setIsAiDraft(false);
     setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenAssistantDraft = (draft) => {
+    setEditingItem(draft);
+    setIsCloning(false);
+    setIsAiDraft(true);
+    setOpenCardPurchaseMode(false);
+    setIsAssistenteOpen(false);
     setIsModalOpen(true);
   };
 
@@ -617,6 +633,8 @@ const DashboardMobileView = ({
 
   const renderHomeScreen = () => (
     <div className="flex flex-col" style={{ gap: `${sectionGap}px` }}>
+      <AssistenteBanner onAbrirAssistente={() => setIsAssistenteOpen(true)} />
+
       <section
         style={{
           borderRadius: `${cardRadius}px`,
@@ -1886,6 +1904,7 @@ const DashboardMobileView = ({
           setIsModalOpen(false);
           setEditingItem(null);
           setIsCloning(false);
+          setIsAiDraft(false);
           setOpenCardPurchaseMode(false);
         }}
         onSuccess={async () => {
@@ -1894,13 +1913,21 @@ const DashboardMobileView = ({
           setIsModalOpen(false);
           setEditingItem(null);
           setIsCloning(false);
+          setIsAiDraft(false);
           setOpenCardPurchaseMode(false);
         }}
         categorias={categorias}
         veiculos={veiculos}
         editingItem={editingItem}
         isCloning={isCloning}
+        isAiDraft={isAiDraft}
         initialCardPurchaseMode={openCardPurchaseMode}
+      />
+
+      <AssistenteMovimentacaoModal
+        isOpen={isAssistenteOpen}
+        onClose={() => setIsAssistenteOpen(false)}
+        onDraftReady={handleOpenAssistantDraft}
       />
 
       <BulkDeleteConfirmModal

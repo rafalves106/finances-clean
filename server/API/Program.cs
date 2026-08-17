@@ -111,6 +111,15 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<LoginUseCase>();
 
+builder.Services.AddHttpClient<IAssistenteIAService, GroqAssistenteIAService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.groq.com/openai/v1/");
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.Authorization =
+        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", builder.Configuration["Groq:ApiKey"]);
+});
+builder.Services.AddScoped<InterpretarMovimentacaoTextoUseCase>();
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

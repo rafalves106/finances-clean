@@ -3,7 +3,7 @@ using Finance.Core.Repositories;
 
 namespace Finance.Core.UseCases;
 
-public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepository)
+public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepository, ICartaoRepository _cartaoRepository)
 {
     public Guid Executar(Movimentacao movimentacao)
     {
@@ -16,6 +16,14 @@ public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepos
 
             var grupoRecorrenciaId = Guid.NewGuid();
 
+            // Compra no cartao: cada ocorrencia (parcela ou recorrente fixa)
+            // precisa da propria competencia, calculada em cima da SUA data -
+            // nao dá pra copiar a competencia da 1a ocorrencia pra todas,
+            // senao parcelas futuras somam na fatura errada (a da 1a parcela).
+            var cartao = movimentacao.CartaoId.HasValue
+                ? _cartaoRepository.ObterPorId(movimentacao.CartaoId.Value, movimentacao.UsuarioId)
+                : null;
+
             for (int i = 0; i < movimentacao.Periodo; i++)
             {
                 var dataDaParcela = movimentacao.TipoRecorrencia == TipoRecorrencia.Semanal
@@ -26,7 +34,12 @@ public class CriarMovimentacaoUseCase(IMovimentacaoRepository _movimentacaoRepos
                     ? $"{movimentacao.Titulo} {i + 1}/{movimentacao.Periodo}"
                     : movimentacao.Titulo;
 
-                Movimentacao novaOcorrencia = movimentacao.ClonarComNovaData(dataDaParcela, grupoRecorrenciaId, tituloOcorrencia);
+                var competenciaOcorrencia = cartao is not null
+                    ? CompetenciaFaturaCalculator.CalcularCompetencia(dataDaParcela, cartao.DiaFechamento)
+                    : (int?)null;
+
+                Movimentacao novaOcorrencia = movimentacao.ClonarComNovaData(
+                    dataDaParcela, grupoRecorrenciaId, tituloOcorrencia, competenciaOcorrencia);
 
                 _movimentacaoRepository.Adicionar(novaOcorrencia);
             }

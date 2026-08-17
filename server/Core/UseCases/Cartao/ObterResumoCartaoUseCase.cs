@@ -42,11 +42,23 @@ public class ObterResumoCartaoUseCase(ICartaoRepository cartaoRepository)
   private (decimal faturaAtual, decimal faturaProxima) ObterFaturaPorMesSelecionado(
     CartaoManual cartao, int mes, int ano)
   {
-    var competenciaSelecionada = (ano * 100) + mes;
-    var competenciaProxima = CompetenciaFaturaCalculator.ProximaCompetencia(competenciaSelecionada);
+    // mes/ano aqui e o mes de VENCIMENTO (mesma convencao do resto do
+    // dashboard - resumo mensal, gastos por categoria, item "Fatura X" na
+    // lista de movimentacoes). Fechamento e vencimento podem cair em meses
+    // calendario diferentes, entao precisamos voltar da competencia de
+    // vencimento selecionada pra competencia de fechamento correspondente
+    // antes de somar - nao dá pra tratar mes/ano como a propria competencia.
+    var competenciaVencimentoSelecionada = (ano * 100) + mes;
+    var competenciaVencimentoProxima =
+      CompetenciaFaturaCalculator.ProximaCompetencia(competenciaVencimentoSelecionada);
+
+    var competenciaAtual = CompetenciaFaturaCalculator.ObterCompetenciaComVencimentoEm(
+      competenciaVencimentoSelecionada, cartao.DiaFechamento, cartao.DiaVencimento);
+    var competenciaProxima = CompetenciaFaturaCalculator.ObterCompetenciaComVencimentoEm(
+      competenciaVencimentoProxima, cartao.DiaFechamento, cartao.DiaVencimento);
 
     return (
-      cartaoRepository.ObterFaturaPorCompetencia(cartao.Id, competenciaSelecionada),
+      cartaoRepository.ObterFaturaPorCompetencia(cartao.Id, competenciaAtual),
       cartaoRepository.ObterFaturaPorCompetencia(cartao.Id, competenciaProxima));
   }
 }

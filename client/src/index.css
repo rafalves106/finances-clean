@@ -2,26 +2,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Tokens light mode (docs/ux-reviews/mapeamento-redesign-light-mobile-2026-07-31.md). Aditivos: desktop ainda usa os tokens dark abaixo, migracao e tela a tela. */
-  --bg-app: #f7f8fb;
-  --bg-surface: #ffffff;
-  --bg-surface-sunken: #eef1f6;
-  --bg-inverse: #12121a;
+  /* Tokens light mode, paleta creme/coral (referência dashboard financeiro
+     2026-08-17). Substitui a paleta fria anterior (docs/ux-reviews/mapeamento-redesign-light-mobile-2026-07-31.md)
+     - desktop e mobile compartilham os mesmos tokens agora, sem tema escuro. */
+  --bg-app: #ece8e1;
+  --bg-surface: #faf9f6;
+  --bg-surface-sunken: #f1eee6;
+  --bg-inverse: #17140f;
 
-  --text-primary: #12141c;
-  --text-secondary: #4b5169;
-  --text-tertiary: #767c93;
-  --text-disabled: #a6abbd;
+  --text-primary: #1a1712;
+  --text-secondary: #5c554b;
+  --text-tertiary: #8a8172;
+  --text-disabled: #b8ae9d;
   --text-on-accent: #ffffff;
 
-  --border-subtle: #e7e9f0;
-  --border-default: #dbdfea;
-  --border-strong: #c4c9da;
+  --border-subtle: #e7e2d6;
+  --border-default: #ddd5c4;
+  --border-strong: #c2b7a0;
 
-  --accent-600: #4f46e5;
-  --accent-500: #6366f1;
-  --accent-100: #e7e6fb;
-  --accent-50: #f3f2fe;
+  --accent-600: #e8623f;
+  --accent-500: #ef8060;
+  --accent-100: #fbe0d5;
+  --accent-50: #fdf0ea;
 
   --success-700: #15803d;
   --success-100: #dcfce7;
@@ -35,16 +37,16 @@
   --info-700: #1d4ed8;
   --info-100: #dbeafe;
 
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-xs: 0 1px 2px rgba(60, 45, 28, 0.06);
   --shadow-sm:
-    0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+    0 1px 3px rgba(60, 45, 28, 0.09), 0 1px 2px rgba(60, 45, 28, 0.05);
   --shadow-md:
-    0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+    0 4px 12px rgba(60, 45, 28, 0.09), 0 2px 4px rgba(60, 45, 28, 0.05);
   --shadow-lg:
-    0 12px 24px rgba(16, 24, 40, 0.1), 0 4px 8px rgba(16, 24, 40, 0.04);
-  --shadow-modal: 0 24px 48px rgba(16, 24, 40, 0.18);
+    0 12px 24px rgba(60, 45, 28, 0.11), 0 4px 8px rgba(60, 45, 28, 0.05);
+  --shadow-modal: 0 24px 48px rgba(40, 30, 18, 0.2);
   --shadow-panel:
-    0 8px 32px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.03);
+    0 8px 32px rgba(60, 45, 28, 0.07), 0 2px 8px rgba(60, 45, 28, 0.04);
 
   --bg-surface-hover: var(--bg-app);
   --border-hover: var(--border-strong);
@@ -131,7 +133,7 @@ body,
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", sans-serif;
-  background: var(--uiux-bg-a);
+  background: var(--bg-app);
 }
 
 button:not(:disabled),
@@ -298,12 +300,8 @@ button:disabled {
   display: flex;
   align-items: flex-end;
   padding: 10px 14px;
-  border: 1px solid rgba(104, 87, 63, 0.25);
-  background: linear-gradient(
-    180deg,
-    rgba(33, 32, 41, 0.72) 0%,
-    rgba(28, 27, 36, 0.86) 100%
-  );
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface-sunken);
 }
 
 .uiux-card-layer-back-2 {
@@ -314,12 +312,8 @@ button:disabled {
   display: flex;
   align-items: flex-end;
   padding: 10px 12px;
-  border: 1px solid rgba(120, 102, 75, 0.3);
-  background: linear-gradient(
-    180deg,
-    rgba(41, 35, 29, 0.55) 0%,
-    rgba(30, 28, 36, 0.75) 100%
-  );
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
 }
 
 .uiux-card-layer-back-clickable {
@@ -334,19 +328,19 @@ button:disabled {
 
 .uiux-card-layer-back-clickable:hover {
   transform: translateY(-1px);
-  border-color: rgba(173, 148, 112, 0.5);
-  box-shadow: 0 8px 18px rgba(8, 7, 17, 0.24);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .uiux-card-layer-back-clickable:focus-visible {
   outline: none;
-  border-color: #9d7e6b;
-  box-shadow: 0 0 0 2px rgba(157, 126, 107, 0.28);
+  border-color: var(--accent-600);
+  box-shadow: 0 0 0 2px var(--accent-100);
 }
 
 .uiux-card-layer-back-name {
   margin: 0;
-  color: rgba(216, 210, 235, 0.78);
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.2;
@@ -360,17 +354,15 @@ button:disabled {
   top: 0;
   bottom: 48px;
   z-index: 2;
-  border: 1px solid #6a4f45;
+  border: 1px solid var(--border-default);
   background:
     radial-gradient(
       circle at 12% 15%,
-      rgba(255, 175, 123, 0.1) 0%,
-      rgba(255, 175, 123, 0) 45%
+      var(--accent-50) 0%,
+      rgba(253, 240, 234, 0) 45%
     ),
-    linear-gradient(145deg, #271815 0%, #1d1110 52%, #191026 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 10px 28px rgba(8, 7, 17, 0.38);
+    var(--bg-surface);
+  box-shadow: var(--shadow-md);
   padding: 18px 16px 14px;
   display: flex;
   flex-direction: column;
@@ -390,19 +382,16 @@ button:disabled {
 
 .uiux-card-layer-front-clickable:hover {
   transform: translateY(-1px);
-  border-color: #8a6b5b;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 14px 30px rgba(8, 7, 17, 0.46);
+  border-color: var(--accent-500);
+  box-shadow: var(--shadow-lg);
 }
 
 .uiux-card-layer-front-clickable:focus-visible {
   outline: none;
-  border-color: #b8937f;
+  border-color: var(--accent-600);
   box-shadow:
-    0 0 0 2px rgba(184, 147, 127, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 14px 30px rgba(8, 7, 17, 0.46);
+    0 0 0 2px var(--accent-100),
+    var(--shadow-lg);
 }
 
 .uiux-card-fatura-label {
@@ -424,7 +413,7 @@ button:disabled {
 
 .uiux-card-value-used {
   margin: 0;
-  color: #9a7461;
+  color: var(--text-tertiary);
   font-size: 18px;
   line-height: 1.1;
   font-weight: 400;
@@ -442,8 +431,8 @@ button:disabled {
   position: relative;
   height: 28px;
   border-radius: 999px;
-  border: 1px solid #59453f;
-  background: linear-gradient(90deg, #231616 0%, #181536 100%);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface-sunken);
   padding: 3px;
 }
 
@@ -451,8 +440,8 @@ button:disabled {
   height: 100%;
   min-width: 0;
   border-radius: 999px;
-  border: 1px solid #81655a;
-  background: linear-gradient(90deg, #3f2b27 0%, #251716 100%);
+  border: 1px solid var(--accent-500);
+  background: linear-gradient(90deg, var(--accent-600) 0%, var(--accent-500) 100%);
   transition: width 220ms ease-in-out;
 }
 
@@ -470,7 +459,7 @@ button:disabled {
 
 .uiux-card-name {
   margin: 0;
-  color: #8e7d74;
+  color: var(--text-tertiary);
   font-size: 14px;
   font-weight: 400;
 }
