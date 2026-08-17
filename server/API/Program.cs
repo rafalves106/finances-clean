@@ -64,6 +64,7 @@ builder.Services.AddScoped<RenumerarGrupoUseCase>();
 builder.Services.AddScoped<ListarGruposRecorrenciaExpiradosUseCase>();
 builder.Services.AddScoped<RenovarGrupoRecorrenciaUseCase>();
 builder.Services.AddScoped<ExportarMovimentacoesCsvUseCase>();
+builder.Services.AddScoped<ImportarMovimentacoesCsvUseCase>();
 builder.Services.AddScoped<CadastrarCartaoManualUseCase>();
 builder.Services.AddScoped<EditarCartaoManualUseCase>();
 builder.Services.AddScoped<InativarCartaoManualUseCase>();

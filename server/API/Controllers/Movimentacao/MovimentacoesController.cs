@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Finance.Core.UseCases;
 using Finance.Core.Domain;
@@ -8,7 +9,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, RemoverMovimentacoesEmLoteUseCase removerMovimentacoesEmLoteUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, ObterSaldoAcumuladoUseCase obterSaldoAcumuladoUseCase, ObterProjecaoSaldoUseCase obterProjecaoSaldoUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, RemoverMovimentacoesEmLoteUseCase removerMovimentacoesEmLoteUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, ObterSaldoAcumuladoUseCase obterSaldoAcumuladoUseCase, ObterProjecaoSaldoUseCase obterProjecaoSaldoUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, ImportarMovimentacoesCsvUseCase importarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -358,6 +359,28 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (Exception)
         {
             return StatusCode(500, "Erro ao exportar movimentações em CSV.");
+        }
+    }
+
+    [HttpPost("importar-csv")]
+    public async Task<IActionResult> ImportarCsv(IFormFile arquivo)
+    {
+        if (arquivo is null || arquivo.Length == 0)
+        {
+            return BadRequest("Envie um arquivo CSV.");
+        }
+
+        try
+        {
+            using var leitor = new StreamReader(arquivo.OpenReadStream(), Encoding.UTF8);
+            var conteudo = await leitor.ReadToEndAsync();
+
+            var resultado = importarMovimentacoesCsvUseCase.Executar(UsuarioId, conteudo);
+            return Ok(resultado);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao importar movimentações do CSV.");
         }
     }
 
