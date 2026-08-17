@@ -46,7 +46,7 @@ const CardsSlide = ({
           border: "1px solid var(--border-default)",
           color: "var(--text-secondary)",
         }}
-        aria-label="Voltar ao dashboard"
+        aria-label="Voltar ao painel"
       >
         <ChevronLeft size={16} />
       </button>

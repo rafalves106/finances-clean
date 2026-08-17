@@ -3,27 +3,62 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import NavDrawer from "./NavDrawer";
 
+// Controlado de fora (isOpen/onClose) desde que o botão hambúrguer virou um
+// componente separado (ui/HamburgerButton) pra poder aparecer inline na
+// Home desktop em vez de sempre flutuando - ver App.jsx.
 describe("NavDrawer", () => {
-  it("começa fechado e abre/fecha ao clicar no hambúrguer e no X", () => {
-    render(<NavDrawer activeTab="dashboard" onNavigate={vi.fn()} onOpenSearch={vi.fn()} onLogout={vi.fn()} />);
+  it("não renderiza nada quando isOpen é false", () => {
+    render(
+      <NavDrawer
+        isOpen={false}
+        onClose={vi.fn()}
+        activeTab="dashboard"
+        onNavigate={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
 
-    fireEvent.click(screen.getByLabelText("Abrir menu"));
-    expect(screen.getByRole("dialog")).toBeTruthy();
+  it("fecha ao clicar no X ou no fundo", () => {
+    const onClose = vi.fn();
+    render(
+      <NavDrawer
+        isOpen
+        onClose={onClose}
+        activeTab="dashboard"
+        onNavigate={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
 
     fireEvent.click(screen.getByLabelText("Fechar menu"));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByLabelText("Fechar menu clicando fora"));
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it("navega e fecha o menu ao selecionar um item", () => {
     const onNavigate = vi.fn();
-    render(<NavDrawer activeTab="dashboard" onNavigate={onNavigate} onOpenSearch={vi.fn()} onLogout={vi.fn()} />);
+    const onClose = vi.fn();
+    render(
+      <NavDrawer
+        isOpen
+        onClose={onClose}
+        activeTab="dashboard"
+        onNavigate={onNavigate}
+        onOpenSearch={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
 
-    fireEvent.click(screen.getByLabelText("Abrir menu"));
     fireEvent.click(screen.getByRole("button", { name: "Veículos" }));
 
     expect(onNavigate).toHaveBeenCalledWith("vehicle");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(onClose).toHaveBeenCalled();
   });
 });

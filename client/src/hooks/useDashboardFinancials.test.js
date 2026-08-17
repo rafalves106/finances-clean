@@ -116,6 +116,35 @@ describe("useDashboardFinancials - monthComparison com resumo/comparativo do bac
     expect(result.current.monthComparison.incomeDiff).toBeCloseTo(4300 - 2596.53, 5);
   });
 
+  // Bug real encontrado testando o fix acima: categoria que só teve
+  // entrada (nunca saída) em nenhum dos dois meses aparecia na aba
+  // "Comparativo" com currentTotal=0/previousTotal=0, porque o loop que
+  // recupera categorias "só existiam no mês anterior" empurrava qualquer
+  // categoria presente no comparativoMensal, mesmo com totalSaidas zerado.
+  it("categoryComparisonData ignora categoria sem gasto (só entrada) em nenhum dos dois meses", () => {
+    const { result } = renderHook(() =>
+      useDashboardFinancials({
+        ...baseArgs,
+        resumoMensal: {
+          totalEntradas: 4300,
+          totalSaidas: 4202.6,
+          porCategoria: [
+            { categoriaId: 1, nome: "Transporte", cor: "#123456", totalSaidas: 379.35 },
+          ],
+        },
+        comparativoMensal: [
+          { mes: 7, ano: 2026, categoria: "Empréstimos de Cartão ou Pix", totalEntradas: 186, totalSaidas: 0 },
+          { mes: 8, ano: 2026, categoria: "Empréstimos de Cartão ou Pix", totalEntradas: 900, totalSaidas: 0 },
+          { mes: 7, ano: 2026, categoria: "Transporte", totalEntradas: 250, totalSaidas: 998 },
+        ],
+      }),
+    );
+
+    const nomes = result.current.categoryComparisonData.map((item) => item.nome);
+    expect(nomes).not.toContain("Empréstimos de Cartão ou Pix");
+    expect(nomes).toContain("Transporte");
+  });
+
   it("sem resumo/comparativo, cai de volta pro cálculo a partir de allTransactions", () => {
     const { result } = renderHook(() =>
       useDashboardFinancials({

@@ -62,7 +62,7 @@ import {
   renderChartTooltip,
 } from "../dashboard/chartTooltips";
 import CardsSlide from "../dashboard/CardsSlide";
-import NestedCirclesChart from "../dashboard/NestedCirclesChart";
+import CategorySpendBars from "../dashboard/CategorySpendBars";
 import GrowthDial from "../dashboard/GrowthDial";
 import InvestmentsView from "../InvestmentsView";
 import ExportCsvModal from "../ExportCsvModal";
@@ -72,6 +72,7 @@ import AssistenteMovimentacaoModal from "../AssistenteMovimentacaoModal";
 import Panel from "../ui/Panel";
 import IconTile from "../ui/IconTile";
 import AiAssistantChip from "../ui/AiAssistantChip";
+import HamburgerButton from "../ui/HamburgerButton";
 
 // Cabeçalho compartilhado pelos 4 "slides" de detalhe (cartões, investimentos,
 // movimentações, análise gráfica) - um único lugar pro botão de voltar em vez
@@ -101,12 +102,18 @@ const TREND_TONE = {
 // Tile compacto de KPI (Receitas/Despesas/Saldo/Investimentos) - linha 1 da
 // Home nova. Reaproveita os valores/percentuais já calculados por
 // useDashboardFinancials, só a apresentação é nova.
-const KpiTile = ({ label, value, percent, diffValue, diffLabel, tone, icon }) => {
+const KpiTile = ({ label, value, percent, diffValue, diffLabel, tone, icon, onClick, ariaLabel }) => {
   const trend = percent >= 0 ? TREND_TONE.up : TREND_TONE.down;
   const TrendIcon = trend.icon;
 
   return (
-    <Panel className="flex min-w-0 flex-1 items-center gap-3 p-3.5">
+    <Panel
+      as={onClick ? "button" : "div"}
+      interactive={Boolean(onClick)}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="flex min-w-0 flex-1 items-center gap-3 p-3.5 text-left"
+    >
       <IconTile icon={icon} tone={tone} size={40} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -133,6 +140,7 @@ const KpiTile = ({ label, value, percent, diffValue, diffLabel, tone, icon }) =>
 };
 
 const HomeDesktop = ({
+  onOpenNav,
   incomes = [],
   expenses = [],
   totalInvestmentsBalance = 0,
@@ -958,8 +966,9 @@ const HomeDesktop = ({
           </>
         ) : (
           <>
-            {/* Linha 0: navegação de mês + assistente de IA + ações rápidas */}
-            <div className="flex flex-shrink-0 items-center gap-3 pl-14">
+            {/* Linha 0: hambúrguer + navegação de mês + assistente de IA + ações rápidas, tudo na mesma altura */}
+            <div className="flex flex-shrink-0 items-center gap-3">
+              <HamburgerButton onClick={onOpenNav} />
               <div className="ui-panel flex items-center gap-1 rounded-full p-1">
                 <button
                   type="button"
@@ -1054,6 +1063,8 @@ const HomeDesktop = ({
                 diffLabel="Você investiu"
                 tone="neutral"
                 icon={Bank}
+                onClick={() => setActiveSlide("investments")}
+                ariaLabel="Abrir slide de investimentos"
               />
             </div>
 
@@ -1276,11 +1287,10 @@ const HomeDesktop = ({
                 className="flex min-h-0 flex-col rounded-2xl p-3 text-left"
               >
                 <p className="m-0 flex-shrink-0 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Gastos por categoria</p>
-                <div className="flex min-h-0 flex-1 items-center justify-center">
-                  <NestedCirclesChart
+                <div className="min-h-0 flex-1">
+                  <CategorySpendBars
                     items={categoriaGastosDoMes.map((c) => ({ nome: c.nome, valor: c.total }))}
                     formatValue={formatCurrency}
-                    size={130}
                   />
                 </div>
               </Panel>

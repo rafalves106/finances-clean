@@ -400,6 +400,8 @@ export const useDashboardFinancials = ({
       // Categorias que só tiveram gasto no mês anterior (zeradas agora) -
       // ainda vale mostrar a queda pra zero no comparativo.
       previousByName.forEach((previousTotal, nomeLower) => {
+        if (previousTotal <= 0) return;
+
         linhas.push({
           id: nomeLower,
           nome: nomeLower,

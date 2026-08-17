@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import HomeDesktop from "./components/home/HomeDesktop";
 import HomeMobile from "./components/home/HomeMobile";
 import NavDrawer from "./components/layout/NavDrawer";
+import HamburgerButton from "./components/ui/HamburgerButton";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
@@ -87,6 +88,7 @@ const App = () => {
   const { expiredGroups: recurringGroups, renovarGrupo } =
     useRecurringRenewals({ enabled: isLoggedIn });
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   useGlobalSearchShortcut(() => setIsGlobalSearchOpen(true));
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [resumoMensal, setResumoMensal] = useState(null);
@@ -494,6 +496,8 @@ const App = () => {
 
   const navDrawer = (
     <NavDrawer
+      isOpen={isNavOpen}
+      onClose={() => setIsNavOpen(false)}
       activeTab={activeTab}
       onNavigate={setActiveTab}
       alerts={alerts}
@@ -503,12 +507,23 @@ const App = () => {
     />
   );
 
+  // Em mobile e nas telas sem barra de ações própria (Conquistas, Veículos),
+  // o hambúrguer flutua no canto. Na Home desktop ele vira parte da linha de
+  // ações (mês, IA, relatório, exportar, nova transação) - ver HomeDesktop.
+  const floatingNavTrigger = (
+    <HamburgerButton
+      onClick={() => setIsNavOpen(true)}
+      className="fixed top-4 left-4 z-30"
+    />
+  );
+
   if (isMobileViewport) {
     return (
       <div
         className="mobile-viewport-shell"
         style={{ color: "var(--text-primary)" }}
       >
+        {floatingNavTrigger}
         {navDrawer}
 
         {activeTab === "dashboard" && (
@@ -579,12 +594,14 @@ const App = () => {
       className="app-shell h-screen overflow-hidden"
       style={{ color: "var(--text-primary)" }}
     >
+      {activeTab === "dashboard" ? null : floatingNavTrigger}
       {navDrawer}
 
       <main className="h-full">
         {activeTab === "dashboard" ? (
-          <div className="h-full px-5 pb-5 pt-16">
+          <div className="h-full px-5 pb-5">
             <HomeDesktop
+              onOpenNav={() => setIsNavOpen(true)}
               resumoMensal={resumoMensal}
               comparativoMensal={comparativoMensal}
               faturasVencendo={faturasVencendo}
