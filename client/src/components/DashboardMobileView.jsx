@@ -3,14 +3,20 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Circle,
   CreditCard,
   Home,
+  Landmark,
   PieChart,
   Plus,
+  ShieldCheck,
+  Target,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import {
   Area,
@@ -35,6 +41,10 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import TransactionModal from "./TransactionModal";
 import AssistenteBanner from "./AssistenteBanner";
 import AssistenteMovimentacaoModal from "./AssistenteMovimentacaoModal";
+import NestedCirclesChart from "./dashboard/NestedCirclesChart";
+import GrowthDial from "./dashboard/GrowthDial";
+import TwinBarComparison from "./dashboard/TwinBarComparison";
+import MiniSparkline from "./dashboard/MiniSparkline";
 import InvestmentsView from "./InvestmentsView";
 import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 
@@ -275,6 +285,7 @@ const DashboardMobileView = ({
     categoryComparisonData,
     currentMonthShortLabel,
     previousMonthShortLabel,
+    monthComparison,
   } = useDashboardFinancials({
     allTransactions,
     incomes,
@@ -320,6 +331,9 @@ const DashboardMobileView = ({
 
   const categoriesTop = useMemo(() => {
     const porCategoria = resumoMensal?.porCategoria ?? [];
+    const categoriaById = new Map(
+      categorias.map((categoria) => [String(categoria.id), categoria]),
+    );
 
     return porCategoria
       .filter((item) => Number(item.totalSaidas || 0) > 0)
@@ -328,10 +342,40 @@ const DashboardMobileView = ({
         nome: item.nome || "Sem categoria",
         icone: item.icone || "",
         total: Number(item.totalSaidas || 0),
+        limite: Number(categoriaById.get(String(item.categoriaId))?.orcamentoMensal || 0),
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 4);
-  }, [resumoMensal]);
+  }, [resumoMensal, categorias]);
+
+  // Dias até o fechamento da fatura do cartão em destaque - streak real
+  // (equivalente ao "13 Days" da referência).
+  const diasParaFechamento = useMemo(() => {
+    const diaFechamento = cardSummaries[0]?.cartao?.diaFechamento;
+    if (!diaFechamento) return null;
+
+    const hoje = new Date();
+    const fechamentoNoMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaFechamento);
+    if (fechamentoNoMes < hoje) {
+      fechamentoNoMes.setMonth(fechamentoNoMes.getMonth() + 1);
+    }
+    return Math.max(0, Math.ceil((fechamentoNoMes - hoje) / (1000 * 60 * 60 * 24)));
+  }, [cardSummaries]);
+
+  const percentualOrcamentoUsado = useMemo(() => {
+    const comOrcamento = categoriesTop.filter((item) => item.limite > 0);
+    if (comOrcamento.length === 0) return 0;
+    const totalGasto = comOrcamento.reduce((acc, item) => acc + item.total, 0);
+    const totalOrcamento = comOrcamento.reduce((acc, item) => acc + item.limite, 0);
+    return totalOrcamento > 0 ? (totalGasto / totalOrcamento) * 100 : 0;
+  }, [categoriesTop]);
+
+  const previousExpenseValue = totalExpenses - (monthComparison?.expenseDiff ?? 0);
+
+  const existeCategoriaSemOrcamento = useMemo(
+    () => categorias.some((categoria) => !(Number(categoria.orcamentoMensal) > 0)),
+    [categorias],
+  );
 
   const listedTransactions = useMemo(() => {
     return sortByDate([...allTransactions, ...faturaTransactions]).filter(
@@ -731,6 +775,170 @@ const DashboardMobileView = ({
         </article>
       </section>
 
+      <section className="grid grid-cols-2 gap-2">
+        <article
+          style={{
+            borderRadius: `${cardRadius}px`,
+            padding: `${cardPadding}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            boxShadow: "var(--shadow-xs)",
+          }}
+          className="flex flex-col items-center justify-center gap-1 text-center"
+        >
+          <CalendarClock size={18} style={{ color: "var(--accent-600)" }} />
+          {diasParaFechamento !== null ? (
+            <>
+              <p className="m-0 text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                {diasParaFechamento} {diasParaFechamento === 1 ? "dia" : "dias"}
+              </p>
+              <p className="m-0 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                até o fechamento de {cardSummaries[0]?.cartao?.nome || "fatura"}
+              </p>
+            </>
+          ) : (
+            <p className="m-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              Sem cartão cadastrado
+            </p>
+          )}
+        </article>
+
+        <article
+          style={{
+            borderRadius: `${cardRadius}px`,
+            padding: `${cardPadding - 4}px`,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-default)",
+            boxShadow: "var(--shadow-xs)",
+          }}
+          className="flex items-center justify-center"
+        >
+          <GrowthDial percent={percentualOrcamentoUsado} label="Orçamento usado" size={88} />
+        </article>
+      </section>
+
+      <section
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="m-0 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+            Investimentos
+          </p>
+          <TrendingUp size={14} style={{ color: "var(--accent-600)" }} />
+        </div>
+        <p className="m-0 mt-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+          {formatCurrency(totalInvestmentsBalance)}
+        </p>
+        <p
+          className="m-0 text-[11px]"
+          style={{ color: (monthComparison?.investmentDiff ?? 0) >= 0 ? "var(--success-700)" : "var(--danger-700)" }}
+        >
+          {monthComparison
+            ? `${monthComparison.investmentPercent >= 0 ? "+" : ""}${monthComparison.investmentPercent.toFixed(1)}% no mês`
+            : "sem variação no mês"}
+        </p>
+        <div style={{ height: 64 }} className="mt-1">
+          <MiniSparkline isPositive={(monthComparison?.investmentDiff ?? 0) >= 0} />
+        </div>
+      </section>
+
+      <section
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
+      >
+        <p className="m-0 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+          Despesas: {previousMonthShortLabel} x {currentMonthShortLabel}
+        </p>
+        <div style={{ height: 120 }} className="mt-2">
+          <TwinBarComparison
+            currentLabel={currentMonthShortLabel}
+            currentValue={totalExpenses}
+            previousLabel={previousMonthShortLabel}
+            previousValue={Math.max(0, previousExpenseValue)}
+            formatValue={formatCurrency}
+          />
+        </div>
+      </section>
+
+      <section
+        style={{
+          borderRadius: `${cardRadius}px`,
+          padding: `${cardPadding}px`,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--shadow-xs)",
+        }}
+      >
+        <p className="m-0 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+          Atalhos
+        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {[
+            { label: "Cartões", icon: Landmark, onClick: () => setActiveScreen("cards") },
+            {
+              label: "Categorias",
+              icon: Target,
+              onClick: (event) => onOpenCategoryManager(event.currentTarget),
+            },
+            { label: "Investir", icon: Wallet, onClick: () => setActiveScreen("investments") },
+          ].map((atalho) => (
+            <button
+              key={atalho.label}
+              type="button"
+              onClick={atalho.onClick}
+              className="flex flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-medium"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full"
+                style={{ background: "var(--accent-50)", color: "var(--accent-600)" }}
+              >
+                <atalho.icon size={15} />
+              </span>
+              {atalho.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {existeCategoriaSemOrcamento ? (
+        <section
+          style={{
+            borderRadius: `${cardRadius}px`,
+            padding: `${cardPadding}px`,
+            background: "var(--accent-50)",
+            border: "1px solid var(--accent-100)",
+          }}
+        >
+          <ShieldCheck size={18} style={{ color: "var(--accent-600)" }} />
+          <p className="m-0 mt-1 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+            Configure seu primeiro orçamento
+          </p>
+          <p className="m-0 mt-0.5 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            Defina um limite mensal por categoria pra receber alertas antes de estourar.
+          </p>
+          <button
+            type="button"
+            onClick={(event) => onOpenCategoryManager(event.currentTarget)}
+            className="mt-2 rounded-lg px-3 py-1.5 text-xs font-semibold"
+            style={{ background: "var(--accent-600)", color: "var(--text-on-accent)" }}
+          >
+            Configurar
+          </button>
+        </section>
+      ) : null}
+
       <section
         style={{
           borderRadius: `${cardRadius}px`,
@@ -847,42 +1055,17 @@ const DashboardMobileView = ({
           className="m-0 text-xs font-semibold"
           style={{ color: "var(--text-primary)" }}
         >
-          Categorias
+          Gastos por Categoria
         </p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {categoriesTop.length === 0 ? (
-            <p
-              className={`m-0 ${kpiHelperClassName}`}
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              Sem categorias no período.
-            </p>
-          ) : (
-            categoriesTop.map((category) => (
-              <article
-                key={category.id}
-                className="rounded-xl px-2.5 py-2"
-                style={{
-                  background: "var(--bg-surface-sunken)",
-                  border: "1px solid var(--border-subtle)",
-                }}
-              >
-                <p
-                  className="m-0 text-xs"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {category.icone ? `${category.icone} ` : ""}
-                  {category.nome}
-                </p>
-                <p
-                  className="m-0 mt-1 text-[11px]"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {formatCurrency(category.total)}
-                </p>
-              </article>
-            ))
-          )}
+        <div className="mt-2 flex justify-center">
+          <NestedCirclesChart
+            items={categoriesTop.map((category) => ({
+              nome: category.nome,
+              valor: category.total,
+            }))}
+            formatValue={formatCurrency}
+            size={200}
+          />
         </div>
       </section>
 
