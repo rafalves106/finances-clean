@@ -87,6 +87,7 @@ const HomeMobile = ({
     isAiDraft,
     handleOpenNewTransaction,
     handleOpenEditTransaction,
+    handleOpenCloneTransaction,
     handleOpenAssistantDraft,
   } = useTransactionActions({ categorias, fetchData });
 
@@ -283,9 +284,14 @@ const HomeMobile = ({
       <AssistenteMovimentacaoModal
         isOpen={isAssistenteOpen}
         onClose={() => setIsAssistenteOpen(false)}
+        allTransactions={allTransactions}
         onDraftReady={(draft) => {
           setIsAssistenteOpen(false);
           handleOpenAssistantDraft(draft);
+        }}
+        onCloneSuggestion={(transacao) => {
+          setIsAssistenteOpen(false);
+          handleOpenCloneTransaction(transacao);
         }}
       />
     </div>

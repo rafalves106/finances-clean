@@ -20,6 +20,7 @@ describe("AssistenteMovimentacaoModal", () => {
         tipo: "Saida",
         categoriaId: "cat-transporte",
         observacao: null,
+        fixa: false,
       }),
     });
 
@@ -52,7 +53,169 @@ describe("AssistenteMovimentacaoModal", () => {
       data: "2026-08-16T00:00:00",
       tipo: "Saida",
       categoriaId: "cat-transporte",
+      fixa: false,
     });
+  });
+
+  it("quando a IA detecta parcelamento, repassa fixa/periodo/tipoMovimentacaoFixa no draft", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        entendido: true,
+        titulo: "Notebook",
+        valor: 300,
+        data: "2026-08-16T00:00:00",
+        tipo: "Saida",
+        categoriaId: null,
+        observacao: null,
+        fixa: true,
+        periodo: 10,
+        tipoRecorrencia: null,
+        tipoMovimentacaoFixa: "Parcelada",
+      }),
+    });
+
+    const onDraftReady = vi.fn();
+
+    render(<AssistenteMovimentacaoModal isOpen={true} onClose={vi.fn()} onDraftReady={onDraftReady} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "notebook de 3000 em 10x" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    await waitFor(() => expect(onDraftReady).toHaveBeenCalled());
+
+    const draft = onDraftReady.mock.calls[0][0];
+    expect(draft.fixa).toBe(true);
+    expect(draft.periodo).toBe(10);
+    expect(draft.tipoMovimentacaoFixa).toBe("Parcelada");
+    expect(draft.valor).toBe(300);
+  });
+
+  it("quando a IA detecta recorrência, repassa fixa/tipoRecorrencia no draft", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        entendido: true,
+        titulo: "Netflix",
+        valor: 39.9,
+        data: "2026-08-16T00:00:00",
+        tipo: "Saida",
+        categoriaId: null,
+        observacao: null,
+        fixa: true,
+        periodo: 12,
+        tipoRecorrencia: "Mensal",
+        tipoMovimentacaoFixa: "RecorrenteFixa",
+      }),
+    });
+
+    const onDraftReady = vi.fn();
+
+    render(<AssistenteMovimentacaoModal isOpen={true} onClose={vi.fn()} onDraftReady={onDraftReady} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "netflix 39,90 todo mês" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    await waitFor(() => expect(onDraftReady).toHaveBeenCalled());
+
+    const draft = onDraftReady.mock.calls[0][0];
+    expect(draft.fixa).toBe(true);
+    expect(draft.tipoRecorrencia).toBe("Mensal");
+    expect(draft.tipoMovimentacaoFixa).toBe("RecorrenteFixa");
+  });
+
+  it("quando existe transação parecida (mesmo tipo, título similar), oferece clonar em vez de criar", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        entendido: true,
+        titulo: "Uber",
+        valor: 32,
+        data: "2026-08-16T00:00:00",
+        tipo: "Saida",
+        categoriaId: "cat-transporte",
+        observacao: null,
+        fixa: false,
+      }),
+    });
+
+    const onDraftReady = vi.fn();
+    const onCloneSuggestion = vi.fn();
+    const allTransactions = [
+      { id: "t1", name: "Uber Viagem SP", type: "Saida", value: 28, date: "2026-08-10" },
+      { id: "t2", name: "Uber Viagem SP", type: "Saida", value: 25, date: "2026-08-01" },
+    ];
+
+    render(
+      <AssistenteMovimentacaoModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onDraftReady={onDraftReady}
+        onCloneSuggestion={onCloneSuggestion}
+        allTransactions={allTransactions}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "gastei 32 reais de uber" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    // Mostra a sugestão em vez de criar direto - a mais recente das parecidas.
+    expect(await screen.findByText("Uber Viagem SP")).toBeTruthy();
+    expect(onDraftReady).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Clonar a parecida/ }));
+
+    expect(onCloneSuggestion).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "t1", date: "2026-08-10" }),
+    );
+  });
+
+  it("na sugestão de clonar, 'Criar nova' segue com o draft normalmente", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        entendido: true,
+        titulo: "Uber",
+        valor: 32,
+        data: "2026-08-16T00:00:00",
+        tipo: "Saida",
+        categoriaId: null,
+        observacao: null,
+        fixa: false,
+      }),
+    });
+
+    const onDraftReady = vi.fn();
+    const allTransactions = [
+      { id: "t1", name: "Uber Corrida", type: "Saida", value: 28, date: "2026-08-10" },
+    ];
+
+    render(
+      <AssistenteMovimentacaoModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onDraftReady={onDraftReady}
+        onCloneSuggestion={vi.fn()}
+        allTransactions={allTransactions}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Descreva a movimentação..."), {
+      target: { value: "gastei 32 reais de uber" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analisar" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: /Criar nova/ }));
+
+    expect(onDraftReady).toHaveBeenCalledWith(
+      expect.objectContaining({ titulo: "Uber", valor: 32 }),
+    );
   });
 
   it("quando a IA nao entende, mostra a observacao e nao chama onDraftReady", async () => {
