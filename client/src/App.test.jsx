@@ -18,7 +18,14 @@ vi.mock("./util/releaseNotes", () => ({
 }));
 
 vi.mock("./components/home/HomeDesktop", () => ({
-  default: () => <div data-testid="home-desktop-view">Home Desktop</div>,
+  default: ({ onOpenNav }) => (
+    <div data-testid="home-desktop-view">
+      Home Desktop
+      <button type="button" onClick={onOpenNav} aria-label="Abrir menu">
+        hambúrguer inline
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("./components/InvestmentsView", () => ({

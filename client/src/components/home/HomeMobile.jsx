@@ -12,7 +12,7 @@ import { formatCurrency } from "../../util/formatCurrency";
 import { formatDateLabel, formatVariationPercent } from "../../util/dashboardFormatters";
 import { useDashboardFinancials } from "../../hooks/useDashboardFinancials";
 import { useTransactionActions } from "../../hooks/useTransactionActions";
-import NestedCirclesChart from "../dashboard/NestedCirclesChart";
+import CategorySpendBars from "../dashboard/CategorySpendBars";
 import TransactionModal from "../TransactionModal";
 import AssistenteMovimentacaoModal from "../AssistenteMovimentacaoModal";
 import Panel from "../ui/Panel";
@@ -216,12 +216,12 @@ const HomeMobile = ({
         interactive
         animationClassName="rise-in stagger-3"
         onClick={(e) => onOpenCategoryManager?.(e.currentTarget)}
-        className="flex flex-col items-center gap-2 rounded-2xl p-3 text-center"
+        className="flex flex-col gap-2 rounded-2xl p-3 text-left"
       >
-        <p className="m-0 self-start text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+        <p className="m-0 text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
           Gastos por categoria
         </p>
-        <NestedCirclesChart items={categoriaGastosDoMes} formatValue={formatCurrency} size={160} />
+        <CategorySpendBars items={categoriaGastosDoMes} formatValue={formatCurrency} />
       </Panel>
 
       <Panel className="rounded-2xl p-3 rise-in stagger-4">

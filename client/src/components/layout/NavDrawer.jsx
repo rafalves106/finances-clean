@@ -1,6 +1,4 @@
-import { useState } from "react";
 import {
-  List,
   X,
   SquaresFour,
   Target,
@@ -22,7 +20,13 @@ const NAV_ITEMS = [
 // do usuário pra abrir mais espaço útil pro conteúdo e reduzir "caixas"
 // sempre visíveis. Reaproveita useFocusTrap (mesmo hook do modal de
 // edição de cartão) em vez de reescrever navegação por teclado do zero.
+// Controlado de fora (isOpen/onClose) porque o botão que abre precisa
+// aparecer em lugares diferentes: flutuando (mobile, telas sem barra de
+// ações própria) ou inline na linha de ações da Home desktop - ver
+// ui/HamburgerButton.jsx.
 const NavDrawer = ({
+  isOpen,
+  onClose,
   activeTab,
   onNavigate,
   alerts = [],
@@ -30,28 +34,16 @@ const NavDrawer = ({
   onLogout,
   version,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const close = () => setIsOpen(false);
-  const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, close);
+  const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, onClose);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        aria-label="Abrir menu"
-        aria-expanded={isOpen}
-        className="ui-panel ui-panel-interactive fixed top-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-full"
-      >
-        <List size={20} weight="bold" style={{ color: "var(--text-primary)" }} />
-      </button>
-
       {isOpen ? (
         <div className="fixed inset-0 z-40 flex">
           <button
             type="button"
             aria-label="Fechar menu clicando fora"
-            onClick={close}
+            onClick={onClose}
             className="nav-drawer-backdrop absolute inset-0"
           />
 
@@ -72,7 +64,7 @@ const NavDrawer = ({
               </span>
               <button
                 type="button"
-                onClick={close}
+                onClick={onClose}
                 aria-label="Fechar menu"
                 className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
                 style={{ color: "var(--text-tertiary)" }}
@@ -88,7 +80,7 @@ const NavDrawer = ({
                   type="button"
                   onClick={() => {
                     onNavigate(item.id);
-                    close();
+                    onClose();
                   }}
                   aria-current={activeTab === item.id ? "page" : undefined}
                   className="nav-drawer-item flex items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium"
@@ -116,7 +108,7 @@ const NavDrawer = ({
                 type="button"
                 onClick={() => {
                   onOpenSearch();
-                  close();
+                  onClose();
                 }}
                 className="nav-drawer-item flex items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium"
                 style={{ color: "var(--text-secondary)" }}

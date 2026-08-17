@@ -115,4 +115,15 @@ describe("HomeDesktop", () => {
 
     expect(screen.getByTestId("transaction-modal").textContent).toBe("clonando");
   });
+
+  // Regressão: o tile de Investimentos virou um KpiTile não-clicável na
+  // reescrita e o slide de investimentos ficou sem nenhum jeito de abrir.
+  it("abre o slide de investimentos ao clicar no tile de Investimentos", async () => {
+    render(<HomeDesktop {...baseProps} />);
+
+    await waitFor(() => screen.getByLabelText("Abrir slide de investimentos"));
+    fireEvent.click(screen.getByLabelText("Abrir slide de investimentos"));
+
+    expect(screen.getByText("Investments View")).toBeTruthy();
+  });
 });
