@@ -2,6 +2,13 @@
 // Sem biblioteca nova - área proporcional ao valor (raio = sqrt(valor)),
 // maior valor por fora, tons de coral graduados do mais claro (fora) ao mais
 // escuro/saturado (dentro).
+//
+// Os rótulos NÃO ficam dentro de cada círculo (ponytail: já tentamos isso e
+// deu bug - quando os valores não têm escalas muito diferentes, o círculo
+// mais interno, desenhado por cima, acaba cobrindo o rótulo dos círculos do
+// meio). Em vez disso, os 4 valores formam uma coluna própria, sobreposta a
+// tudo, igual à referência original: sempre legível, não depende da
+// geometria relativa dos círculos.
 const TINTS = ["var(--accent-50)", "var(--accent-100)", "var(--accent-500)", "var(--accent-600)"];
 const TEXT_ON_TINT = ["var(--text-primary)", "var(--text-primary)", "var(--text-on-accent)", "var(--text-on-accent)"];
 
@@ -42,7 +49,7 @@ const NestedCirclesChart = ({ items, formatValue, size = 260 }) => {
       {circulos.map((circulo, index) => (
         <div
           key={circulo.nome}
-          className="absolute rounded-full flex items-start justify-center"
+          className="absolute rounded-full"
           style={{
             width: circulo.raio * 2,
             height: circulo.raio * 2,
@@ -50,14 +57,21 @@ const NestedCirclesChart = ({ items, formatValue, size = 260 }) => {
             top: raioMax - circulo.raio,
             background: circulo.tint,
             zIndex: index,
-            paddingTop: index === circulos.length - 1 ? "42%" : "10px",
           }}
-        >
-          <span className="text-center leading-tight" style={{ color: circulo.corTexto }}>
-            <span className="block text-xs font-semibold">{formatValue(circulo.valor)}</span>
-          </span>
-        </div>
+        />
       ))}
+
+      <div className="absolute inset-x-0 top-2 z-10 flex flex-col items-center gap-1">
+        {circulos.map((circulo) => (
+          <span
+            key={circulo.nome}
+            className="text-xs font-semibold leading-tight"
+            style={{ color: circulo.corTexto === "var(--text-on-accent)" ? "var(--text-primary)" : circulo.corTexto }}
+          >
+            {formatValue(circulo.valor)}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
