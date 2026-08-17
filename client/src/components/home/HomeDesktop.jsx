@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowSquareOut,
@@ -64,7 +64,8 @@ import {
 import CardsSlide from "../dashboard/CardsSlide";
 import CategorySpendBars from "../dashboard/CategorySpendBars";
 import GrowthDial from "../dashboard/GrowthDial";
-import InvestmentsView from "../InvestmentsView";
+// Só entra no bundle quando o slide de investimentos abre de fato.
+const InvestmentsView = lazy(() => import("../InvestmentsView"));
 import ExportCsvModal from "../ExportCsvModal";
 import BulkDeleteConfirmModal from "../BulkDeleteConfirmModal";
 import TransactionModal from "../TransactionModal";
@@ -462,11 +463,19 @@ const HomeDesktop = ({
           <>
             <SlideHeader title="Investimentos" onBack={() => setActiveSlide(null)} />
             <section className="min-h-0 flex-1 overflow-y-auto rounded-2xl">
-              <InvestmentsView
-                investmentAmount={investmentAmount}
-                investments={investments}
-                fetchData={fetchData}
-              />
+              <Suspense
+                fallback={
+                  <div className="flex h-40 items-center justify-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    Carregando...
+                  </div>
+                }
+              >
+                <InvestmentsView
+                  investmentAmount={investmentAmount}
+                  investments={investments}
+                  fetchData={fetchData}
+                />
+              </Suspense>
             </section>
           </>
         ) : activeSlide === "cards" ? (

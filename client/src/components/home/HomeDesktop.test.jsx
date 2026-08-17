@@ -124,6 +124,6 @@ describe("HomeDesktop", () => {
     await waitFor(() => screen.getByLabelText("Abrir slide de investimentos"));
     fireEvent.click(screen.getByLabelText("Abrir slide de investimentos"));
 
-    expect(screen.getByText("Investments View")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Investments View")).toBeTruthy());
   });
 });
