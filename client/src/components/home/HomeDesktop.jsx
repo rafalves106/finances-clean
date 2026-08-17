@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowSquareOut,
+  ArrowsClockwise,
   Bank,
   CalendarCheck,
   ChartLine,
@@ -9,6 +10,7 @@ import {
   CreditCard,
   Download,
   FileText,
+  ListNumbers,
   Plus,
   ShieldCheck,
   Tag,
@@ -1368,6 +1370,23 @@ const HomeDesktop = ({
                           <span className="truncate text-xs" style={{ color: "var(--text-tertiary)" }} title={item.title}>
                             {truncateWithThreeDots(item.title, UPCOMING_ITEM_TITLE_MAX_LENGTH)}
                           </span>
+                          {item.isParcela ? (
+                            <span
+                              className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                              style={{ background: "var(--accent-50)", color: "var(--accent-600)" }}
+                              title="Movimentação parcelada"
+                            >
+                              <ListNumbers size={10} weight="bold" /> Parcela
+                            </span>
+                          ) : item.isRecorrente ? (
+                            <span
+                              className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                              style={{ background: "var(--bg-surface-sunken)", color: "var(--text-secondary)" }}
+                              title="Movimentação recorrente"
+                            >
+                              <ArrowsClockwise size={10} weight="bold" /> Recorrente
+                            </span>
+                          ) : null}
                         </div>
                         <span className="whitespace-nowrap text-xs" style={{ color: "var(--text-secondary)" }}>
                           {formatDateLabel(item.dueDate)}

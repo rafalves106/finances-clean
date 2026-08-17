@@ -58,6 +58,7 @@ const mapApiToFrontend = (item) => ({
   fixa: item.fixa,
   periodo: item.periodo,
   tipoRecorrencia: item.tipoRecorrencia,
+  tipoMovimentacaoFixa: item.tipoMovimentacaoFixa,
   grupoRecorrenciaId: item.grupoRecorrenciaId,
   investimentoId: item.investimentoId,
   cartaoId: item.cartaoId,

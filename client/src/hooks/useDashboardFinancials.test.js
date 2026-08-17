@@ -160,3 +160,55 @@ describe("useDashboardFinancials - monthComparison com resumo/comparativo do bac
     expect(result.current.monthComparison.currentExpense).toBe(40);
   });
 });
+
+// Fase 1 do checkup: parcelas/recorrências apareciam em "Próximos pagamentos"
+// misturadas com movimentações avulsas, sem nenhuma distinção visual.
+describe("useDashboardFinancials - upcomingPayments distingue parcela/recorrência", () => {
+  // mês bem no futuro em relação a "hoje" real, pra never bater no ramo
+  // "start = agora" do filtro e o teste ficar sensível à data de execução
+  const expenses = [
+    { id: "avulsa", name: "Mercado", value: 100, date: "2027-03-05T12:00:00" },
+    {
+      id: "parcela",
+      name: "Notebook 2/10",
+      value: 300,
+      date: "2027-03-06T12:00:00",
+      fixa: true,
+      tipoMovimentacaoFixa: "Parcelada",
+    },
+    {
+      id: "recorrente",
+      name: "Netflix",
+      value: 39.9,
+      date: "2027-03-07T12:00:00",
+      fixa: true,
+      tipoMovimentacaoFixa: "RecorrenteFixa",
+    },
+  ];
+
+  it("marca isParcela/isRecorrente conforme tipoMovimentacaoFixa, avulsa sem nenhuma flag", () => {
+    const { result } = renderHook(() =>
+      useDashboardFinancials({
+        allTransactions: expenses,
+        incomes: [],
+        expenses,
+        categorias: [],
+        selectedMes: 3,
+        selectedAno: 2027,
+        saldoAnterior: 0,
+        faturaTransactions: [],
+      }),
+    );
+
+    const porId = Object.fromEntries(
+      result.current.upcomingPayments.map((item) => [item.id, item]),
+    );
+
+    expect(porId.avulsa.isParcela).toBe(false);
+    expect(porId.avulsa.isRecorrente).toBe(false);
+    expect(porId.parcela.isParcela).toBe(true);
+    expect(porId.parcela.isRecorrente).toBe(false);
+    expect(porId.recorrente.isParcela).toBe(false);
+    expect(porId.recorrente.isRecorrente).toBe(true);
+  });
+});
