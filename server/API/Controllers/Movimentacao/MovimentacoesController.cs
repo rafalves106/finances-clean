@@ -8,7 +8,7 @@ namespace Finance.API.Controllers;
 
 [ApiController]
 [Route("api/v1/movimentacoes")]
-public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, RemoverMovimentacoesEmLoteUseCase removerMovimentacoesEmLoteUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, ObterSaldoAcumuladoUseCase obterSaldoAcumuladoUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, ICartaoRepository cartaoRepository) : AuthenticatedController
+public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoUseCase, AtualizarMovimentacaoUseCase atualizarMovimentacaoUseCase, ListarMovimentacoesUseCase listarMovimentacoesUseCase, BuscarMovimentacaoUseCase buscarMovimentacaoUseCase, BuscarEntradaUseCase buscarEntradaUseCase, BuscarSaidaUseCase buscarSaidaUseCase, RemoverMovimentacaoUseCase removerMovimentacaoUseCase, RemoverMovimentacoesEmLoteUseCase removerMovimentacoesEmLoteUseCase, BuscarMovimentacoesPorPeriodoUseCase buscarMovimentacoesPorPeriodoUseCase, BuscarEntradasPorPeriodoUseCase buscarEntradasPorPeriodoUseCase, BuscarSaidasPorPeriodoUseCase buscarSaidasPorPeriodoUseCase, ObterResumoMensalUseCase obterResumoMensalUseCase, ObterComparativoCategoriaMensalUseCase obterComparativoCategoriaMensalUseCase, ObterSaldoAcumuladoUseCase obterSaldoAcumuladoUseCase, ObterProjecaoSaldoUseCase obterProjecaoSaldoUseCase, RenumerarGrupoUseCase renumerarGrupoUseCase, ListarGruposRecorrenciaExpiradosUseCase listarGruposRecorrenciaExpiradosUseCase, RenovarGrupoRecorrenciaUseCase renovarGrupoRecorrenciaUseCase, ExportarMovimentacoesCsvUseCase exportarMovimentacoesCsvUseCase, GerarRelatorioMensalUseCase gerarRelatorioMensalUseCase, ICartaoRepository cartaoRepository) : AuthenticatedController
 {
     [HttpPost]
     public IActionResult CriarMovimentacao([FromBody] MovimentacaoDTO movimentacaoDTO)
@@ -253,6 +253,26 @@ public class MovimentacoesController(CriarMovimentacaoUseCase criarMovimentacaoU
         catch (Exception)
         {
             return StatusCode(500, "Erro ao calcular saldo acumulado.");
+        }
+    }
+
+    [HttpGet("projecao-saldo")]
+    public IActionResult ObterProjecaoSaldo(
+    [FromQuery] int mes,
+    [FromQuery] int ano,
+    [FromQuery] int meses = 6)
+    {
+        try
+        {
+            return Ok(obterProjecaoSaldoUseCase.Executar(UsuarioId, mes, ano, meses));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Erro ao calcular projeção de saldo.");
         }
     }
 

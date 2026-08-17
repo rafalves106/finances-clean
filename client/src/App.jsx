@@ -104,6 +104,7 @@ const App = () => {
   const [saldoAnterior, setSaldoAnterior] = useState(0);
   const [resumoMensal, setResumoMensal] = useState(null);
   const [comparativoMensal, setComparativoMensal] = useState(null);
+  const [projecaoSaldo, setProjecaoSaldo] = useState(null);
   const [faturasVencendo, setFaturasVencendo] = useState([]);
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
@@ -346,6 +347,21 @@ const App = () => {
 
       if (resComparativo.ok) {
         setComparativoMensal(await resComparativo.json());
+      }
+
+      const resProjecao = await fetch(
+        `${API_URL}/projecao-saldo?mes=${requestMes}&ano=${requestAno}&meses=6`,
+        { headers: getAuthHeaders() },
+      );
+
+      if (resProjecao.status === 401) {
+        removeToken();
+        setIsLoggedIn(false);
+        return;
+      }
+
+      if (resProjecao.ok) {
+        setProjecaoSaldo(await resProjecao.json());
       }
 
       const resFaturasVencendo = await fetch(
@@ -624,6 +640,7 @@ const App = () => {
               onOpenNav={() => setIsNavOpen(true)}
               resumoMensal={resumoMensal}
               comparativoMensal={comparativoMensal}
+              projecaoSaldo={projecaoSaldo}
               faturasVencendo={faturasVencendo}
               investmentAmount={investmentAmount}
               incomes={incomes}
