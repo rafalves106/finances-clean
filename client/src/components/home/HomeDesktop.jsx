@@ -1007,7 +1007,7 @@ const HomeDesktop = ({
               <div className="ml-auto flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleExportRelatorioMensal}
+                  onClick={() => handleExportRelatorioMensal(selectedMes, selectedAno)}
                   disabled={isExportingReport}
                   aria-label="Gerar relatório mensal"
                   title="Relatório mensal"

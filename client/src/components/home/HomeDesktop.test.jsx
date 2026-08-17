@@ -126,4 +126,23 @@ describe("HomeDesktop", () => {
 
     await waitFor(() => expect(screen.getByText("Investments View")).toBeTruthy());
   });
+
+  // Regressão: onClick={handleExportRelatorioMensal} passava o SyntheticEvent
+  // do clique como "mes" (virava "[object Object]" na query string) e "ano"
+  // ficava undefined - precisa ser onClick={() => handleExportRelatorioMensal(mes, ano)}.
+  it("gera o relatório mensal com o mês e ano selecionados, não o evento de clique", async () => {
+    render(<HomeDesktop {...baseProps} />);
+
+    await waitFor(() => screen.getByLabelText("Gerar relatório mensal"));
+    fireEvent.click(screen.getByLabelText("Gerar relatório mensal"));
+
+    await waitFor(() => {
+      const chamada = globalThis.fetch.mock.calls.find(([url]) =>
+        String(url).includes("/relatorio-mensal"),
+      );
+      expect(chamada).toBeDefined();
+      expect(String(chamada[0])).toContain("mes=8");
+      expect(String(chamada[0])).toContain("ano=2026");
+    });
+  });
 });
