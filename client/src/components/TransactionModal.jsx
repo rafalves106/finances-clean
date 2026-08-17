@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { API_CARTAO_URL, API_URL } from "../services/api";
+import { formatCurrency } from "../util/formatCurrency";
 import { formatDate } from "../util/formatDate";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -24,6 +25,27 @@ const INITIAL_FORM = {
 
 const hasAdvancedData = (item) =>
   Boolean(item?.fixa || item?.cartaoId || item?.veiculoId);
+
+// Bug real reportado: "3000 parcelado em 10x" lançava 10 ocorrências de
+// R$3000 em vez de R$300 - o campo "Valor" era enviado direto pro backend,
+// que cria uma ocorrência por parcela com esse valor cheio (CriarMovimentacaoUseCase
+// nunca dividiu). Quando o usuário digita do zero um parcelamento, o valor
+// digitado é o TOTAL da compra e precisa ser dividido pelo período.
+// Clone/rascunho da IA já chegam com o valor por parcela pronto (a IA já
+// faz essa conta), então não devem ser divididos de novo.
+const ehParcelamentoDigitadoDoZero = (isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft) =>
+  isFixed && tipoMovimentacaoFixa === "Parcelada" && !isCloning && !isAiDraft;
+
+const calcularValorPorOcorrencia = (valorDigitado, periodo, isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft) => {
+  const total = parseFloat(valorDigitado);
+  const qtd = parseInt(periodo, 10);
+
+  if (!ehParcelamentoDigitadoDoZero(isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft) || !qtd || qtd <= 0) {
+    return total;
+  }
+
+  return total / qtd;
+};
 
 const TransactionModal = ({
   isOpen,
@@ -176,7 +198,7 @@ const TransactionModal = ({
     const payload = {
       titulo: name,
       descricao: description,
-      valor: parseFloat(value),
+      valor: calcularValorPorOcorrencia(value, period, isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft),
       tipo,
       data: formatDate(date),
       fixa: isFixed,
@@ -566,6 +588,22 @@ const TransactionModal = ({
                     onChange={(e) => setField("period", e.target.value)}
                   />
                 )}
+
+                {ehParcelamentoDigitadoDoZero(isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft) &&
+                  value &&
+                  period > 0 && (
+                    <p
+                      className="px-1 text-xs"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Valor digitado é o total da compra: {period}x de{" "}
+                      <strong>
+                        {formatCurrency(
+                          calcularValorPorOcorrencia(value, period, isFixed, tipoMovimentacaoFixa, isCloning, isAiDraft),
+                        )}
+                      </strong>
+                    </p>
+                  )}
 
                 {tipo === "Saida" && (
                   <div

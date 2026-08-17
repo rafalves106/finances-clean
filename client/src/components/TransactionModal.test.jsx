@@ -72,17 +72,60 @@ describe("TransactionModal tipoMovimentacaoFixa", () => {
     expect(payload.tipoMovimentacaoFixa).toBe("Parcelada");
     expect(payload.periodo).toBe(3);
     expect(payload.cartaoId).toBeNull();
+    // Bug real: valor digitado (4500) é o TOTAL da compra - o backend cria
+    // uma ocorrência por parcela com o "valor" enviado, então precisa
+    // chegar já dividido (1500), senão lança 3x de 4500.
+    expect(payload.valor).toBe(1500);
     expect(onSuccess).toHaveBeenCalledWith({
       type: "create",
       id: "mov-created",
       payload: expect.objectContaining({
         titulo: "Notebook",
-        valor: 4500,
+        valor: 1500,
         tipoMovimentacaoFixa: "Parcelada",
       }),
       requestPeriodKey: "2026-1",
     });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("não divide o valor de novo quando o rascunho já vem da IA com o valor por parcela", async () => {
+    const onSuccess = vi.fn();
+
+    render(
+      <TransactionModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={onSuccess}
+        categorias={[]}
+        veiculos={[]}
+        editingItem={{
+          id: null,
+          name: "Notebook",
+          value: 300,
+          date: "2026-01-10T12:00:00",
+          tipo: "Saida",
+          fixa: true,
+          periodo: 10,
+          tipoMovimentacaoFixa: "Parcelada",
+        }}
+        isAiDraft={true}
+        periodKey="2026-1"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+
+    const postCall = globalThis.fetch.mock.calls.find(
+      ([url, options]) =>
+        String(url).includes("/api/v1/movimentacoes") &&
+        options?.method === "POST",
+    );
+    const payload = JSON.parse(postCall[1].body);
+
+    expect(payload.valor).toBe(300);
   });
 });
 
