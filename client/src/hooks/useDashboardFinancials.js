@@ -262,6 +262,8 @@ export const useDashboardFinancials = ({
         categoria: item.categoria?.nome || "Sem categoria",
         icone: item.categoria?.icone || "•",
         dueDate: new Date(item.date || item.data),
+        isParcela: Boolean(item.fixa) && item.tipoMovimentacaoFixa === "Parcelada",
+        isRecorrente: Boolean(item.fixa) && item.tipoMovimentacaoFixa === "RecorrenteFixa",
       }));
   }, [expenses, selectedAno, selectedMes]);
 
@@ -287,6 +289,8 @@ export const useDashboardFinancials = ({
         categoria: item.categoria?.nome || "Sem categoria",
         icone: item.categoria?.icone || "•",
         dueDate: new Date(item.date || item.data),
+        isParcela: Boolean(item.fixa) && item.tipoMovimentacaoFixa === "Parcelada",
+        isRecorrente: Boolean(item.fixa) && item.tipoMovimentacaoFixa === "RecorrenteFixa",
       }));
   }, [incomes, selectedAno, selectedMes]);
 

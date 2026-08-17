@@ -17,7 +17,7 @@ describe("useCsvImport", () => {
 
   it("importa com sucesso, avisa o resumo e chama o callback de refresh", async () => {
     const resultado = { totalLinhas: 3, importadas: 3, erros: [] };
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => resultado,
     });
@@ -30,11 +30,11 @@ describe("useCsvImport", () => {
       await result.current.handleFileSelected(buildFileEvent(arquivo));
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/importar-csv"),
       expect.objectContaining({ method: "POST" }),
     );
-    expect(global.alert).toHaveBeenCalledWith(
+    expect(globalThis.alert).toHaveBeenCalledWith(
       expect.stringContaining("3 de 3 movimentações importadas"),
     );
     expect(onImported).toHaveBeenCalledTimes(1);
@@ -46,7 +46,7 @@ describe("useCsvImport", () => {
       importadas: 0,
       erros: [{ linha: 1, motivo: "Valor inválido" }],
     };
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => resultado,
     });
@@ -59,12 +59,12 @@ describe("useCsvImport", () => {
       await result.current.handleFileSelected(buildFileEvent(arquivo));
     });
 
-    expect(global.alert).toHaveBeenCalledWith(expect.stringContaining("Linha 1: Valor inválido"));
+    expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining("Linha 1: Valor inválido"));
     expect(onImported).not.toHaveBeenCalled();
   });
 
   it("avisa o erro e não quebra quando a resposta falha", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       text: async () => "Arquivo inválido.",
     });
@@ -77,18 +77,18 @@ describe("useCsvImport", () => {
       await result.current.handleFileSelected(buildFileEvent(arquivo));
     });
 
-    expect(global.alert).toHaveBeenCalledWith("Arquivo inválido.");
+    expect(globalThis.alert).toHaveBeenCalledWith("Arquivo inválido.");
     expect(onImported).not.toHaveBeenCalled();
   });
 
   it("não faz nada quando nenhum arquivo é selecionado", async () => {
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
     const { result } = renderHook(() => useCsvImport());
 
     await act(async () => {
       await result.current.handleFileSelected({ target: { files: [], value: "" } });
     });
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });
