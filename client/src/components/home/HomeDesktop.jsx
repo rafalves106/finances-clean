@@ -5,10 +5,13 @@ import {
   Bank,
   CalendarCheck,
   ChartLine,
+  ChartLineUp,
+  CreditCard,
   Download,
   FileText,
   Plus,
   ShieldCheck,
+  Tag,
   TrendDown,
   TrendUp,
   Wallet,
@@ -1004,10 +1007,43 @@ const HomeDesktop = ({
 
               <AiAssistantChip onClick={() => setIsAssistenteOpen(true)} />
 
+              <div className="ui-panel flex items-center gap-1 rounded-full p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveSlide("cards")}
+                  aria-label="Atalho: Cartões"
+                  title="Cartões"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <CreditCard size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => onOpenCategoryManager(e.currentTarget)}
+                  aria-label="Atalho: Categorias"
+                  title="Categorias"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <Tag size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSlide("investments")}
+                  aria-label="Atalho: Investimentos"
+                  title="Investimentos"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <ChartLineUp size={15} />
+                </button>
+              </div>
+
               <div className="ml-auto flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleExportRelatorioMensal}
+                  onClick={() => handleExportRelatorioMensal(selectedMes, selectedAno)}
                   disabled={isExportingReport}
                   aria-label="Gerar relatório mensal"
                   title="Relatório mensal"

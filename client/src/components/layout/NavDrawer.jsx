@@ -16,6 +16,16 @@ const NAV_ITEMS = [
   { id: "vehicle", label: "Veículos", icon: Car },
 ];
 
+// "Rafael Alves" -> "RA". Sem foto de perfil no app ainda - iniciais
+// evitam ter que construir upload/storage de avatar só pra mostrar quem
+// está logado.
+const getInitials = (name) => {
+  const partes = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+};
+
 // Menu lateral sob demanda (hambúrguer), não fixo na tela - pedido explícito
 // do usuário pra abrir mais espaço útil pro conteúdo e reduzir "caixas"
 // sempre visíveis. Reaproveita useFocusTrap (mesmo hook do modal de
@@ -33,6 +43,7 @@ const NavDrawer = ({
   onOpenSearch,
   onLogout,
   version,
+  userName = "",
 }) => {
   const { dialogRef, handleDialogKeyDown } = useFocusTrap(isOpen, onClose);
 
@@ -104,6 +115,26 @@ const NavDrawer = ({
               className="mt-auto flex flex-col gap-1 pt-3"
               style={{ borderTop: "1px solid var(--border-subtle)" }}
             >
+              {userName ? (
+                <div className="mb-1 flex items-center gap-3 rounded-xl px-2 py-2">
+                  <span
+                    className="icon-tile flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    style={{
+                      background: "linear-gradient(160deg, var(--accent-100) 0%, var(--accent-50) 100%)",
+                      color: "var(--accent-600)",
+                    }}
+                  >
+                    {getInitials(userName)}
+                  </span>
+                  <span
+                    className="truncate text-sm font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {userName}
+                  </span>
+                </div>
+              ) : null}
+
               <button
                 type="button"
                 onClick={() => {
