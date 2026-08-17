@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { LayoutDashboard, Target, Car, LogOut, Search } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
-import DashboardDesktopRedesignView from "./components/DashboardDesktopRedesignView";
-import DashboardMobileView from "./components/DashboardMobileView";
+import HomeDesktop from "./components/home/HomeDesktop";
+import HomeMobile from "./components/home/HomeMobile";
+import NavDrawer from "./components/layout/NavDrawer";
 import WishlistView from "./components/WishListView";
 import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import ReleaseNotesModal from "./components/ReleaseNotesModal";
-import AlertsCenter from "./components/AlertsCenter";
 import GlobalSearchModal from "./components/GlobalSearchModal";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useAlertsCenter } from "./hooks/useAlertsCenter";
@@ -32,6 +31,11 @@ import {
 } from "./util/releaseNotes";
 
 const APP_VERSION = __APP_VERSION__;
+
+const TAB_TITLES = {
+  wishlist: "Custo de Oportunidade",
+  vehicle: "Gestão de Veículos",
+};
 
 const mapApiToFrontend = (item) => ({
   id: item.id,
@@ -90,9 +94,6 @@ const App = () => {
   const [salaryIncomeForGoals, setSalaryIncomeForGoals] = useState(0);
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseNotesContent, setReleaseNotesContent] = useState("");
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(96);
-  const headerRef = useRef(null);
   const categoryManagerTriggerRef = useRef(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isMobileViewport, setIsMobileViewport] = useState(
@@ -103,7 +104,6 @@ const App = () => {
   const latestMutationTokenRef = useRef(0);
 
   const INVESTMENT_GOAL_PERCENT = 10;
-  const isSidebarExpanded = isSidebarHovered;
 
   const totalInvestmentsBalance = investments.reduce(
     (acc, curr) => acc + curr.saldoAtual,
@@ -426,44 +426,10 @@ const App = () => {
     setReleaseNotesOpen(true);
   }, [isLoggedIn]);
 
-  useLayoutEffect(() => {
-    if (!isLoggedIn) {
-      return;
-    }
-
-    if (isMobileViewport) {
-      setHeaderHeight(0);
-      return;
-    }
-
-    if (activeTab === "dashboard") {
-      setHeaderHeight(0);
-      return;
-    }
-
-    if (!headerRef.current) {
-      return;
-    }
-
-    const updateHeaderHeight = () => {
-      const nextHeight = Math.ceil(
-        headerRef.current?.getBoundingClientRect().height || 96,
-      );
-      setHeaderHeight(nextHeight > 0 ? nextHeight : 96);
-    };
-
-    updateHeaderHeight();
-
-    const observer = new ResizeObserver(() => updateHeaderHeight());
-    observer.observe(headerRef.current);
-
-    window.addEventListener("resize", updateHeaderHeight);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateHeaderHeight);
-    };
-  }, [isLoggedIn, activeTab, isMobileViewport]);
+  const handleLogout = () => {
+    removeToken();
+    setIsLoggedIn(false);
+  };
 
   if (!isLoggedIn) {
     if (authScreen === "register") {
@@ -480,75 +446,57 @@ const App = () => {
     );
   }
 
-  if (isMobileViewport) {
-    const mobileNavItems = [
-      { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
-      { id: "wishlist", label: "Conquistas", icon: <Target size={18} /> },
-      { id: "vehicle", label: "Veículos", icon: <Car size={18} /> },
-    ];
+  const sharedModals = (
+    <>
+      <CategoryManagerModal
+        isOpen={isCategoryManagerOpen}
+        onClose={handleCloseCategoryManager}
+        categorias={categorias}
+        onCategoriasChange={() => {
+          fetchCategorias();
+          setBudgetRefreshKey((k) => k + 1);
+        }}
+      />
+      <ReleaseNotesModal
+        isOpen={releaseNotesOpen}
+        version={APP_VERSION}
+        releaseNotes={releaseNotesContent}
+        onClose={() => setReleaseNotesOpen(false)}
+      />
+      {isGlobalSearchOpen ? (
+        <GlobalSearchModal
+          onClose={() => setIsGlobalSearchOpen(false)}
+          onNavigate={setActiveTab}
+          incomes={incomes}
+          expenses={expenses}
+          veiculos={veiculos}
+          metas={metas}
+        />
+      ) : null}
+    </>
+  );
 
+  const navDrawer = (
+    <NavDrawer
+      activeTab={activeTab}
+      onNavigate={setActiveTab}
+      alerts={alerts}
+      onOpenSearch={() => setIsGlobalSearchOpen(true)}
+      onLogout={handleLogout}
+      version={APP_VERSION}
+    />
+  );
+
+  if (isMobileViewport) {
     return (
       <div
         className="mobile-viewport-shell"
-        style={{ background: "var(--bg-app)", color: "var(--text-primary)" }}
+        style={{ color: "var(--text-primary)" }}
       >
-        <nav
-          className="flex items-center gap-1 px-3 py-2 sticky top-0 z-20 overflow-x-auto"
-          style={{
-            background: "var(--bg-surface)",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
-          aria-label="Navegação principal"
-        >
-          {mobileNavItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveTab(item.id)}
-              aria-label={item.label}
-              aria-current={activeTab === item.id ? "page" : undefined}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-              style={
-                activeTab === item.id
-                  ? {
-                      background: "var(--accent-50)",
-                      color: "var(--accent-600)",
-                    }
-                  : { color: "var(--text-tertiary)" }
-              }
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-          <div className="flex items-center gap-1 ml-auto">
-            <button
-              type="button"
-              onClick={() => setIsGlobalSearchOpen(true)}
-              aria-label="Buscar"
-              className="flex items-center justify-center w-9 h-9 rounded-full"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              <Search size={18} />
-            </button>
-            <AlertsCenter alerts={alerts} />
-            <button
-              type="button"
-              onClick={() => {
-                removeToken();
-                setIsLoggedIn(false);
-              }}
-              aria-label="Sair"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </nav>
+        {navDrawer}
 
         {activeTab === "dashboard" && (
-          <DashboardMobileView
+          <HomeMobile
             resumoMensal={resumoMensal}
             faturasVencendo={faturasVencendo}
             investmentAmount={investmentAmount}
@@ -565,13 +513,17 @@ const App = () => {
             veiculos={veiculos}
             onOpenCategoryManager={handleOpenCategoryManager}
             saldoAnterior={saldoAnterior}
-            budgetAlerts={budgetAlerts}
             metas={metas}
-            budgetRefreshKey={budgetRefreshKey}
           />
         )}
         {activeTab === "wishlist" && (
-          <div className="px-4 pb-6">
+          <div className="px-4 pt-16 pb-6">
+            <h1
+              className="mb-4 text-xl font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {TAB_TITLES.wishlist}
+            </h1>
             <WishlistView
               totalIncome={monthlyIncomeForGoals}
               hourlyRate={hourlyRate}
@@ -585,7 +537,13 @@ const App = () => {
           </div>
         )}
         {activeTab === "vehicle" && (
-          <div className="px-4 pb-6">
+          <div className="px-4 pt-16 pb-6">
+            <h1
+              className="mb-4 text-xl font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {TAB_TITLES.vehicle}
+            </h1>
             <VehicleView
               veiculos={veiculos}
               fetchVeiculos={fetchVeiculos}
@@ -594,194 +552,22 @@ const App = () => {
           </div>
         )}
 
-        <CategoryManagerModal
-          isOpen={isCategoryManagerOpen}
-          onClose={handleCloseCategoryManager}
-          categorias={categorias}
-          onCategoriasChange={() => {
-            fetchCategorias();
-            setBudgetRefreshKey((k) => k + 1);
-          }}
-        />
-        <ReleaseNotesModal
-          isOpen={releaseNotesOpen}
-          version={APP_VERSION}
-          releaseNotes={releaseNotesContent}
-          onClose={() => setReleaseNotesOpen(false)}
-        />
+        {sharedModals}
       </div>
     );
   }
 
   return (
     <div
-      className="uiux-shell flex h-screen overflow-hidden"
+      className="app-shell h-screen overflow-hidden"
       style={{ color: "var(--text-primary)" }}
     >
-      <aside
-        className="uiux-sidebar uiux-sidebar-motion self-center h-full max-h-[400px] flex flex-col justify-between"
-        style={{ width: isSidebarExpanded ? 240 : 64, color: "var(--text-secondary)" }}
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-      >
-        <nav className="space-y-3 px-3 text-sm">
-          {[
-            {
-              id: "dashboard",
-              label: "Dashboard",
-              icon: <LayoutDashboard size={20} />,
-            },
-            {
-              id: "wishlist",
-              label: "Conquistas",
-              icon: <Target size={20} />,
-            },
-            {
-              id: "vehicle",
-              label: "Manutenção Veicular",
-              icon: <Car size={20} />,
-            },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              title={!isSidebarExpanded ? item.label : undefined}
-              aria-label={item.label}
-              className="group relative w-full flex items-center justify-start gap-3 px-2 rounded-full py-2.5 uiux-sidebar-item-transition"
-              style={
-                activeTab === item.id
-                  ? {
-                      background: "var(--accent-50)",
-                      color: "var(--accent-600)",
-                      border: "1px solid var(--accent-100)",
-                    }
-                  : { color: "var(--text-tertiary)", border: "1px solid transparent" }
-              }
-              onMouseEnter={(e) => {
-                if (activeTab !== item.id) {
-                  e.currentTarget.style.background = "var(--bg-surface-hover)";
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== item.id) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--text-tertiary)";
-                }
-              }}
-            >
-              <span className="h-5 w-5 shrink-0 flex items-center justify-center">
-                {item.icon}
-              </span>
-              <span
-                className={`font-medium whitespace-nowrap overflow-hidden uiux-sidebar-label-motion ${
-                  isSidebarExpanded
-                    ? "max-w-[180px] opacity-100 translate-x-0"
-                    : "max-w-0 opacity-0 -translate-x-1.5"
-                }`}
-              >
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </nav>
+      {navDrawer}
 
-        <div
-          className={`space-y-3 py-4 ${
-            isSidebarExpanded ? "px-4" : "px-3.5"
-          }`}
-          style={{ borderTop: "1px solid var(--border-subtle)" }}
-        >
-          {isSidebarExpanded ? (
-            <div
-              className="text-xs text-center"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              v{APP_VERSION}
-            </div>
-          ) : null}
-
-          <div
-            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
-          >
-            <button
-              type="button"
-              onClick={() => setIsGlobalSearchOpen(true)}
-              aria-label="Buscar (Cmd+K)"
-              title={!isSidebarExpanded ? "Buscar (Cmd+K)" : undefined}
-              className="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              <Search size={18} />
-            </button>
-          </div>
-
-          <div
-            className={`flex ${isSidebarExpanded ? "justify-start px-2.5" : "justify-center"}`}
-          >
-            <AlertsCenter alerts={alerts} panelPosition="bottom-left" />
-          </div>
-
-          <button
-            onClick={() => {
-              removeToken();
-              setIsLoggedIn(false);
-            }}
-            aria-label="Sair"
-            title={!isSidebarExpanded ? "Sair" : undefined}
-            className={`w-full flex items-center justify-start text-sm font-medium rounded-full py-2 uiux-sidebar-item-transition ${
-              isSidebarExpanded ? "gap-2 px-2.5" : "gap-0 px-2.5"
-            }`}
-            style={{ color: "var(--text-tertiary)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-surface-hover)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--text-tertiary)";
-            }}
-          >
-            <LogOut size={16} className="shrink-0" />
-            <span
-              className={`whitespace-nowrap overflow-hidden uiux-sidebar-label-motion ${
-                isSidebarExpanded
-                  ? "max-w-[160px] opacity-100 translate-x-0"
-                  : "max-w-0 opacity-0 -translate-x-1.5"
-              }`}
-            >
-              Sair
-            </span>
-          </button>
-        </div>
-      </aside>
-
-      <main
-        className={`flex-1 ${activeTab === "dashboard" ? "overflow-hidden" : "overflow-auto"}`}
-      >
-        {activeTab !== "dashboard" ? (
-          <header
-            ref={headerRef}
-            className="uiux-header p-6 flex justify-between items-center sticky top-0 z-10"
-            style={{ borderBottom: "1px solid var(--border-subtle)" }}
-          >
-            <h1
-              className="text-2xl font-semibold tracking-wide"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {activeTab === "wishlist" && "Custo de Oportunidade"}
-              {activeTab === "vehicle" && "Gestão de Veículos"}
-            </h1>
-          </header>
-        ) : null}
-
-        <div
-          className={
-            activeTab === "dashboard" ? "px-4 pt-4 pb-4 h-full" : "px-6 pb-6"
-          }
-        >
-          {activeTab === "dashboard" && (
-            <DashboardDesktopRedesignView
+      <main className="h-full">
+        {activeTab === "dashboard" ? (
+          <div className="h-full px-5 pb-5 pt-16">
+            <HomeDesktop
               resumoMensal={resumoMensal}
               faturasVencendo={faturasVencendo}
               investmentAmount={investmentAmount}
@@ -801,57 +587,40 @@ const App = () => {
               budgetAlerts={budgetAlerts}
               metas={metas}
               budgetRefreshKey={budgetRefreshKey}
-              headerHeight={headerHeight}
             />
-          )}
-          {activeTab === "wishlist" && (
-            <WishlistView
-              totalIncome={monthlyIncomeForGoals}
-              hourlyRate={hourlyRate}
-              workHoursPerMonth={workHoursPerMonth}
-              setWorkHoursPerMonth={setWorkHoursPerMonth}
-              categorias={categorias}
-              investments={investments}
-              metas={metas}
-              onMetasChange={fetchMetas}
-            />
-          )}
-          {activeTab === "vehicle" && (
-            <VehicleView
-              veiculos={veiculos}
-              fetchVeiculos={fetchVeiculos}
-              categorias={categorias}
-            />
-          )}
-          <CategoryManagerModal
-            isOpen={isCategoryManagerOpen}
-            onClose={handleCloseCategoryManager}
-            categorias={categorias}
-            onCategoriasChange={() => {
-              fetchCategorias();
-              setBudgetRefreshKey((k) => k + 1);
-            }}
-          />
-        </div>
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto px-8 pb-8 pt-16">
+            <h1
+              className="mb-5 text-2xl font-semibold tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {TAB_TITLES[activeTab]}
+            </h1>
+            {activeTab === "wishlist" && (
+              <WishlistView
+                totalIncome={monthlyIncomeForGoals}
+                hourlyRate={hourlyRate}
+                workHoursPerMonth={workHoursPerMonth}
+                setWorkHoursPerMonth={setWorkHoursPerMonth}
+                categorias={categorias}
+                investments={investments}
+                metas={metas}
+                onMetasChange={fetchMetas}
+              />
+            )}
+            {activeTab === "vehicle" && (
+              <VehicleView
+                veiculos={veiculos}
+                fetchVeiculos={fetchVeiculos}
+                categorias={categorias}
+              />
+            )}
+          </div>
+        )}
       </main>
 
-      <ReleaseNotesModal
-        isOpen={releaseNotesOpen}
-        version={APP_VERSION}
-        releaseNotes={releaseNotesContent}
-        onClose={() => setReleaseNotesOpen(false)}
-      />
-
-      {isGlobalSearchOpen ? (
-        <GlobalSearchModal
-          onClose={() => setIsGlobalSearchOpen(false)}
-          onNavigate={setActiveTab}
-          incomes={incomes}
-          expenses={expenses}
-          veiculos={veiculos}
-          metas={metas}
-        />
-      ) : null}
+      {sharedModals}
     </div>
   );
 };
