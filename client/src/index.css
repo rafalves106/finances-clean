@@ -2,26 +2,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Tokens light mode (docs/ux-reviews/mapeamento-redesign-light-mobile-2026-07-31.md). Aditivos: desktop ainda usa os tokens dark abaixo, migracao e tela a tela. */
-  --bg-app: #f7f8fb;
-  --bg-surface: #ffffff;
-  --bg-surface-sunken: #eef1f6;
-  --bg-inverse: #12121a;
+  /* Tokens light mode, paleta creme/coral (referência dashboard financeiro
+     2026-08-17). Substitui a paleta fria anterior (docs/ux-reviews/mapeamento-redesign-light-mobile-2026-07-31.md)
+     - desktop e mobile compartilham os mesmos tokens agora, sem tema escuro. */
+  --bg-app: #ece8e1;
+  --bg-surface: #faf9f6;
+  --bg-surface-sunken: #f1eee6;
+  --bg-inverse: #17140f;
 
-  --text-primary: #12141c;
-  --text-secondary: #4b5169;
-  --text-tertiary: #767c93;
-  --text-disabled: #a6abbd;
+  --text-primary: #1a1712;
+  --text-secondary: #5c554b;
+  --text-tertiary: #8a8172;
+  --text-disabled: #b8ae9d;
   --text-on-accent: #ffffff;
 
-  --border-subtle: #e7e9f0;
-  --border-default: #dbdfea;
-  --border-strong: #c4c9da;
+  --border-subtle: #e7e2d6;
+  --border-default: #ddd5c4;
+  --border-strong: #c2b7a0;
 
-  --accent-600: #4f46e5;
-  --accent-500: #6366f1;
-  --accent-100: #e7e6fb;
-  --accent-50: #f3f2fe;
+  --accent-600: #e8623f;
+  --accent-500: #ef8060;
+  --accent-100: #fbe0d5;
+  --accent-50: #fdf0ea;
 
   --success-700: #15803d;
   --success-100: #dcfce7;
@@ -35,91 +37,19 @@
   --info-700: #1d4ed8;
   --info-100: #dbeafe;
 
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-xs: 0 1px 2px rgba(60, 45, 28, 0.06);
   --shadow-sm:
-    0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+    0 1px 3px rgba(60, 45, 28, 0.09), 0 1px 2px rgba(60, 45, 28, 0.05);
   --shadow-md:
-    0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+    0 4px 12px rgba(60, 45, 28, 0.09), 0 2px 4px rgba(60, 45, 28, 0.05);
   --shadow-lg:
-    0 12px 24px rgba(16, 24, 40, 0.1), 0 4px 8px rgba(16, 24, 40, 0.04);
-  --shadow-modal: 0 24px 48px rgba(16, 24, 40, 0.18);
+    0 12px 24px rgba(60, 45, 28, 0.11), 0 4px 8px rgba(60, 45, 28, 0.05);
+  --shadow-modal: 0 24px 48px rgba(40, 30, 18, 0.2);
   --shadow-panel:
-    0 8px 32px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.03);
+    0 8px 32px rgba(60, 45, 28, 0.07), 0 2px 8px rgba(60, 45, 28, 0.04);
 
   --bg-surface-hover: var(--bg-app);
   --border-hover: var(--border-strong);
-
-  /* --- Tokens dark legado, ainda em uso pelo desktop --- */
-  --uiux-bg-a: #0e0e0e;
-  --uiux-bg-b: #12101d;
-  --uiux-panel: linear-gradient(180deg, #12101d 0%, #1f1c2f 100%);
-  --uiux-border: #2f2c46;
-  --uiux-text-subsection: #817f8e;
-  --uiux-text-accent: #aba8c2;
-  --uiux-text-body: #6a6785;
-  --uiux-red-border: #462c2c;
-  --uiux-red-panel: linear-gradient(180deg, #2f1c1d 0%, #1d1011 100%);
-
-  /* Color System - Gradients and Text/Border colors */
-  /* Verde */
-  --color-verde-gradient-1: hsl(128, 25%, 15%);
-  --color-verde-gradient-2: hsl(128, 28%, 9%);
-  --color-verde-border: hsl(128, 23%, 22%);
-  --color-verde-text: hsl(128, 23%, 38%);
-
-  /* Vermelho */
-  --color-vermelho-gradient-1: hsl(359, 25%, 15%);
-  --color-vermelho-gradient-2: hsl(359, 28%, 9%);
-  --color-vermelho-border: hsl(359, 23%, 22%);
-  --color-vermelho-text: hsl(359, 23%, 38%);
-
-  /* Azul */
-  --color-azul-gradient-1: hsl(189, 25%, 15%);
-  --color-azul-gradient-2: hsl(189, 28%, 9%);
-  --color-azul-border: hsl(189, 23%, 22%);
-  --color-azul-text: hsl(189, 23%, 38%);
-
-  /* Amarelo */
-  --color-amarelo-gradient-1: hsl(52, 25%, 15%);
-  --color-amarelo-gradient-2: hsl(52, 28%, 9%);
-  --color-amarelo-border: hsl(52, 23%, 22%);
-  --color-amarelo-text: hsl(52, 23%, 38%);
-
-  /* Rosa */
-  --color-rosa-gradient-1: hsl(311, 25%, 15%);
-  --color-rosa-gradient-2: hsl(311, 28%, 9%);
-  --color-rosa-border: hsl(311, 23%, 22%);
-  --color-rosa-text: hsl(311, 23%, 38%);
-
-  /* Laranja */
-  --color-laranja-gradient-1: hsl(20, 25%, 15%);
-  --color-laranja-gradient-2: hsl(20, 28%, 9%);
-  --color-laranja-border: hsl(20, 23%, 22%);
-  --color-laranja-text: hsl(20, 23%, 38%);
-
-  /* Desktop Density Tokens (1366x768 base) */
-  --dashboard-shell-padding: 10px;
-  --dashboard-shell-gap: 10px;
-  --dashboard-panel-padding: 10px;
-  --dashboard-slide-safe-area: 48px;
-}
-
-@media (min-width: 1400px) {
-  :root {
-    --dashboard-shell-padding: 12px;
-    --dashboard-shell-gap: 12px;
-    --dashboard-panel-padding: 12px;
-    --dashboard-slide-safe-area: 64px;
-  }
-}
-
-@media (min-width: 1900px) {
-  :root {
-    --dashboard-shell-padding: 14px;
-    --dashboard-shell-gap: 14px;
-    --dashboard-panel-padding: 14px;
-    --dashboard-slide-safe-area: 88px;
-  }
 }
 
 html,
@@ -131,7 +61,7 @@ body,
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", sans-serif;
-  background: var(--uiux-bg-a);
+  background: var(--bg-app);
 }
 
 button:not(:disabled),
@@ -147,344 +77,160 @@ button:disabled {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
-  background:
-    radial-gradient(
-      circle at 15% 0%,
-      rgba(45, 60, 105, 0.35) 0%,
-      transparent 50%
-    ),
-    linear-gradient(165deg, #0b0f1d 0%, #111931 55%, #0f162b 100%);
-}
-
-.uiux-shell {
   background: var(--bg-app);
-  padding: var(--dashboard-shell-padding);
-  gap: var(--dashboard-shell-gap);
 }
 
-.uiux-sidebar {
-  border-radius: 30px;
-  border: 1px solid var(--border-default);
+.app-shell {
+  background: var(--bg-app);
+}
+
+/* ── Drawer de navegação (hambúrguer) ─────────────────────────── */
+.nav-drawer-backdrop {
+  background: rgba(23, 20, 15, 0.32);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 200ms ease both;
+}
+
+.nav-drawer-panel {
   background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
-  padding-top: 12px;
-  padding-bottom: 12px;
-  overflow: clip;
+  box-shadow: var(--shadow-modal);
+  animation: slideInLeft 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.uiux-sidebar-motion {
-  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: width;
-}
-
-.uiux-sidebar-item-transition {
+.nav-drawer-item {
   transition:
     color 150ms ease,
     background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    transform 150ms ease;
 }
 
-.uiux-sidebar-label-motion {
+.nav-drawer-item:hover {
+  transform: translateX(2px);
+}
+
+/* ── Animações compartilhadas ──────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.rise-in {
+  animation: riseIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pop-in {
+  animation: popIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stagger-1 {
+  animation-delay: 40ms;
+}
+.stagger-2 {
+  animation-delay: 90ms;
+}
+.stagger-3 {
+  animation-delay: 140ms;
+}
+.stagger-4 {
+  animation-delay: 190ms;
+}
+.stagger-5 {
+  animation-delay: 240ms;
+}
+.stagger-6 {
+  animation-delay: 290ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-drawer-backdrop,
+  .nav-drawer-panel,
+  .rise-in,
+  .pop-in {
+    animation: none !important;
+  }
+}
+
+/* ── Painéis (ui/Panel.jsx) ───────────────────────────────────── */
+.ui-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
   transition:
-    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    max-width 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.uiux-header {
-  background: transparent;
-  backdrop-filter: blur(4px);
-}
-
-.dashboard-desktop-redesign {
-  border-radius: 34px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-app);
-  box-shadow: var(--shadow-panel);
-  padding: var(--dashboard-panel-padding);
-}
-
-.dashboard-kpi-helper-clamp {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dashboard-control-chart-card {
-  background: linear-gradient(
-    145deg,
-    rgba(18, 24, 40, 0.98) 0%,
-    rgba(17, 22, 38, 0.95) 55%,
-    rgba(14, 19, 34, 0.98) 100%
-  );
-  border-color: #2f2c46;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 26px rgba(8, 12, 24, 0.34);
-}
-
-.dashboard-control-chart-title {
-  margin: 0;
-  color: #e8ebff;
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.dashboard-control-chart-month {
-  color: #cfd5f3;
-}
-
-.dashboard-control-chart-input {
-  border-color: #32375e;
-  color: #dbe3ff;
-  background: rgba(21, 24, 43, 0.84);
-}
-
-.dashboard-control-chart-export {
-  background: #2f4fa0;
-  color: #eef2ff;
-}
-
-.dashboard-control-chart-export:hover {
-  background: #3c64c2;
-}
-
-.dashboard-control-chart-nav {
-  border-color: #32375e;
-  color: #b9bfd8;
-  background: rgba(17, 22, 38, 0.44);
-}
-
-.dashboard-control-chart-nav:hover {
-  background: rgba(47, 56, 93, 0.52);
-}
-
-.uiux-card-premium-wrap {
-  min-height: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-}
-
-.uiux-card-state-box {
-  width: min(100%, 400px);
-  border-radius: 20px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface-sunken);
-  padding: 16px;
-}
-
-.uiux-card-stack {
-  position: relative;
-  width: min(100%, 400px);
-  min-height: 210px;
-  padding-bottom: 18px;
-}
-
-.uiux-card-layer {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border-radius: 22px;
-}
-
-.uiux-card-layer-back-1 {
-  top: 32px;
-  bottom: 0;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  align-items: flex-end;
-  padding: 10px 14px;
-  border: 1px solid rgba(104, 87, 63, 0.25);
-  background: linear-gradient(
-    180deg,
-    rgba(33, 32, 41, 0.72) 0%,
-    rgba(28, 27, 36, 0.86) 100%
-  );
-}
-
-.uiux-card-layer-back-2 {
-  top: 22px;
-  bottom: 22px;
-  left: 5px;
-  right: 5px;
-  display: flex;
-  align-items: flex-end;
-  padding: 10px 12px;
-  border: 1px solid rgba(120, 102, 75, 0.3);
-  background: linear-gradient(
-    180deg,
-    rgba(41, 35, 29, 0.55) 0%,
-    rgba(30, 28, 36, 0.75) 100%
-  );
-}
-
-.uiux-card-layer-back-clickable {
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.uiux-card-layer-back-clickable:hover {
-  transform: translateY(-1px);
-  border-color: rgba(173, 148, 112, 0.5);
-  box-shadow: 0 8px 18px rgba(8, 7, 17, 0.24);
-}
-
-.uiux-card-layer-back-clickable:focus-visible {
-  outline: none;
-  border-color: #9d7e6b;
-  box-shadow: 0 0 0 2px rgba(157, 126, 107, 0.28);
-}
-
-.uiux-card-layer-back-name {
-  margin: 0;
-  color: rgba(216, 210, 235, 0.78);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.uiux-card-layer-front {
-  top: 0;
-  bottom: 48px;
-  z-index: 2;
-  border: 1px solid #6a4f45;
-  background:
-    radial-gradient(
-      circle at 12% 15%,
-      rgba(255, 175, 123, 0.1) 0%,
-      rgba(255, 175, 123, 0) 45%
-    ),
-    linear-gradient(145deg, #271815 0%, #1d1110 52%, #191026 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 10px 28px rgba(8, 7, 17, 0.38);
-  padding: 18px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.uiux-card-layer-front-clickable {
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 160ms ease,
     box-shadow 180ms ease,
     border-color 180ms ease;
 }
 
-.uiux-card-layer-front-clickable:hover {
-  transform: translateY(-1px);
-  border-color: #8a6b5b;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 14px 30px rgba(8, 7, 17, 0.46);
+.ui-panel-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-hover);
 }
 
-.uiux-card-layer-front-clickable:focus-visible {
+.ui-panel-interactive:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.ui-panel-interactive:focus-visible {
   outline: none;
-  border-color: #b8937f;
+  border-color: var(--accent-600);
   box-shadow:
-    0 0 0 2px rgba(184, 147, 127, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 14px 30px rgba(8, 7, 17, 0.46);
+    0 0 0 2px var(--accent-100),
+    var(--shadow-md);
 }
 
-.uiux-card-fatura-label {
-  margin: 0 0 2px;
-  font-size: 11px;
-  line-height: 1.1;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.75;
-}
-
-.uiux-card-top-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.uiux-card-value-used {
-  margin: 0;
-  color: #9a7461;
-  font-size: 18px;
-  line-height: 1.1;
-  font-weight: 400;
-}
-
-.uiux-card-value-limit {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 20px;
-  line-height: 1.1;
-  font-weight: 700;
-}
-
-.uiux-card-progress-track {
-  position: relative;
-  height: 28px;
+/* ── Ícones em badge circular (sensação premium/dimensional) ───── */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  border: 1px solid #59453f;
-  background: linear-gradient(90deg, #231616 0%, #181536 100%);
-  padding: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.06),
+    var(--shadow-xs);
+  transition: transform 180ms ease;
 }
 
-.uiux-card-progress-fill {
-  height: 100%;
-  min-width: 0;
-  border-radius: 999px;
-  border: 1px solid #81655a;
-  background: linear-gradient(90deg, #3f2b27 0%, #251716 100%);
-  transition: width 220ms ease-in-out;
-}
-
-.uiux-card-progress-fill-empty {
-  border: 0;
-  background: transparent;
-}
-
-.uiux-card-footer-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.uiux-card-name {
-  margin: 0;
-  color: #8e7d74;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.uiux-card-cycle {
-  text-align: right;
-  color: var(--text-secondary);
-  font-size: 15px;
-  line-height: 1.2;
-  font-weight: 600;
-}
-
-.uiux-card-cycle p {
-  margin: 0;
+.ui-panel-interactive:hover .icon-tile {
+  transform: scale(1.06);
 }
 
 /* Dashboard Tags - Positive Trend (Green) */
@@ -511,138 +257,6 @@ button:disabled {
   color: var(--danger-700);
 }
 
-/* ── Desktop 1440x900 ─────────────────────────────────────────
-   Densidade intermediária: gaps e padding ligeiramente menores,
-   card stack e tipografia compactados. 1920x1080 permanece
-   inalterado por ser baseline. */
-@media screen and (max-width: 1440px) and (max-height: 900px) {
-  .uiux-shell {
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .dashboard-desktop-redesign {
-    padding: 12px;
-  }
-
-  .dashboard-desktop-redesign article {
-    padding: 12px !important;
-  }
-
-  .uiux-card-stack {
-    min-height: 192px;
-    padding-bottom: 16px;
-  }
-
-  .uiux-card-layer-front {
-    padding: 14px 14px 12px;
-    gap: 10px;
-  }
-
-  .uiux-card-layer-back-1 {
-    top: 30px;
-  }
-
-  .uiux-card-value-limit {
-    font-size: 18px;
-  }
-
-  .uiux-card-value-used {
-    font-size: 16px;
-  }
-
-  .uiux-card-cycle {
-    font-size: 13px;
-  }
-
-  .dashboard-desktop-redesign .text-2xl {
-    font-size: 1.25rem !important;
-    line-height: 1.75rem !important;
-  }
-
-  .dashboard-desktop-redesign .text-\[24px\] {
-    font-size: 20px !important;
-  }
-
-  /* Texto auxiliar de KPI ("Você recebeu/gastou") em tamanho compacto sem quebrar */
-  .dashboard-desktop-redesign p.text-xs {
-    font-size: 10px !important;
-    line-height: 1.3 !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-}
-
-/* ── Desktop 1366x768 ─────────────────────────────────────────
-   Densidade máxima: gaps mínimos, padding comprimido,
-   card stack mais baixo, KPIs com text-xs em linha única. */
-@media screen and (max-width: 1366px) and (max-height: 768px) {
-  .uiux-shell {
-    padding: 8px;
-    gap: 8px;
-  }
-
-  .dashboard-desktop-redesign {
-    padding: 10px;
-  }
-
-  .dashboard-desktop-redesign article {
-    padding: 10px !important;
-    border-radius: 14px !important;
-  }
-
-  .uiux-card-stack {
-    min-height: 170px;
-    padding-bottom: 12px;
-  }
-
-  .uiux-card-layer-front {
-    padding: 12px 12px 10px;
-    gap: 8px;
-  }
-
-  .uiux-card-layer-back-1 {
-    top: 26px;
-  }
-
-  .uiux-card-layer-back-2 {
-    top: 17px;
-  }
-
-  .uiux-card-value-limit {
-    font-size: 16px;
-  }
-
-  .uiux-card-value-used {
-    font-size: 14px;
-  }
-
-  .uiux-card-cycle {
-    font-size: 12px;
-  }
-
-  .uiux-card-progress-track {
-    height: 24px;
-  }
-
-  .dashboard-desktop-redesign .text-2xl {
-    font-size: 1.125rem !important;
-    line-height: 1.5rem !important;
-  }
-
-  .dashboard-desktop-redesign .text-\[24px\] {
-    font-size: 18px !important;
-  }
-
-  /* Texto auxiliar de KPI em linha única para evitar quebra em tela pequena */
-  .dashboard-desktop-redesign p.text-xs {
-    font-size: 9px !important;
-    line-height: 1.2 !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-}
+/* Densidade por altura de tela: a Home nova usa CSS Grid com unidades
+   fr (client/src/components/home/HomeDesktop.jsx), então ela se adapta
+   sozinha sem precisar de breakpoints pixel-a-pixel feito o layout antigo. */

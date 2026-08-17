@@ -26,8 +26,9 @@ const LoginView = ({ onLoginSuccess, onNavigateToRegister }) => {
         });
 
         if (response.ok) {
+          const data = await response.json();
           setToken();
-          onLoginSuccess();
+          onLoginSuccess(data.nome, data.email);
           return;
         }
 
@@ -44,7 +45,7 @@ const LoginView = ({ onLoginSuccess, onNavigateToRegister }) => {
       if (response.ok) {
         const data = await response.json();
         setToken(data.token);
-        onLoginSuccess();
+        onLoginSuccess(data.nome, data.email);
         return;
       }
 

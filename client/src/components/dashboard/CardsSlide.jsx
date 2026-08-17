@@ -22,7 +22,6 @@ const CardsSlide = ({
   onBack,
   cardSummaryError,
   sectionGap,
-  slideContentHeight,
   cardColumns,
   cardTransactionsById,
   futureInvoicesByCardId,
@@ -47,7 +46,7 @@ const CardsSlide = ({
           border: "1px solid var(--border-default)",
           color: "var(--text-secondary)",
         }}
-        aria-label="Voltar ao dashboard"
+        aria-label="Voltar ao painel"
       >
         <ChevronLeft size={16} />
       </button>
@@ -69,7 +68,8 @@ const CardsSlide = ({
       className="grid min-h-0 items-stretch overflow-hidden"
       style={{
         gap: `${sectionGap}px`,
-        height: `${slideContentHeight}px`,
+        flex: "1 1 0",
+        minHeight: 0,
         gridTemplateColumns: `repeat(${cardColumns.length}, minmax(0, 1fr))`,
       }}
     >

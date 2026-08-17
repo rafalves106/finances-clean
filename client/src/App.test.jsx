@@ -17,9 +17,14 @@ vi.mock("./util/releaseNotes", () => ({
   getLastSeenVersion: () => "0.4.0",
 }));
 
-vi.mock("./components/DashboardDesktopRedesignView", () => ({
-  default: () => (
-    <div data-testid="dashboard-redesign-view">Dashboard Redesign</div>
+vi.mock("./components/home/HomeDesktop", () => ({
+  default: ({ onOpenNav }) => (
+    <div data-testid="home-desktop-view">
+      Home Desktop
+      <button type="button" onClick={onOpenNav} aria-label="Abrir menu">
+        hambúrguer inline
+      </button>
+    </div>
   ),
 }));
 
@@ -92,22 +97,18 @@ describe("App dashboard integration", () => {
     };
   });
 
-  it("deve renderizar dashboard redesign por padrao com sidebar expandindo em hover", async () => {
-    const { container } = render(<App />);
+  it("deve renderizar a Home por padrão, com menu fechado até o hambúrguer ser clicado", async () => {
+    render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("dashboard-redesign-view")).toBeTruthy();
+      expect(screen.getByTestId("home-desktop-view")).toBeTruthy();
     });
 
-    const main = container.querySelector("main");
-    expect(main.className).toContain("overflow-hidden");
+    expect(screen.queryByRole("dialog", { name: "Menu de navegação" })).toBeNull();
 
-    const sidebar = container.querySelector("aside");
-    expect(sidebar).toBeTruthy();
-    expect(sidebar.style.width).toBe("64px");
+    fireEvent.click(screen.getByLabelText("Abrir menu"));
 
-    fireEvent.mouseEnter(sidebar);
-
-    expect(sidebar.style.width).toBe("240px");
+    expect(screen.getByRole("dialog", { name: "Menu de navegação" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Dashboard" })).toBeTruthy();
   });
 });

@@ -12,6 +12,7 @@ export const useTransactionActions = ({
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isCloning, setIsCloning] = useState(false);
+  const [isAiDraft, setIsAiDraft] = useState(false);
   const [openCardPurchaseMode, setOpenCardPurchaseMode] = useState(false);
 
   const handleOpenSimulation = () => {
@@ -21,6 +22,7 @@ export const useTransactionActions = ({
   const handleOpenNewTransaction = () => {
     setEditingItem(null);
     setIsCloning(false);
+    setIsAiDraft(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -28,6 +30,7 @@ export const useTransactionActions = ({
   const handleOpenEditTransaction = (transaction) => {
     setEditingItem(transaction);
     setIsCloning(false);
+    setIsAiDraft(false);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -35,6 +38,15 @@ export const useTransactionActions = ({
   const handleOpenCloneTransaction = (transaction) => {
     setEditingItem({ ...transaction, id: null });
     setIsCloning(true);
+    setIsAiDraft(false);
+    setOpenCardPurchaseMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenAssistantDraft = (draft) => {
+    setEditingItem(draft);
+    setIsCloning(false);
+    setIsAiDraft(true);
     setOpenCardPurchaseMode(false);
     setIsModalOpen(true);
   };
@@ -66,7 +78,7 @@ export const useTransactionActions = ({
       }
 
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
     } catch (error) {
       console.error("Erro ao excluir transação:", error);
       alert("Erro ao excluir transação. Verifique o console.");
@@ -97,7 +109,7 @@ export const useTransactionActions = ({
 
       const resultado = await response.json();
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
       return { ok: true, resultado };
     } catch (error) {
       console.error("Erro ao excluir transações em lote:", error);
@@ -159,7 +171,7 @@ export const useTransactionActions = ({
       }
       setSimulatedTransactions([]);
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
     } catch (error) {
       console.error("Erro ao aplicar simulação:", error);
       alert("Erro ao aplicar as transações simuladas. Verifique o console.");
@@ -173,6 +185,7 @@ export const useTransactionActions = ({
     setIsSimulationModalOpen,
     editingItem,
     isCloning,
+    isAiDraft,
     openCardPurchaseMode,
     setOpenCardPurchaseMode,
     simulatedTransactions,
@@ -180,6 +193,7 @@ export const useTransactionActions = ({
     handleOpenNewTransaction,
     handleOpenEditTransaction,
     handleOpenCloneTransaction,
+    handleOpenAssistantDraft,
     handleDeleteTransaction,
     handleBulkDelete,
     handleSimulate,

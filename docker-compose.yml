@@ -34,6 +34,8 @@ services:
       - AdminKey=${ADMIN_KEY:?ADMIN_KEY deve ser definido}
       - CodigoAtivacao=${ACTIVATION_CODE:?ACTIVATION_CODE deve ser definido}
       - AllowedOrigins__0=${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      - Groq__ApiKey=${GROQ_API_KEY:-}
+      - Groq__Model=${GROQ_MODEL:-llama-3.3-70b-versatile}
     depends_on:
       db:
         condition: service_healthy

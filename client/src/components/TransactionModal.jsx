@@ -33,6 +33,7 @@ const TransactionModal = ({
   veiculos = [],
   editingItem,
   isCloning = false,
+  isAiDraft = false,
   isSimulation = false,
   onSimulate,
   periodKey,
@@ -306,11 +307,13 @@ const TransactionModal = ({
           >
             {isSimulation
               ? "Simular Transação"
-              : isCloning
-                ? "Clonar Transação"
-                : editingItem
-                  ? "Editar Transação"
-                  : "Nova Transação"}
+              : isAiDraft
+                ? "Confirmar Transação (IA)"
+                : isCloning
+                  ? "Clonar Transação"
+                  : editingItem
+                    ? "Editar Transação"
+                    : "Nova Transação"}
           </h2>
           <button
             type="button"
