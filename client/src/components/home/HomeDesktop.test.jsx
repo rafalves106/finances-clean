@@ -127,6 +127,25 @@ describe("HomeDesktop", () => {
     await waitFor(() => expect(screen.getByText("Investments View")).toBeTruthy());
   });
 
+  it("atalho de Cartões na barra superior abre o slide de gestão dos cartões", async () => {
+    render(<HomeDesktop {...baseProps} />);
+
+    await waitFor(() => screen.getByLabelText("Atalho: Cartões"));
+    fireEvent.click(screen.getByLabelText("Atalho: Cartões"));
+
+    expect(screen.getByText("Gestão dos Cartões")).toBeTruthy();
+  });
+
+  it("atalho de Categorias chama onOpenCategoryManager", async () => {
+    const onOpenCategoryManager = vi.fn();
+    render(<HomeDesktop {...baseProps} onOpenCategoryManager={onOpenCategoryManager} />);
+
+    await waitFor(() => screen.getByLabelText("Atalho: Categorias"));
+    fireEvent.click(screen.getByLabelText("Atalho: Categorias"));
+
+    expect(onOpenCategoryManager).toHaveBeenCalled();
+  });
+
   // Regressão: onClick={handleExportRelatorioMensal} passava o SyntheticEvent
   // do clique como "mes" (virava "[object Object]" na query string) e "ano"
   // ficava undefined - precisa ser onClick={() => handleExportRelatorioMensal(mes, ano)}.
