@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -61,6 +61,8 @@ import CardsSlide from "./dashboard/CardsSlide";
 import ExportCsvModal from "./ExportCsvModal";
 import BulkDeleteConfirmModal from "./BulkDeleteConfirmModal";
 import TransactionModal from "./TransactionModal";
+import AssistenteBanner from "./AssistenteBanner";
+import AssistenteMovimentacaoModal from "./AssistenteMovimentacaoModal";
 import InvestmentsView from "./InvestmentsView";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -93,9 +95,37 @@ const DashboardDesktopRedesignView = ({
     () => new Set(),
   );
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isAssistenteOpen, setIsAssistenteOpen] = useState(false);
+  const [bannerHeight, setBannerHeight] = useState(0);
   const summaryRef = useRef(null);
   const planningRef = useRef(null);
   const reviewRef = useRef(null);
+  const bannerRef = useRef(null);
+
+  // Banner do assistente de IA só aparece na home (não dentro de slides), mas
+  // ocupa espaço vertical real - reserva esse espaço no mesmo mecanismo que já
+  // existe pra descontar o header do App.jsx, em vez de mexer na matemática
+  // de hSecao1/2/3 do useViewportDensity.
+  useLayoutEffect(() => {
+    if (activeSlide !== null || !bannerRef.current) {
+      setBannerHeight(0);
+      return;
+    }
+
+    const updateBannerHeight = () => {
+      setBannerHeight(Math.ceil(bannerRef.current?.getBoundingClientRect().height || 0));
+    };
+
+    updateBannerHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(updateBannerHeight);
+    observer.observe(bannerRef.current);
+    return () => observer.disconnect();
+  }, [activeSlide]);
 
   const {
     dashboardGap,
@@ -116,7 +146,7 @@ const DashboardDesktopRedesignView = ({
     kpiTitleClassName,
     kpiValueClassName,
     kpiHelperClampClassName,
-  } = useViewportDensity({ headerHeight });
+  } = useViewportDensity({ headerHeight: headerHeight + bannerHeight });
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
@@ -292,12 +322,14 @@ const DashboardDesktopRedesignView = ({
     setIsSimulationModalOpen,
     editingItem,
     isCloning,
+    isAiDraft,
     openCardPurchaseMode,
     setOpenCardPurchaseMode,
     handleOpenSimulation,
     handleOpenNewTransaction,
     handleOpenEditTransaction,
     handleOpenCloneTransaction,
+    handleOpenAssistantDraft,
     handleDeleteTransaction,
     handleBulkDelete,
     handleSimulate,
@@ -439,10 +471,16 @@ const DashboardDesktopRedesignView = ({
   })();
 
   return (
-    <div
-      className="dashboard-desktop-redesign overflow-hidden"
-      style={{ height: `${hUtil}px`, maxHeight: `${hUtil}px` }}
-    >
+    <>
+      {activeSlide === null ? (
+        <div ref={bannerRef} style={{ paddingBottom: `${dashboardGap}px` }}>
+          <AssistenteBanner onAbrirAssistente={() => setIsAssistenteOpen(true)} />
+        </div>
+      ) : null}
+      <div
+        className="dashboard-desktop-redesign overflow-hidden"
+        style={{ height: `${hUtil}px`, maxHeight: `${hUtil}px` }}
+      >
       {activeSlide === "investments" ? (
         <div
           className="h-full min-h-0 flex flex-col"
@@ -2680,6 +2718,7 @@ const DashboardDesktopRedesignView = ({
         veiculos={veiculos}
         editingItem={editingItem}
         isCloning={isCloning}
+        isAiDraft={isAiDraft}
         periodKey={`${selectedAno}-${selectedMes}`}
         initialCardPurchaseMode={openCardPurchaseMode}
       />
@@ -2902,7 +2941,17 @@ const DashboardDesktopRedesignView = ({
           </div>
         </div>
       ) : null}
-    </div>
+      </div>
+
+      <AssistenteMovimentacaoModal
+        isOpen={isAssistenteOpen}
+        onClose={() => setIsAssistenteOpen(false)}
+        onDraftReady={(draft) => {
+          setIsAssistenteOpen(false);
+          handleOpenAssistantDraft(draft);
+        }}
+      />
+    </>
   );
 };
 
