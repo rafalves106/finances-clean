@@ -78,7 +78,7 @@ export const useTransactionActions = ({
       }
 
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
     } catch (error) {
       console.error("Erro ao excluir transação:", error);
       alert("Erro ao excluir transação. Verifique o console.");
@@ -109,7 +109,7 @@ export const useTransactionActions = ({
 
       const resultado = await response.json();
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
       return { ok: true, resultado };
     } catch (error) {
       console.error("Erro ao excluir transações em lote:", error);
@@ -171,7 +171,7 @@ export const useTransactionActions = ({
       }
       setSimulatedTransactions([]);
       await fetchData();
-      await loadCardSummaries();
+      await loadCardSummaries?.();
     } catch (error) {
       console.error("Erro ao aplicar simulação:", error);
       alert("Erro ao aplicar as transações simuladas. Verifique o console.");
