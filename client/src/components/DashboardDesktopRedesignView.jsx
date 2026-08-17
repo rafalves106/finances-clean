@@ -108,8 +108,7 @@ const DashboardDesktopRedesignView = ({
   // de hSecao1/2/3 do useViewportDensity.
   useLayoutEffect(() => {
     if (activeSlide !== null || !bannerRef.current) {
-      setBannerHeight(0);
-      return;
+      return undefined;
     }
 
     const updateBannerHeight = () => {
@@ -126,6 +125,11 @@ const DashboardDesktopRedesignView = ({
     observer.observe(bannerRef.current);
     return () => observer.disconnect();
   }, [activeSlide]);
+
+  // Só conta a altura do banner quando ele está de fato renderizado (home) -
+  // evita reservar espaço fantasma quando um slide está aberto, sem precisar
+  // zerar o estado sincronamente dentro do effect acima.
+  const effectiveBannerHeight = activeSlide === null ? bannerHeight : 0;
 
   const {
     dashboardGap,
@@ -146,7 +150,7 @@ const DashboardDesktopRedesignView = ({
     kpiTitleClassName,
     kpiValueClassName,
     kpiHelperClampClassName,
-  } = useViewportDensity({ headerHeight: headerHeight + bannerHeight });
+  } = useViewportDensity({ headerHeight: headerHeight + effectiveBannerHeight });
 
   const currentMonthLabel = new Intl.DateTimeFormat("pt-BR", {
     month: "short",
