@@ -24,6 +24,8 @@ vi.mock("recharts", () => {
     Tooltip: Mock,
     Line: Mock,
     Legend: Mock,
+    BarChart: Mock,
+    Bar: Mock,
   };
 });
 
@@ -134,7 +136,7 @@ describe("DashboardDesktopRedesignView", () => {
       />,
     );
 
-    expect(screen.getByText("Investimentos")).toBeTruthy();
+    expect(screen.getAllByText("Investimentos").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Despesas").length).toBeGreaterThan(0);
     expect(screen.getByText("Movimentações")).toBeTruthy();
 
@@ -303,7 +305,9 @@ describe("DashboardDesktopRedesignView", () => {
     expect(despesasCard).toBeTruthy();
     expect(despesasCard.textContent).toMatch(/R\$\s*750,00/);
 
-    expect(screen.getAllByText(/Eletrônicos/).length).toBeGreaterThan(0);
+    // Gastos por Categoria agora é o gráfico de círculos aninhados - a
+    // categoria/valor aparecem no aria-label do gráfico, não como texto solto.
+    expect(screen.getByRole("img", { name: /Eletrônicos/ })).toBeTruthy();
   });
 
   it("deve exibir a fatura vencendo como item na lista de Movimentacoes", async () => {
