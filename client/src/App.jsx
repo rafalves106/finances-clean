@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 
 import HomeDesktop from "./components/home/HomeDesktop";
 import HomeMobile from "./components/home/HomeMobile";
 import NavDrawer from "./components/layout/NavDrawer";
 import HamburgerButton from "./components/ui/HamburgerButton";
-import WishlistView from "./components/WishListView";
-import VehicleView from "./components/VehicleView";
 import CategoryManagerModal from "./components/CategoryManagerModal";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
@@ -15,6 +13,18 @@ import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useAlertsCenter } from "./hooks/useAlertsCenter";
 import { useRecurringRenewals } from "./hooks/useRecurringRenewals";
 import { useGlobalSearchShortcut } from "./hooks/useGlobalSearchShortcut";
+
+// Carregadas sob demanda (React.lazy nativo, sem lib nova) - só entram no
+// bundle quando o usuário de fato navega pra essas telas, em vez de
+// pesarem no carregamento inicial da Home (aviso de chunk grande do vite).
+const WishlistView = lazy(() => import("./components/WishListView"));
+const VehicleView = lazy(() => import("./components/VehicleView"));
+
+const LazyViewFallback = () => (
+  <div className="flex h-40 items-center justify-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+    Carregando...
+  </div>
+);
 
 import {
   API_URL,
@@ -556,16 +566,18 @@ const App = () => {
             >
               {TAB_TITLES.wishlist}
             </h1>
-            <WishlistView
-              totalIncome={monthlyIncomeForGoals}
-              hourlyRate={hourlyRate}
-              workHoursPerMonth={workHoursPerMonth}
-              setWorkHoursPerMonth={setWorkHoursPerMonth}
-              categorias={categorias}
-              investments={investments}
-              metas={metas}
-              onMetasChange={fetchMetas}
-            />
+            <Suspense fallback={<LazyViewFallback />}>
+              <WishlistView
+                totalIncome={monthlyIncomeForGoals}
+                hourlyRate={hourlyRate}
+                workHoursPerMonth={workHoursPerMonth}
+                setWorkHoursPerMonth={setWorkHoursPerMonth}
+                categorias={categorias}
+                investments={investments}
+                metas={metas}
+                onMetasChange={fetchMetas}
+              />
+            </Suspense>
           </div>
         )}
         {activeTab === "vehicle" && (
@@ -576,11 +588,13 @@ const App = () => {
             >
               {TAB_TITLES.vehicle}
             </h1>
-            <VehicleView
-              veiculos={veiculos}
-              fetchVeiculos={fetchVeiculos}
-              categorias={categorias}
-            />
+            <Suspense fallback={<LazyViewFallback />}>
+              <VehicleView
+                veiculos={veiculos}
+                fetchVeiculos={fetchVeiculos}
+                categorias={categorias}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -632,25 +646,27 @@ const App = () => {
             >
               {TAB_TITLES[activeTab]}
             </h1>
-            {activeTab === "wishlist" && (
-              <WishlistView
-                totalIncome={monthlyIncomeForGoals}
-                hourlyRate={hourlyRate}
-                workHoursPerMonth={workHoursPerMonth}
-                setWorkHoursPerMonth={setWorkHoursPerMonth}
-                categorias={categorias}
-                investments={investments}
-                metas={metas}
-                onMetasChange={fetchMetas}
-              />
-            )}
-            {activeTab === "vehicle" && (
-              <VehicleView
-                veiculos={veiculos}
-                fetchVeiculos={fetchVeiculos}
-                categorias={categorias}
-              />
-            )}
+            <Suspense fallback={<LazyViewFallback />}>
+              {activeTab === "wishlist" && (
+                <WishlistView
+                  totalIncome={monthlyIncomeForGoals}
+                  hourlyRate={hourlyRate}
+                  workHoursPerMonth={workHoursPerMonth}
+                  setWorkHoursPerMonth={setWorkHoursPerMonth}
+                  categorias={categorias}
+                  investments={investments}
+                  metas={metas}
+                  onMetasChange={fetchMetas}
+                />
+              )}
+              {activeTab === "vehicle" && (
+                <VehicleView
+                  veiculos={veiculos}
+                  fetchVeiculos={fetchVeiculos}
+                  categorias={categorias}
+                />
+              )}
+            </Suspense>
           </div>
         )}
       </main>
