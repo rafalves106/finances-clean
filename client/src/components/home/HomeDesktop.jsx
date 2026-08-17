@@ -163,6 +163,7 @@ const HomeDesktop = ({
   faturasVencendo = [],
   resumoMensal = null,
   comparativoMensal = null,
+  projecaoSaldo = null,
 }) => {
   const [simulatedTransactions, setSimulatedTransactions] = useState([]);
   const [homeWidgetTab, setHomeWidgetTab] = useState("despesas");
@@ -176,6 +177,21 @@ const HomeDesktop = ({
     month: "short",
     year: "2-digit",
   }).format(new Date(selectedAno, selectedMes - 1, 1));
+
+  // dataKeys em entrada/saida/saldo pra reaproveitar renderChartTooltip sem
+  // criar um tooltip novo só pra esse gráfico.
+  const projectionChartData = useMemo(
+    () =>
+      (projecaoSaldo ?? []).map((item) => ({
+        data: new Intl.DateTimeFormat("pt-BR", { month: "short", year: "2-digit" }).format(
+          new Date(item.ano, item.mes - 1, 1),
+        ),
+        entrada: item.totalEntradas,
+        saida: item.totalSaidas,
+        saldo: item.saldoAcumulado,
+      })),
+    [projecaoSaldo],
+  );
 
   const handlePreviousMonth = () => {
     const previousDate = new Date(selectedAno, selectedMes - 2, 1);
@@ -761,6 +777,7 @@ const HomeDesktop = ({
                 { id: "fluxo", label: "Fluxo" },
                 { id: "categorias", label: "Categorias" },
                 { id: "comparativo", label: "Comparativo" },
+                { id: "projecao", label: "Projeção" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -972,6 +989,44 @@ const HomeDesktop = ({
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                )}
+              </Panel>
+            )}
+
+            {chartsSlideTab === "projecao" && (
+              <Panel className="min-h-0 flex-1 rounded-2xl p-4">
+                {projectionChartData.length === 0 ? (
+                  <p className="pt-8 text-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                    Ainda não há dados suficientes pra projetar os próximos meses.
+                  </p>
+                ) : (
+                  <div className="flex h-full min-h-0 flex-col gap-2">
+                    <p className="m-0 flex-shrink-0 text-xs" style={{ color: "var(--text-tertiary)" }}>
+                      Saldo acumulado projetado com base nas movimentações fixas e parceladas já lançadas -
+                      não é uma simulação, é o que já está previsto pra entrar e sair.
+                    </p>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={projectionChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorSaldoProjecao" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={CHART_THEME_COLORS.saldo.fill} stopOpacity={0.22} />
+                            <stop offset="100%" stopColor={CHART_THEME_COLORS.saldo.fill} stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="4 10" vertical={false} stroke="#e7e9f0" />
+                        <XAxis dataKey="data" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#767c93" }} />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={formatChartAxisTick}
+                          tick={{ fontSize: 11, fill: "#767c93" }}
+                          width={48}
+                        />
+                        <Tooltip content={renderChartTooltip} cursor={{ stroke: "#c4c9da", strokeWidth: 2, strokeDasharray: "6 6" }} />
+                        <Area type="monotone" dataKey="saldo" fill="url(#colorSaldoProjecao)" stroke={CHART_THEME_COLORS.saldo.fill} strokeWidth={2} isAnimationActive={false} name="saldo" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </Panel>
             )}

@@ -58,6 +58,7 @@ builder.Services.AddScoped<ListarMovimentacoesComCompetenciaEfetivaUseCase>();
 builder.Services.AddScoped<ObterResumoMensalUseCase>();
 builder.Services.AddScoped<ObterComparativoCategoriaMensalUseCase>();
 builder.Services.AddScoped<ObterSaldoAcumuladoUseCase>();
+builder.Services.AddScoped<ObterProjecaoSaldoUseCase>();
 builder.Services.AddScoped<GerarRelatorioMensalUseCase>();
 builder.Services.AddScoped<RenumerarGrupoUseCase>();
 builder.Services.AddScoped<ListarGruposRecorrenciaExpiradosUseCase>();
