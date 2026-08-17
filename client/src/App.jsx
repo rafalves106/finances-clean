@@ -78,6 +78,7 @@ const parsePeriodKey = (periodKey) => {
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
+  const [userName, setUserName] = useState("");
   const [authScreen, setAuthScreen] = useState("login");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
@@ -457,6 +458,7 @@ const App = () => {
   const handleLogout = () => {
     removeToken();
     setIsLoggedIn(false);
+    setUserName("");
   };
 
   if (!isLoggedIn) {
@@ -468,7 +470,10 @@ const App = () => {
 
     return (
       <LoginView
-        onLoginSuccess={() => setIsLoggedIn(true)}
+        onLoginSuccess={(nome) => {
+          setUserName(nome || "");
+          setIsLoggedIn(true);
+        }}
         onNavigateToRegister={() => setAuthScreen("register")}
       />
     );
@@ -514,6 +519,7 @@ const App = () => {
       onOpenSearch={() => setIsGlobalSearchOpen(true)}
       onLogout={handleLogout}
       version={APP_VERSION}
+      userName={userName}
     />
   );
 

@@ -61,4 +61,36 @@ describe("NavDrawer", () => {
     expect(onNavigate).toHaveBeenCalledWith("vehicle");
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("mostra as iniciais e o nome do usuário logado, quando disponível", () => {
+    render(
+      <NavDrawer
+        isOpen
+        onClose={vi.fn()}
+        activeTab="dashboard"
+        onNavigate={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onLogout={vi.fn()}
+        userName="Rafael Alves"
+      />,
+    );
+
+    expect(screen.getByText("RA")).toBeTruthy();
+    expect(screen.getByText("Rafael Alves")).toBeTruthy();
+  });
+
+  it("não mostra o bloco de usuário quando não há nome (sessão sem dado ainda)", () => {
+    render(
+      <NavDrawer
+        isOpen
+        onClose={vi.fn()}
+        activeTab="dashboard"
+        onNavigate={vi.fn()}
+        onOpenSearch={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("RA")).toBeNull();
+  });
 });
