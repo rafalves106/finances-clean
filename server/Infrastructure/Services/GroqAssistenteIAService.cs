@@ -33,15 +33,36 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
       claramente - NUNCA invente uma categoria fora desta lista):
       {{categoriasTexto}}
 
+      Também detecte se a movimentação é PARCELADA ou RECORRENTE:
+
+      - Parcelamento (ex: "em 10x", "parcelado em 5 vezes", "10 parcelas"): tipoMovimentacaoFixa
+        = "Parcelada", fixa = true, periodo = número de parcelas. O campo "valor" deve ser
+        SEMPRE o valor de CADA parcela: se o texto já der o valor por parcela ("10x de 300"),
+        use 300 direto; se der o valor TOTAL da compra ("notebook de 3000 em 10x"), calcule
+        valor = 3000 / 10 = 300.
+
+      - Recorrência (ex: "todo mês", "mensalmente", "assinatura", "toda semana",
+        "semanalmente", "recorrente"): tipoMovimentacaoFixa = "RecorrenteFixa", fixa = true,
+        tipoRecorrencia = "Mensal" ou "Semanal" conforme o texto. periodo = número de
+        ocorrências a lançar; se o texto não disser por quanto tempo, use 12. Se disser um
+        prazo ("por 6 meses"), use esse número.
+
+      - Se não houver nenhuma dessas pistas, é uma movimentação avulsa: fixa = false,
+        periodo = null, tipoRecorrencia = null, tipoMovimentacaoFixa = null.
+
       Responda SOMENTE com um JSON no formato exato, sem nenhum texto fora do JSON:
       {
         "entendido": true ou false,
         "titulo": "string curta, ou null",
-        "valor": número positivo, ou null,
+        "valor": número positivo (valor de UMA parcela/ocorrência se fixa=true), ou null,
         "data": "YYYY-MM-DD", ou null,
         "tipo": "Entrada" ou "Saida", ou null,
         "categoriaId": "guid de uma das categorias acima, ou null",
-        "observacao": "string curta explicando qualquer suposição feita, ou null"
+        "observacao": "string curta explicando qualquer suposição feita, ou null",
+        "fixa": true ou false,
+        "periodo": número inteiro positivo de parcelas/ocorrências, ou null se fixa=false,
+        "tipoRecorrencia": "Mensal" ou "Semanal", ou null se não for recorrente,
+        "tipoMovimentacaoFixa": "Parcelada" ou "RecorrenteFixa", ou null se fixa=false
       }
 
       Se o texto não descrever claramente uma movimentação financeira (não dá pra saber o
@@ -108,8 +129,37 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
       var tipo = extraido.Tipo is "Entrada" or "Saida" ? extraido.Tipo : null;
       var valor = extraido.Valor is > 0 ? extraido.Valor : null;
 
+      // Só aceita fixa/parcelamento/recorrência com uma combinação válida e
+      // completa - qualquer inconsistência (tipo desconhecido, período <= 0)
+      // cai pra movimentação avulsa em vez de mandar dado incoerente pro
+      // formulário (evita fixa=true sem período, por exemplo).
+      var tipoMovimentacaoFixa = extraido.TipoMovimentacaoFixa is "Parcelada" or "RecorrenteFixa"
+        ? extraido.TipoMovimentacaoFixa
+        : null;
+      var tipoRecorrencia = extraido.TipoRecorrencia is "Mensal" or "Semanal"
+        ? extraido.TipoRecorrencia
+        : null;
+      var periodo = extraido.Periodo is > 0 ? extraido.Periodo : null;
+      var fixa = extraido.Fixa && tipoMovimentacaoFixa is not null && periodo is not null;
+
+      if (!fixa)
+      {
+        tipoMovimentacaoFixa = null;
+        tipoRecorrencia = null;
+        periodo = null;
+      }
+      else if (tipoMovimentacaoFixa == "Parcelada")
+      {
+        tipoRecorrencia = null;
+      }
+      else
+      {
+        tipoRecorrencia ??= "Mensal";
+      }
+
       return new InterpretacaoMovimentacaoResultado(
-        true, extraido.Titulo, valor, data, tipo, categoriaId, extraido.Observacao);
+        true, extraido.Titulo, valor, data, tipo, categoriaId, extraido.Observacao,
+        fixa, periodo, tipoRecorrencia, tipoMovimentacaoFixa);
     }
     catch (Exception)
     {
@@ -147,5 +197,9 @@ public class GroqAssistenteIAService(HttpClient httpClient, IConfiguration confi
     public string? Tipo { get; set; }
     public string? CategoriaId { get; set; }
     public string? Observacao { get; set; }
+    public bool Fixa { get; set; }
+    public int? Periodo { get; set; }
+    public string? TipoRecorrencia { get; set; }
+    public string? TipoMovimentacaoFixa { get; set; }
   }
 }

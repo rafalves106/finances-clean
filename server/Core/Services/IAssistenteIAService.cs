@@ -9,7 +9,11 @@ public record InterpretacaoMovimentacaoResultado(
   DateTime? Data,
   string? Tipo,
   Guid? CategoriaId,
-  string? Observacao
+  string? Observacao,
+  bool Fixa = false,
+  int? Periodo = null,
+  string? TipoRecorrencia = null,
+  string? TipoMovimentacaoFixa = null
 );
 
 public interface IAssistenteIAService

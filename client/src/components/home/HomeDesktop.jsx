@@ -1546,9 +1546,14 @@ const HomeDesktop = ({
       <AssistenteMovimentacaoModal
         isOpen={isAssistenteOpen}
         onClose={() => setIsAssistenteOpen(false)}
+        allTransactions={allTransactions}
         onDraftReady={(draft) => {
           setIsAssistenteOpen(false);
           handleOpenAssistantDraft(draft);
+        }}
+        onCloneSuggestion={(transacao) => {
+          setIsAssistenteOpen(false);
+          handleOpenCloneTransaction(transacao);
         }}
       />
     </>
